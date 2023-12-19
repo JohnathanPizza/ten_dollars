@@ -1,0 +1,44 @@
+; SRAM section
+
+; zero page virtual registers
+=VRB	VR0
+	; pointers
+=VR0	0XE8		; 2
+=VR1	0XEA		; 2
+=VR2	0XEC		; 2
+=VR3	0XEE		; 2
+	; numbers
+=VR4	0XF0		; 2
+=VR5	0XF2		; 2
+=VR6	0XF4		; 2
+=VR7	0XF6		; 2
+	; temp/return
+=VR8	0XF8		; 2
+=VR9	0XFA		; 2
+=VR10	0XFC		; 2
+=VR11	0XFE		; 2
+
+; io variables
+=IO_OUT_BUFFER		0X200	; 0x100
+=IO_IN_BUFFER		0X300	; 0x100
+=IO_OUT_HEAD		0X400	; 1
+=IO_OUT_TAIL		0X401	; 1
+=IO_IN_IDX		0X402	; 1
+=IO_OUT_PTR		0X403	; 2
+=IO_OUT_PTR_LEN		0X405	; 2
+=IO_STATUS_PRINTER	0X407	; 1
+=IO_STATUS_KEYBOARD	0X408	; 1
+=IO_KEYBOARD_SHIFT	0X409	; 1
+=IO_KEYBOARD_FLAGS	0X40A	; 1
+
+=FLOPPY_PAGE		0X500
+
+;==================================================
+
+; ROM section
+
+@0XFFFC
+$STARTUP
+
+@0XFFFE
+$INTERRUPT

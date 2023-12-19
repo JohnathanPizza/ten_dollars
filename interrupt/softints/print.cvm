@@ -1,0 +1,66 @@
+; adds the given string to the printing buffer and starts the printing operation
+; VR0 contains a pointer to the string to print
+; VR5 contains the length of the string at the pointer
+; the string given does not need to be nul terminated and this function wont check for a nul terminator
+
+>INT_FUNC_PRINT
+	LDA	VR5			; first load the low byte of the length to test for 0
+	ORA	VR5 1			; OR with the high byte to test for 0
+	BNE	_INT_FUNC_PRINT_CONTINUE	; if not 0, keep going
+	JMP	_INTERRUPT_EXIT		; else return
+>_INT_FUNC_PRINT_CONTINUE
+	LDA.I	VIA_IER_ENABLE VIA_IB_CB1	; load constant to turn on the printer interrupt
+	STA	VIA_IER			; turn on
+	LDA.I	TRUE			; load true to indicate printer is active
+	STA	IO_STATUS_PRINTER	; store in status
+					; move the string length to the overflow pointer length for modification
+	LDA	VR5			; so that the value in VR5 is preserved and any leftover length will already be in the overflow
+	STA	IO_OUT_PTR_LEN
+	LDA	VR5 1
+	STA	IO_OUT_PTR_LEN 1
+	LDA	VR0			; same idea with the string pointer, save it to overflow pointer
+	STA	IO_OUT_PTR
+	LDA	VR0 1
+	STA	IO_OUT_PTR 1
+>_INT_FUNC_PRINT_LOOP
+	LDA	IO_OUT_HEAD		; load the write index
+	INC				; increment it
+	CMP	IO_OUT_TAIL		; compare value to the read index
+	BEQ	_INT_FUNC_PRINT_BREAK	; if equal then write is right behind read, no more space
+	LDA.ZP	VR0			; else there is space, can go ahead and grab the next character
+	LDX	IO_OUT_HEAD		; load the write index into x
+	STA.X	IO_OUT_BUFFER		; store the char into the buffer
+	INC	IO_OUT_HEAD		; increment write index in memory
+	CLC				; increment the string pointer
+	LDA	VR0
+	ADC.I	1			
+	STA	VR0
+	LDA	VR0 1
+	ADC.I	0
+	STA	VR0 1
+	SEC				; decrement the length
+	LDA	IO_OUT_PTR_LEN
+	SBC.I	1
+	STA	IO_OUT_PTR_LEN
+	LDA	IO_OUT_PTR_LEN 1
+	SBC.I	0
+	STA	IO_OUT_PTR_LEN 1
+	LDA	IO_OUT_PTR_LEN		; load the low byte of the length to check for 0
+	ORA	IO_OUT_PTR_LEN 1	; OR with the high byte
+	BNE	_INT_FUNC_PRINT_LOOP	; if not empty then loop again
+>_INT_FUNC_PRINT_BREAK
+	; either no more space or no more chars, swap the pointer values to restore old value and also set the overflow pointer if needed
+	LDA	VR0
+	PHA
+	LDA	VR0 1
+	PHA
+	LDA	IO_OUT_PTR
+	STA	VR0
+	LDA	IO_OUT_PTR 1
+	STA	VR0 1
+	PLA
+	STA	IO_OUT_PTR 1
+	PLA
+	STA	IO_OUT_PTR
+>_INT_FUNC_PRINT_EXIT
+	JMP	_INTERRUPT_EXIT		; return

@@ -1,0 +1,50 @@
+; this interrupt services the printer
+
+>INTERRUPT_CB1
+	; get next char
+	LDX	IO_OUT_TAIL		; load the read index for the printer array
+	LDA.X	IO_OUT_BUFFER		; read the next character
+	INC	IO_OUT_TAIL		; increment the read index
+	ORA.I	0X80			; set bit 7 of the character to toggle on UART module and print
+	STA	VIA_PRINTER_PORT	; store
+	AND.I	0X7F			; clear bit 7 to toggle off UART module
+	STA	VIA_PRINTER_PORT	; store
+	LDA	IO_OUT_PTR_LEN		; load low byte of overflow pointer length to test if zero
+	ORA	IO_OUT_PTR_LEN 1	; OR with high byte to test if zero
+	BEQ	_INTERRUPT_CB1_TEST	; if length is 0, nothing needs to be added so skip to empty testing
+	; need to add one char from the overflow
+	LDA	IO_OUT_PTR		; load the overflow pointer into VR8
+	STA	VR8
+	LDA	IO_OUT_PTR 1
+	STA	VR8 1
+	LDA.ZP	VR8			; load the char at the pointer head
+	LDX	IO_OUT_HEAD		; load write index for printer array
+	STA.X	IO_OUT_BUFFER		; store the new character into the array
+	INC	IO_OUT_HEAD		; increment the write index
+	; increment the overflow pointer and decrement the overflow length
+	CLC				; add 1 to the overflow pointer
+	LDA	IO_OUT_PTR
+	ADC.I	1
+	STA	IO_OUT_PTR
+	LDA	IO_OUT_PTR 1
+	ADC.I	0
+	STA	IO_OUT_PTR 1
+	
+	SEC				; sub 1 from the overflow length
+	LDA	IO_OUT_PTR_LEN
+	SBC.I	1
+	STA	IO_OUT_PTR_LEN
+	LDA	IO_OUT_PTR_LEN 1
+	SBC.I	0
+	STA	IO_OUT_PTR_LEN 1
+	BRA	_INTERRUPT_CB1_END	; skip testing and return since there is now at least 1 char left
+>_INTERRUPT_CB1_TEST
+	LDA	IO_OUT_TAIL		; load read index to test if equal to write index
+	CMP	IO_OUT_HEAD		; compare read index to the write index
+	BNE	_INTERRUPT_CB1_END	; if not zero, just return and dont disable the interrupt
+	; else turn off interrupt
+	LDA.I	VIA_IER_DISABLE VIA_IB_CB1	; load cosntant to disable the printer interrupt
+	STA	VIA_IER			; turn off
+	STZ	IO_STATUS_PRINTER	; clear printing status
+>_INTERRUPT_CB1_END
+	JMP _INTERRUPT_RECHECK		; return

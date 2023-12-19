@@ -1,0 +1,36 @@
+; entrypoint into OS code when computer powered on or restarted
+
+@0X8000
+>STARTUP
+	; hardware initialization
+	LDX.I	0XFF				; initialize stack register
+	TXS
+	STA	HW_ENABLE HW_SRAM HW_VIA	; turn on SRAM and VIA
+	LDA.I	0B11000101			; load the initial PCR value to configure interrupt conditions
+	STA	VIA_PCR				; store
+	STZ	VIA_KEYBOARD_DIR		; make the keyboard port all inputs
+	STZ	VIA_PRINTER_PORT		; set the printer port data to nothing
+	LDA.I	0XFF				; make the printer port all outputs
+	STA	VIA_PRINTER_DIR
+	STA	HW_ENABLE HW_SRAM		; turn off VIA now that its setup is done
+
+	; initialize variables in ram
+	STZ	IO_OUT_HEAD
+	STZ	IO_OUT_TAIL
+	STZ	IO_IN_IDX
+	STZ	IO_OUT_PTR_LEN
+	STZ	IO_OUT_PTR_LEN 1
+	STZ	IO_KEYBOARD_SHIFT
+	STZ	IO_KEYBOARD_FLAGS
+	STZ	IO_STATUS_PRINTER
+	STZ	IO_STATUS_KEYBOARD
+
+	JSR WAIT_1MS
+	JSR WAIT_1MS
+	JSR WAIT_1MS
+	JSR WAIT_1MS
+	JSR WAIT_1MS
+	
+	CLI
+>IDLE
+	JMP IDLE

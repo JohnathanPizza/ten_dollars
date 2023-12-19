@@ -1,0 +1,80 @@
+; MEMORY.CVM
+; ===
+; MEMSET
+; MEMCPY
+
+;==================================================
+
+; MEMSET
+; P ---	VR0: memory pointer M
+;	VR4: memory length L
+;	VR5/1: value V
+; writes the value V to the memory region starting at M which is L bytes long
+
+>MEMSET
+	PHA		; store A
+	PHX		; store X
+	LDA.Z	VR0	; copy M into a temporary register
+	STA.Z	VR8
+	LDA.Z	VR0 1
+	STA.Z	VR8 1
+	LDA.Z	VR4	; copy L into a temporary register
+	STA.Z	VR9
+	LDA.Z	VR4 1
+	STA.Z	VR9 1
+>_MEMSET_LOOP
+	LDA.Z	VR9	; load the low byte of L to test if 0
+	ORA.Z	VR9 1	; OR with high byte to test if 0
+	BEQ	_MEMSET_END	; if 0 then return
+	LDA.Z	VR5	; load V
+	STA.ZP	VR8	; store V into the next byte
+	LDX.I	VRI_8	; load the VRI for M
+	JSR	INC16	; increment M
+	LDX.I	VRI_9	; load the VRI for L
+	JSR	DEC16	; decrement L
+	BRA	_MEMSET_LOOP	; loop
+>_MEMSET_END
+	PLX		; restore X
+	PLA		; restore A
+	RTS		; return
+
+;==================================================
+
+; MEMCPY
+; P ---	VR0: pointer to source memory S
+;	VR1: pointer to destination memory D
+;	VR4: number of bytes to copy L
+; copies the first L bytes from source location S to destination location D
+
+>MEMCPY
+	PHA		; store A
+	PHX		; store X
+	LDA.Z	VR0	; copy S to a temporary register
+	STA.Z	VR8
+	LDA.Z	VR0 1
+	STA.Z	VR8 1
+	LDA.Z	VR1	; copy D to a temporary register
+	STA.Z	VR9
+	LDA.Z	VR1 1
+	STA.Z	VR9 1
+	LDA.Z	VR4	; copy L to a temporary register
+	STA.Z	VR10
+	LDA.Z	VR4 1
+	STA.Z	VR10 1
+>_MEMCPY_LOOP
+	LDA.Z	VR10	; load low byte of L to test if 0
+	ORA.Z	VR10 1	; OR with high byte of L to test if 0
+	BEQ	_MEMCPY_END	; if 0 then return
+	LDA.ZP	VR8	; load the next byte from S
+	STA.ZP	VR9	; store in the next location at D
+	LDX.I	VRI_8	; load VRI for S
+	JSR	INC16	; increment S
+	LDX.I	VRI_9	; load VRI for D
+	JSR	INC16	; increment D
+	LDX.I	VRI_10	; load VRI for L
+	JSR	DEC16	; decrement L
+	BRA	_MEMCPY_LOOP	; loop
+>_MEMCPY_END
+	PLX		; restore X
+	PLA		; restore A
+	RTS		; return

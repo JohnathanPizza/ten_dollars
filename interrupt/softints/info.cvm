@@ -1,0 +1,12 @@
+; the pointer array for jumping into software interrupts by interrupt code
+; also the constants to be used when calling software interrupts
+
+>INT_ARRAY
+$INT_FUNC_PRINT	; 0
+$INT_FUNC_READ	; 1
+>_INT_ARRAY_END
+
+=INT_COUNT _INT_ARRAY_END - INT_ARRAY / 2	; calculates the length of the pointer array
+
+=INT_PRINT	0
+=INT_READ	1

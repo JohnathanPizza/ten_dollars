@@ -1,0 +1,10 @@
+; sets up input vars and enables the keyboard
+
+>INT_FUNC_READ
+	STZ	IO_IN_IDX			; reset
+	LDA.I	TRUE				; load true to indicate the keyboard is active
+	STA	IO_STATUS_KEYBOARD		; store into status
+	BIT	VIA_KEYBOARD_PORT		; clear any existing interrupt
+	LDA.I	VIA_IER_ENABLE VIA_IB_CA1	; load constant to turn on the interrupt
+	STA	VIA_IER				; turn on
+	JMP	_INTERRUPT_EXIT			; return

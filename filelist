@@ -1,3 +1,6 @@
-start.cvm
-interrupt.cvm
 map.cvm
+start.cvm
+wait.cvm
+interrupt.cvm
+hwcontrol.cvm
+const/hardware.cvm

@@ -1,4 +1,30 @@
+; RAM section 0x0000 - 0x7FFF
+
+; zero page virtual registers
+; pointer registers:
+=VR0	0XE8
+=VR1	0XEA
+=VR2	0XEC
+=VR3	0XEE
+; value registers:
+=VR4	0XF0
+=VR5	0XF2
+=VR6	0XF4
+=VR7	0XF6
+; temporary & return registers:
+=VR8	0XF8
+=VR9	0XFA
+=VR10	0XFC
+=VR11	0XFE
+
+=HW_STATUS	0X200	; 1
+
+;==================================================
+
+; ROM section 0x8000 - 0xFFFF
+
 @0XFFFC
 $START
+
 @0XFFFE
 $INTERRUPT

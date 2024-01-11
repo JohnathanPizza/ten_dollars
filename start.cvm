@@ -1,3 +1,15 @@
 @0X8000
 >START
-	JMP	START
+	; hardware initialization
+	
+	; setting stack pointer
+	LDX.I	0XFF	; load stack pointer default value
+	TXS		; set stack pointer to 0x1FF
+
+	; turning on hardware modules
+	STA	HW_ENABLE_ADDR HW_SRAM	; enable the SRAM
+	LDA.I	HW_SRAM		; load the value of the SRAM toggle
+	STA	HW_STATUS	; store into status to track it
+
+>LOOP
+	JMP LOOP

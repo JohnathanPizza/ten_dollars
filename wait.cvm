@@ -1,0 +1,32 @@
+; WAIT.CVM
+; ===
+; WAIT_1MS
+; WAIT_MILIS
+
+@START_END > 8 + 1 < 8		; TEMPORARY!!! hackily ensures this function is page aligned
+>WAIT_1MS
+	PHX			; 3
+	LDX.I	220		; 2
+>_WAIT_1MS_LOOP
+	NOP			; 2
+	NOP			; 2
+	DEX			; 2
+	BNE	_WAIT_1MS_LOOP	; 3,2
+	PLX			; 3
+	NOP			; 2
+	NOP			; 2
+	NOP			; 2
+	RTS			; 7
+
+; A holds number of miliseconds to wait
+>WAIT_MILIS
+	PHA
+>_WAIT_MILIS_LOOP
+	CMP.I	0
+	BEQ	_WAIT_MILIS_LOOP_END
+	JSR	WAIT_1MS
+	DEC
+	BRA	_WAIT_MILIS_LOOP
+>_WAIT_MILIS_LOOP_END
+	PLA
+	RTS

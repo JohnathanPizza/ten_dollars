@@ -6,11 +6,11 @@
 =VIA_DB		0X4002	; data direction register B
 =VIA_DA		0X4003	; data direction register A
 =VIA_T1L	0X4004	; timer 1 low
-=VIA_T1CH	0X4005	; timer 1 high counter
+=VIA_T1HC	0X4005	; timer 1 high counter
 =VIA_T1LL	0X4006	; timer 1 low latch
-=VIA_T1LH	0X4007	; timer 1 high latch
+=VIA_T1HL	0X4007	; timer 1 high latch
 =VIA_T2L	0X4008	; timer 2 low
-=VIA_T2CH	0X4009	; timer 2 high counter
+=VIA_T2HC	0X4009	; timer 2 high counter
 =VIA_S		0X400A	; shift register
 =VIA_ACR	0X400B	; auxiliary control register
 =VIA_PCR	0X400C	; peripheral control register

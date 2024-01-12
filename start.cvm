@@ -1,3 +1,5 @@
+; entrypoint in intitialization code when the computer is turned on or reset
+
 @0X8000
 >START
 	; hardware initialization
@@ -18,9 +20,13 @@
 	STZ	VIA_WRITE_PORT		; preset the write port to output 0
 	LDA.I	0XFF			; load value to set write port to all output
 	STA	VIA_WRITE_PORT_DIR	; set write port to all output
+	LDA.I	0B00000000
+	STA	VIA_ACR
 	STA	HW_ENABLE_ADDR HW_SRAM	; disable the VIA now
 	
 	; testing io
+
+	STZ 0X350
 
 	STA 0X8000 0B1001
 
@@ -31,6 +37,21 @@
 	JSR	PRINTC
 	LDA.I	ASCII_AT
 	JSR	PRINTC
+
+	LDA.I	VIA_IER_DISABLE VIA_IB_CB1
+	STA	VIA_IER
+
+	LDA.I	0XFF
+	STA	VIA_T2L
+	STA	VIA_T2HC
+
+	LDA.I	VIA_IER_ENABLE VIA_IB_T2
+	STA	VIA_IER
+
+	STA 0X8000 0B0001
+
+	CLI
+	
 >LOOP
 	JMP LOOP
 

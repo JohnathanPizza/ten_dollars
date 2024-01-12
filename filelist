@@ -1,7 +1,14 @@
 map.cvm
 start.cvm
+
+interrupt/interrupt.cvm
+interrupt/via/t1.cvm
+interrupt/via/t2.cvm
+interrupt/via/ca1.cvm
+interrupt/via/cb1.cvm
+interrupt/brk/array.cvm
+
 wait.cvm
-interrupt.cvm
 hwcontrol.cvm
 
 const/hardware.cvm

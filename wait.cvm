@@ -2,6 +2,7 @@
 ; ===
 ; WAIT_1MS
 ; WAIT_MILIS
+; WAIT_SEC
 
 @START_END > 8 + 1 < 8		; TEMPORARY!!! hackily ensures this function is page aligned
 >WAIT_1MS
@@ -28,5 +29,15 @@
 	DEC
 	BRA	_WAIT_MILIS_LOOP
 >_WAIT_MILIS_LOOP_END
+	PLA
+	RTS
+
+>WAIT_SEC
+	PHA
+	LDA.I	250
+	JSR	WAIT_MILIS
+	JSR	WAIT_MILIS
+	JSR	WAIT_MILIS
+	JSR	WAIT_MILIS
 	PLA
 	RTS

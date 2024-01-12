@@ -7,9 +7,45 @@
 	TXS		; set stack pointer to 0x1FF
 
 	; turning on hardware modules
-	STA	HW_ENABLE_ADDR HW_SRAM	; enable the SRAM
-	LDA.I	HW_SRAM		; load the value of the SRAM toggle
+	STA	HW_ENABLE_ADDR HW_SRAM HW_VIA	; enable the SRAM and VIA
+	LDA.I	HW_SRAM		; load the value of the SRAM toggle (not VIA, it is turned off soon)
 	STA	HW_STATUS	; store into status to track it
 
+	; setting register values in the VIA
+	LDA.I	0B11000101	; initial value for the PCR
+	STA	VIA_PCR		; update PCR
+	STZ	VIA_READ_PORT_DIR	; set the reading port to all input
+	STZ	VIA_WRITE_PORT		; preset the write port to output 0
+	LDA.I	0XFF			; load value to set write port to all output
+	STA	VIA_WRITE_PORT_DIR	; set write port to all output
+	STA	HW_ENABLE_ADDR HW_SRAM	; disable the VIA now
+	
+	; testing io
+
+	STA 0X8000 0B1001
+
+	LDA.I	VIA_IER_ENABLE VIA_IB_CB1
+	STA	VIA_IER
+
+	LDA.I	ASCII_ESC
+	JSR	PRINTC
+	LDA.I	ASCII_AT
+	JSR	PRINTC
 >LOOP
 	JMP LOOP
+
+; char in A
+>PRINTC
+	PHA
+>_PRINTC_WAIT
+	LDA	VIA_IFR
+	AND.I	VIA_IB_CB1
+	BEQ	_PRINTC_WAIT
+	PLA
+	ORA.I	0X80
+	STA	VIA_WRITE_PORT
+	AND.I	0X7F
+	STA	VIA_WRITE_PORT
+	RTS
+
+>START_END

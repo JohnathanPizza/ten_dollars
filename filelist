@@ -3,4 +3,7 @@ start.cvm
 wait.cvm
 interrupt.cvm
 hwcontrol.cvm
+
 const/hardware.cvm
+const/via.cvm
+const/ascii.cvm

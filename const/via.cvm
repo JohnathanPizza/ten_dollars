@@ -1,0 +1,52 @@
+; VIA register addresses to use when the VIA is enabled
+; want more info on the registers? rtfm
+
+=VIA_B		0X4000	; input/output register B
+=VIA_A		0X4001	; input/output register A
+=VIA_DB		0X4002	; data direction register B
+=VIA_DA		0X4003	; data direction register A
+=VIA_T1L	0X4004	; timer 1 low
+=VIA_T1CH	0X4005	; timer 1 high counter
+=VIA_T1LL	0X4006	; timer 1 low latch
+=VIA_T1LH	0X4007	; timer 1 high latch
+=VIA_T2L	0X4008	; timer 2 low
+=VIA_T2CH	0X4009	; timer 2 high counter
+=VIA_S		0X400A	; shift register
+=VIA_ACR	0X400B	; auxiliary control register
+=VIA_PCR	0X400C	; peripheral control register
+=VIA_IFR	0X400D	; interrupt flags register
+=VIA_IER	0X400E	; interrupt enable register
+=VIA_A_NH	0X400F	; VIA_A access without a handshake
+
+; bit masks for bit positions in interrupt flags and interrupt enable registers
+
+=VIA_IB_CA2	0B00000001	; CA2 interrupt pin
+=VIA_IB_CA1	0B00000010	; CA1 interrupt pin
+=VIA_IB_SR	0B00000100	; shift register interrupt
+=VIA_IB_CB2	0B00001000	; CB2 interrupt pin
+=VIA_IB_CB1	0B00010000	; CB1 interrupt pin
+=VIA_IB_T2	0B00100000	; timer 2 interrupt
+=VIA_IB_T1	0B01000000	; timer 1 interrupt
+=VIA_IB_IRQ	0B10000000	; for if any of the previous interrupts are enabled
+
+; interrupt enabling or disabling option bit for interrupt enable register
+; use for turning on interrupts:	LDA.I	VIA_IER_ENABLE [interrupt bits to enable]
+;					STA	VIA_IER
+; use for turning off interrupts:	LDA.I 	VIA_IER_DISABLE [interrupt bits to disable]
+;					STA	VIA_IER
+; ex:	LDA.I 	VIA_IER_ENABLE VIA_IB_CA1 VIA_IB_CB1
+;	STA	VIA_IER
+
+=VIA_IER_ENABLE		0X80
+=VIA_IER_DISABLE	0
+
+; aliases for VIA registers
+
+=VIA_READ_PORT			VIA_A
+=VIA_READ_PORT_DIR		VIA_DA
+=VIA_WRITE_PORT			VIA_B
+=VIA_WRITE_PORT_DIR		VIA_DB
+=VIA_FLOPPY_DATA_PORT		VIA_A
+=VIA_FLOPPY_DATA_DIR		VIA_DA
+=VIA_FLOPPY_CONTROL_PORT	VIA_B
+=VIA_FLOPPY_CONTROL_DIR		VIA_DB

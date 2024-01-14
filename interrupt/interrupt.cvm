@@ -10,28 +10,37 @@
 	BNE	_INTERRUPT_BRK	; BRK flag is set, handle interrupt as a BRK instruction
 	; handle a hardware interrupt
 	JSR	HW_ENABLE_VIA	; turn on VIA so that interrupt code can use it
->_INTERRUPT_RECHECK
 	LDA	VIA_IFR		; load all active interrupts
 	AND	VIA_IER		; mask against enabled interrupts, only want to service enabled interrupts
-	TAX			; copy value to X to use for later without recomputing
 	AND.I	VIA_IB_T1		; test timer 1 bit
 	BEQ	_INTERRUPT_TEST_T2	; if not set, test timer 2
-	JMP	INTERRUPT_T1		; jump to timer 1 code
+	JSR	INTERRUPT_T1		; jump to timer 1 code
 >_INTERRUPT_TEST_T2
-	TXA				; copy flags back to A
+	LDA	VIA_IFR
+	AND	VIA_IER
 	AND.I	VIA_IB_T2		; test timer 2 bit
 	BEQ	_INTERRUPT_TEST_CA1	; if not set, test CA1
-	JMP	INTERRUPT_T2		; jump to timer 2 code
+	JSR	INTERRUPT_T2		; jump to timer 2 code
 >_INTERRUPT_TEST_CA1
-	TXA				; copy flags back to A
+	LDA	VIA_IFR
+	AND	VIA_IER
 	AND.I	VIA_IB_CA1		; test CA1 bit
 	BEQ	_INTERRUPT_TEST_CB1	; if not set, test CB1
-	JMP	INTERRUPT_CA1		; jump to CA1/input code
+	JSR	INTERRUPT_CA1		; jump to CA1/input code
 >_INTERRUPT_TEST_CB1
-	TXA				; copy flags back to A
+	LDA	VIA_IFR
+	AND	VIA_IER
 	AND.I	VIA_IB_CB1		; test CB1 bit
-	BEQ	_INTERRUPT_EXIT		; if not set, no more hardware interrupts left that are serviceable, return
-	JMP	INTERRUPT_CB1		; jump to CB1/output code
+	BEQ	_INTERRUPT_TEST_EXIT	; if not set, no more hardware interrupts left that are serviceable, return
+	JSR	INTERRUPT_CB1		; jump to CB1/output code
+>_INTERRUPT_TEST_EXIT
+	JSR	HW_DISABLE_VIA	; turn off VIA since any interrupt functions using it are done now
+>_INTERRUPT_EXIT
+	PLA			; restore A
+	PLX			; restore X
+	PLY			; restore Y
+	RTI			; return
+
 >_INTERRUPT_BRK
 	; want to decrement the return address by 1 so BRK NOP pattern can become just BRK
 	; X will still hold the stack offset from earlier
@@ -48,10 +57,8 @@
 	BCS	_INTERRUPT_EXIT	; if code >= count, the code is not valid so just return
 	ASL			; shift left once to multiply by 2 and give a pointer offset into the BRK array
 	TAX			; move the offset into X for the jump
+	JSR	_INTERRUPT_BRK_JUMP	; save address here and jump to BRK
+	BRA	_INTERRUPT_EXIT
+
+>_INTERRUPT_BRK_JUMP
 	JMP.XP	BRK_ARRAY	; jump to related BRK function
->_INTERRUPT_EXIT
-	JSR	HW_DISABLE_VIA	; turn off VIA since any interrupt functions using it are done now
-	PLA			; restore A
-	PLX			; restore X
-	PLY			; restore Y
-	RTI			; return

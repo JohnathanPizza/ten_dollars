@@ -7,6 +7,7 @@ interrupt/via/t2.cvm
 interrupt/via/ca1.cvm
 interrupt/via/cb1.cvm
 interrupt/brk/array.cvm
+interrupt/brk/write.cvm
 
 wait.cvm
 hwcontrol.cvm
@@ -14,3 +15,4 @@ hwcontrol.cvm
 const/hardware.cvm
 const/via.cvm
 const/ascii.cvm
+const/bool.cvm

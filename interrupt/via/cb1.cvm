@@ -1,2 +1,53 @@
 >INTERRUPT_CB1
-	JMP	_INTERRUPT_RECHECK
+	LDA	IO_WRITE_BUFFER_TAIL	; load tail
+	CMP	IO_WRITE_BUFFER_HEAD	; compare to head
+	BEQ	_INTERRUPT_CB1_OFF	; if tail = head then write queue is empty so turn off the int
+
+	LDY	IO_WRITE_BUFFER_TAIL	; load tail index
+	LDA.Y	IO_WRITE_BUFFER		; get the next character in the queue
+	INC	IO_WRITE_BUFFER_TAIL	; increment tail
+
+	ORA.I	0X80			; set high bit to prep for sending
+	STA	VIA_WRITE_PORT		; send
+	AND.I	0X7F			; clear high bit
+	STA	VIA_WRITE_PORT		; update
+
+	LDA	IO_WRITE_LEN		; load pointer len low byte
+	ORA	IO_WRITE_LEN 1		; OR with high byte for 0 test
+	BEQ	_INTERRUPT_CB1_EXIT	; if 0 then dont need to add anything new to the queue here, return
+
+	SEC				; sec for sbc
+	LDA	IO_WRITE_LEN		; sub 1 from the write ptr length
+	SBC.I	1
+	STA	IO_WRITE_LEN
+	LDA	IO_WRITE_LEN 1
+	SBC.I	0
+	STA	IO_WRITE_LEN 1
+
+	LDA	IO_WRITE_PTR		; load the write ptr into VR8
+	STA.Z	VR8
+	LDA	IO_WRITE_PTR 1
+	STA.Z	VR8 1
+	
+	LDA.ZP	VR8			; get the next character from the pointer
+	LDY	IO_WRITE_BUFFER_HEAD	; load head index
+	STA.Y	IO_WRITE_BUFFER		; store character at head index
+	INC	IO_WRITE_BUFFER_HEAD	; increment head
+
+	CLC				; clc for adc
+	LDA	IO_WRITE_PTR		; add 1 to the pointer
+	ADC.I	1
+	STA	IO_WRITE_PTR
+	LDA	IO_WRITE_PTR 1
+	ADC.I	0
+	STA	IO_WRITE_PTR 1
+>_INTERRUPT_CB1_EXIT
+	RTS				; return
+
+>_INTERRUPT_CB1_OFF
+	LDA.I	VIA_IER_DISABLE VIA_IB_CB1	; load constant value to turn off write interrupt
+	STA	VIA_IER				; disable
+
+	LDA.I	FALSE			; load FALSE value to update io writing status to inactive
+	STA	IO_WRITE_STATUS		; update
+	RTS				; return

@@ -4,7 +4,7 @@
 ; WAIT_MILIS
 ; WAIT_SEC
 
-@START_END > 8 + 1 < 8		; TEMPORARY!!! hackily ensures this function is page aligned
+;@START_END > 8 + 1 < 8		; TEMPORARY!!! hackily ensures this function is page aligned
 >WAIT_1MS
 	PHX			; 3
 	LDX.I	220		; 2

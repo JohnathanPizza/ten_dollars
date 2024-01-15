@@ -1,2 +1,66 @@
+=KEYBOARD_SC_BREAK	0XF0
+=KEYBOARD_SC_EXTEND	0XE0
+=KEYBOARD_SC_LSHIFT	0X12
+=KEYBOARD_SC_RETURN	0X5A
+=KEYBOARD_SC_BACK	0X66
+
 >INTERRUPT_CA1
+	LDA	VIA_READ_PORT	; load inverted scan code from keyboard
+	EOR.I	0XFF			; invert bits
+	CMP.I 	KEYBOARD_SC_LSHIFT	; compare scan code to left shift
+	BEQ	_INTERRUPT_CA1_LSHIFT	; if left shift, adjust shift flag
+	CMP.I	KEYBOARD_SC_BREAK	; compare scan code to break
+	BEQ	_INTERRUPT_CA1_SPECIAL	; if break, adjust flags
+	CMP.I	KEYBOARD_SC_EXTEND	; compare scan code to extend
+	BEQ	_INTERRUPT_CA1_SPECIAL	; if extend, adjust flags
+	CMP.I	KEYBOARD_SC_RETURN	; compare scan code to enter/return
+	BEQ	_INTERRUPT_CA1_ENTER	; if return, end input
+	CMP.I	KEYBOARD_SC_BACK	; compare scan code to backspace
+	BEQ	_INTERRUPT_CA1_BACK	; if backspace, take out a character
+	; ascii then
+	BIT	IO_KEYBOARD_FLAGS	; bit test the flags var, N flag will have bit 7
+	STZ	IO_KEYBOARD_FLAGS	; flags are consumed, reset
+	BMI	_INTERRUPT_CA1_RETURN	; if N = 0, good to read an ascii since no flags, else return
+>_INTERRUPT_CA1_READ
+	ORA	IO_KEYBOARD_SHIFT	; acc still has the scan code, add 0x80 if shift is down
+	LDX.I	0X7F			; load highest ASCII value
+>_INTERRUPT_CA1_LOOP
+	CMP.X	KEYBOARD_TLARRAY	; see if scan code matches at index of ASCII value
+	BEQ	_INTERRUPT_CA1_LOOP_END	; scan code in acc matches mem, X is ASCII value
+	DEX				; else decrement X for next ASCII to test
+	BNE	_INTERRUPT_CA1_LOOP	; if value not 0, keep looping (exit when null character)
+	RTS
+>_INTERRUPT_CA1_LOOP_END
+	TXA				; move ASCII value to acc for return value
+	LDX	IO_READ_IDX		; load the write index
+	CPX.I	0XFF			; compare write index to last idx
+	BEQ	_INTERRUPT_CA1_RETURN	; if last, there is no room so return
+>_INTERRUPT_CA1_WRITABLE
+	STA.X	IO_READ_BUFFER		; store character in buffer
+	INC	IO_READ_IDX		; inc write index
+	RTS
+>_INTERRUPT_CA1_LSHIFT
+	LDA	IO_KEYBOARD_FLAGS	; load flags
+	AND.I	0X80			; isolate bit 7
+	EOR.I	0X80			; invert bit 7
+	STA	IO_KEYBOARD_SHIFT	; store into shift flag
+	STZ	IO_KEYBOARD_FLAGS	; flags were consumed, reset
+	RTS
+>_INTERRUPT_CA1_SPECIAL
+	DEC	IO_KEYBOARD_FLAGS	; decrement flags so nonzero and bit 7 set
+	RTS
+>_INTERRUPT_CA1_ENTER
+	LDX	IO_READ_IDX		; load write index to write nul char
+	STZ.X	IO_READ_BUFFER		; write nul char
+	LDA.I	VIA_IER_DISABLE VIA_IB_CA1	; load constant to turn of the keybaord interrupt
+	STA	VIA_IER			; turn off
+	STZ	IO_READ_STATUS	; zero to status
+	STZ	IO_KEYBOARD_FLAGS	; reset flags
+	STZ	IO_KEYBOARD_SHIFT	; reset shift
+	RTS
+>_INTERRUPT_CA1_BACK
+	LDA	IO_READ_IDX		; load index to "delete"
+	BEQ	_INTERRUPT_CA1_RETURN	; if at 0 already, nothing to delete so return
+	DEC	IO_READ_IDX		; else decrement write index, effectively deleting char
+>_INTERRUPT_CA1_RETURN
 	RTS

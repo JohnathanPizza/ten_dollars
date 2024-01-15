@@ -6,8 +6,10 @@ interrupt/via/t1.cvm
 interrupt/via/t2.cvm
 interrupt/via/ca1.cvm
 interrupt/via/cb1.cvm
+interrupt/via/kbtl.cvm
 interrupt/brk/array.cvm
 interrupt/brk/write.cvm
+interrupt/brk/read.cvm
 
 wait.cvm
 hwcontrol.cvm

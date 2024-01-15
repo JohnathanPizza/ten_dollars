@@ -11,6 +11,8 @@ interrupt/brk/write.cvm
 
 wait.cvm
 hwcontrol.cvm
+string.cvm
+print.cvm
 
 const/hardware.cvm
 const/via.cvm

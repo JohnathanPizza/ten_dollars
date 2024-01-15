@@ -1,0 +1,15 @@
+; constants to use for selecting registers in selector functions
+
+=VRB	VR0
+=VRI_0	0
+=VRI_1	2
+=VRI_2	4
+=VRI_3	6
+=VRI_4	8
+=VRI_5	10
+=VRI_6	12
+=VRI_7	14
+=VRI_8	16
+=VRI_9	18
+=VRI_10	20
+=VRI_11	22

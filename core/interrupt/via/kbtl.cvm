@@ -1,0 +1,135 @@
+; indexed array from PS2 set 2 scan codes to ASCII characters
+; index is the ASCII value and the element is the scan code value
+
+; scan codes for characters are not greater than 0X7F, so capital ASCII have 0X80 added to the scan code value
+; *when shift is pressed, add 0X80 to the scan code
+
+>KEYBOARD_TLARRAY
+! 0		; 0 null
+! 0		; 1 soh
+! 0		; 2 stx
+! 0		; 3 etx
+! 0		; 4 eot
+! 0		; 5 enq
+! 0		; 6 ack
+! 0		; 7 bel
+! 0X66		; 8 backspace/bs
+! 0X0D		; 9 tab
+! 0X5A		; 10 enter/lf
+! 0		; 11 vt
+! 0		; 12 ff
+! 0		; 13 cr
+! 0		; 14 so
+! 0		; 15 si
+! 0		; 16 dle
+! 0X05		; 17 f1/dc1
+! 0X06		; 18 f2/dc2
+! 0X04		; 19 f3/dc3
+! 0X0C		; 20 f4/dc4
+! 0		; 21 nak
+! 0		; 22 syn
+! 0		; 23 etb
+! 0		; 24 can
+! 0		; 25 em
+! 0		; 26 sub
+! 0X76		; 27 esc
+! 0		; 28 fs
+! 0		; 29 gs
+! 0		; 30 rs
+! 0		; 31 us
+! 0X29		; 32 space
+! 0X16 0X80	; 33 !
+! 0X52 0X80	; 34 "
+! 0X26 0X80	; 35 #
+! 0X25 0X80	; 36 $
+! 0X2E 0X80	; 37 %
+! 0X3D 0X80	; 38 &
+! 0X52		; 39 '
+! 0X46 0X80	; 40 (
+! 0X45 0X80	; 41 )
+! 0X3E 0X80	; 42 *
+! 0X55 0X80	; 43 +
+! 0X41		; 44 ,
+! 0X4E		; 45 -
+! 0X49		; 46 .
+! 0X4A		; 47 /
+! 0X45		; 48 0
+! 0X16		; 49 1
+! 0X1E		; 50 2
+! 0X26		; 51 3
+! 0X25		; 52 4
+! 0X2E		; 53 5
+! 0X36		; 54 6
+! 0X3D		; 55 7
+! 0X3E		; 56 8
+! 0X46		; 57 9
+! 0X4C 0X80	; 58 :
+! 0X4C		; 59 ;
+! 0X41 0X80	; 60 <
+! 0X55		; 61 =
+! 0X49 0X80	; 62 >
+! 0X4A 0X80	; 63 ?
+! 0X1E 0X80	; 64 @
+! 0X1C 0X80	; 65 A
+! 0X32 0X80	; 66 B
+! 0X21 0X80	; 67 C
+! 0X23 0X80	; 68 D
+! 0X24 0X80	; 69 E
+! 0X2B 0X80	; 70 F
+! 0X34 0X80	; 71 G
+! 0X33 0X80	; 72 H
+! 0X43 0X80	; 73 I
+! 0X3B 0X80	; 74 J
+! 0X42 0X80	; 75 K
+! 0X4B 0X80	; 76 L
+! 0X3A 0X80	; 77 M
+! 0X31 0X80	; 78 N
+! 0X44 0X80	; 79 O
+! 0X4D 0X80	; 80 P
+! 0X15 0X80	; 81 Q
+! 0X2D 0X80	; 82 R
+! 0X1B 0X80	; 83 S
+! 0X2C 0X80	; 84 T
+! 0X3C 0X80	; 85 U
+! 0X2A 0X80	; 86 V
+! 0X1D 0X80	; 87 W
+! 0X22 0X80	; 88 X
+! 0X35 0X80	; 89 Y
+! 0X1A 0X80	; 90 Z
+! 0X54		; 91 [
+! 0X5D		; 92 \
+! 0X5B		; 93 ]
+! 0X36 0X80	; 94 ^
+! 0X4E 0X80	; 95 _
+! 0X0E		; 96 `
+! 0X1C		; 97 a
+! 0X32		; 98 b
+! 0X21		; 99 c
+! 0X23		; 100 d
+! 0X24		; 101 e
+! 0X2B		; 102 f
+! 0X34		; 103 g
+! 0X33		; 104 h
+! 0X43		; 105 i
+! 0X3B		; 106 j
+! 0X42		; 107 k
+! 0X4B		; 108 l
+! 0X3A		; 109 m
+! 0X31		; 110 n
+! 0X44		; 111 o
+! 0X4D		; 112 p
+! 0X15		; 113 q
+! 0X2D		; 114 r
+! 0X1B		; 115 s
+! 0X2C		; 116 t
+! 0X3C		; 117 u
+! 0X2A		; 118 v
+! 0X1D		; 119 w
+! 0X22		; 120 x
+! 0X35		; 121 y
+! 0X1A		; 122 z
+! 0X54 0X80	; 123 {
+! 0X5D 0X80	; 124 |
+! 0X5B 0X80	; 125 }
+! 0X0E 0X80	; 126 ~
+! 0		; 127 del

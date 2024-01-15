@@ -1,0 +1,84 @@
+; MATH16.CVM
+; ===
+; ADD16
+; SUB16
+; INC16
+; DEC16
+
+;==================================================
+
+; ADD16
+; P ---	VRX: summand A
+;	VRY: summand B
+; R ---	VRX: sum S=A+B
+; adds the two 16-bit numbers in registers given by VRIs in X and Y
+
+>ADD16
+	PHA		; store A
+	CLC		; clear carry for ADC
+	LDA.ZX	VRB	; load low byte of A
+	ADC.Y	VRB	; add with low byte of B
+	STA.ZX	VRB	; store into low byte of S
+	LDA.ZX	VRB 1	; load high byte of A
+	ADC.Y	VRB 1	; add with high byte of B
+	STA.ZX	VRB 1	; store into high byte of S
+	PLA		; restore A
+	RTS		; return
+
+;==================================================
+
+; SUB16
+; P ---	VRX: minuend A
+;	VRY: subtrahend B
+; R ---	VRX: difference D=A-B
+; subtracts the two 16-bit numbers in registers given by VRIs in X and Y
+
+>SUB16
+	PHA		; store A
+	SEC		; set carry for SBC
+	LDA.ZX	VRB 	; load low byte of A
+	SBC.Y	VRB	; subtract with low byte of B
+	STA.ZX	VRB	; store into low byte of D
+	LDA.ZX	VRB 1	; load high byte of A
+	SBC.Y	VRB 1	; subtract with high byte of B
+	STA.ZX	VRB 1	; store into high byte of D
+	PLA		; restore A
+	RTS		; return
+
+;==================================================
+
+; INC16
+; P ---	VRX: summand A
+; R ---	VRX: sum S=A+1
+; adds 1 to the 16-bit number in the register given by the VRI in X
+
+>INC16
+	PHA		; store A
+	CLC		; clear carry for ADC
+	LDA.ZX	VRB	; load low byte of A
+	ADC.I	1	; add 1 to it
+	STA.ZX	VRB	; store into low byte of S
+	LDA.ZX	VRB 1	; load high byte of A
+	ADC.I	0	; add 0 + C to it
+	STA.ZX	VRB 1	; store into high byte of S
+	PLA		; restore A
+	RTS		; return
+
+;==================================================
+
+; DEC16
+; P ---	VRX: minuend A
+; R ---	VRX: difference D=A-1
+; subtracts 1 from the 16-bit number in the register given by the VRI in X
+
+>DEC16
+	PHA		; store A
+	SEC		; set carry for SBC
+	LDA.ZX	VRB	; load low byte of A
+	SBC.I	1	; subtract 1 from it
+	STA.ZX	VRB	; store into low byte of D
+	LDA.ZX	VRB 1	; load high byte of A
+	SBC.I	0	; subtract 0 + C from it
+	STA.ZX	VRB 1	; store into high byte of D
+	PLA		; restore A
+	RTS		; return

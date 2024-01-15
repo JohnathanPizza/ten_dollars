@@ -13,8 +13,10 @@ wait.cvm
 hwcontrol.cvm
 string.cvm
 print.cvm
+math16.cvm
 
 const/hardware.cvm
 const/via.cvm
 const/ascii.cvm
 const/bool.cvm
+const/vridx.cvm

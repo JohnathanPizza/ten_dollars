@@ -1,0 +1,65 @@
+; STRING.CVM
+; ===
+; STRLEN
+; STRCPY
+
+;==================================================
+
+; STRLEN
+; P ---	VR0: string pointer S
+; R ---	VR11: string length L
+; calculates the length of the string at S which is delimited by the null character
+
+>STRLEN
+	PHA		; store A
+	PHX		; store X
+	STZ.Z	VR11	; set L to 0
+	STZ.Z	VR11 1
+	LDA.Z	VR0	; copy S into VR8
+	STA.Z	VR8
+	LDA.Z	VR0 1
+	STA.Z	VR8 1
+>_STRLEN_LOOP
+	LDA.ZP	VR8	; get next character fom S
+	BEQ	_STRLEN_END	; if 0 then stop counting and return
+	LDX.I	VRI_11	; load VRI for L
+	JSR	INC16	; inc L
+	LDX.I	VRI_8	; load VRI for S
+	JSR	INC16	; inc S
+	BRA	_STRLEN_LOOP	; loop
+>_STRLEN_END
+	PLX		; restore X
+	PLA		; restore A
+	RTS		; return
+
+;==================================================
+
+; STRCPY
+; P ---	VR0: existing string pointer S
+;	VR1: destination pointer D
+; copies S to D stopping after the delimiting null character is copied
+
+>STRCPY
+	PHA		; store A
+	PHX		; store X
+	LDA.Z	VR0	; copy S to VR8
+	STA.Z	VR8
+	LDA.Z	VR0 1
+	STA.Z	VR8 1
+	LDA.Z	VR1	; copy D to VR9
+	STA.Z	VR9
+	LDA.Z	VR1 1
+	STA.Z	VR9 1
+>_STRCPY_LOOP
+	LDA.ZP	VR8	; load next character from the string
+	STA.ZP	VR9	; store at next location at the destination
+	BEQ	_STRCPY_END	; if it was the null character, return
+	LDX.I	VRI_8	; load VRI for S
+	JSR	INC16	; inc S
+	LDX.I	VRI_9	; load VRI for D
+	JSR	INC16	; inc D
+	BRA	_STRCPY_LOOP	; loop
+>_STRCPY_END
+	PLX		; restore X
+	PLA		; restore A
+	RTS		; return

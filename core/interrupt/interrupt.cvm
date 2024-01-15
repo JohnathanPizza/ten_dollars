@@ -1,0 +1,64 @@
+; entrypoint into interrupt handling code when hardware or software interrupt happens
+
+>INTERRUPT
+	PHY			; store Y
+	PHX			; store X
+	PHA			; store A
+	TSX			; stack offset to X to retrieve BRK flag
+	LDA.X	0X104 		; load the processor status - processor flags are at S + 0x104
+	AND.I	0X10		; mask the BRK flag (5th bit)
+	BNE	_INTERRUPT_BRK	; BRK flag is set, handle interrupt as a BRK instruction
+	; handle a hardware interrupt
+	JSR	HW_ENABLE_VIA	; turn on VIA so that interrupt code can use it
+	LDA	VIA_IFR		; load all active interrupts
+	AND	VIA_IER		; mask against enabled interrupts, only want to service enabled interrupts
+	AND.I	VIA_IB_T1		; test timer 1 bit
+	BEQ	_INTERRUPT_TEST_T2	; if not set, test timer 2
+	JSR	INTERRUPT_T1		; jump to timer 1 code
+>_INTERRUPT_TEST_T2
+	LDA	VIA_IFR
+	AND	VIA_IER
+	AND.I	VIA_IB_T2		; test timer 2 bit
+	BEQ	_INTERRUPT_TEST_CA1	; if not set, test CA1
+	JSR	INTERRUPT_T2		; jump to timer 2 code
+>_INTERRUPT_TEST_CA1
+	LDA	VIA_IFR
+	AND	VIA_IER
+	AND.I	VIA_IB_CA1		; test CA1 bit
+	BEQ	_INTERRUPT_TEST_CB1	; if not set, test CB1
+	JSR	INTERRUPT_CA1		; jump to CA1/input code
+>_INTERRUPT_TEST_CB1
+	LDA	VIA_IFR
+	AND	VIA_IER
+	AND.I	VIA_IB_CB1		; test CB1 bit
+	BEQ	_INTERRUPT_TEST_EXIT	; if not set, no more hardware interrupts left that are serviceable, return
+	JSR	INTERRUPT_CB1		; jump to CB1/output code
+>_INTERRUPT_TEST_EXIT
+	JSR	HW_DISABLE_VIA	; turn off VIA since any interrupt functions using it are done now
+>_INTERRUPT_EXIT
+	PLA			; restore A
+	PLX			; restore X
+	PLY			; restore Y
+	RTI			; return
+
+>_INTERRUPT_BRK
+	; want to decrement the return address by 1 so BRK NOP pattern can become just BRK
+	; X will still hold the stack offset from earlier
+	SEC			; set carry for subtraction operation
+	LDA.X	0X105		; load the low byte of the return address
+	SBC.I	1		; sub 1
+	STA.X	0X105		; store back into low byte of return address
+	LDA.X	0X106		; load the high byte of the return address
+	SBC.I	0		; sub 0 so the carry goes over
+	STA.X	0X106		; store back into high byte of the return address
+	; calculate a jump address based on the code in VR4
+	LDA.Z	VR4		; load the BRK code given
+	CMP.I	BRK_COUNT	; compare it to the total number of BRK codes usable
+	BCS	_INTERRUPT_EXIT	; if code >= count, the code is not valid so just return
+	ASL			; shift left once to multiply by 2 and give a pointer offset into the BRK array
+	TAX			; move the offset into X for the jump
+	JSR	_INTERRUPT_BRK_JUMP	; save address here and jump to BRK
+	BRA	_INTERRUPT_EXIT
+
+>_INTERRUPT_BRK_JUMP
+	JMP.XP	BRK_ARRAY	; jump to related BRK function

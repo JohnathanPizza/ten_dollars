@@ -1,10 +1,9 @@
-; indexed array from ps2 set 2 scan codes to ascii characters
-; the index is the ascii value and the element is the scan code value
+; indexed array from PS2 set 2 scan codes to ASCII characters
+; index is the ASCII value and the element is the scan code value
 
-; scan codes for characters are not greater than 0X7F, so capital ascii have 0X80 added to the scan code value
-; when shift is pressed, add 0X80 to the scan code value basically
+; scan codes for characters are not greater than 0X7F, so capital ASCII have 0X80 added to the scan code value
+; *when shift is pressed, add 0X80 to the scan code
 
-@0X9800					; this array should be page aligned
 >KEYBOARD_TLARRAY
 ! 0		; 0 null
 ! 0		; 1 soh
@@ -14,9 +13,9 @@
 ! 0		; 5 enq
 ! 0		; 6 ack
 ! 0		; 7 bel
-! 0		; 8 backspace/bs
+! 0X66		; 8 backspace/bs
 ! 0X0D		; 9 tab
-! 0		; 10 enter/lf
+! 0X5A		; 10 enter/lf
 ! 0		; 11 vt
 ! 0		; 12 ff
 ! 0		; 13 cr

@@ -4,7 +4,13 @@
 ; WAIT_MILIS
 ; WAIT_SEC
 
-;@START_END > 8 + 1 < 8		; TEMPORARY!!! hackily ensures this function is page aligned
+; TODO make WAIT_1MS page aligned
+
+;==================================================
+
+; WAIT_1MS
+; causes 1 ms to elapse from the time of call to return
+
 >WAIT_1MS
 	PHX			; 3
 	LDX.I	220		; 2
@@ -19,25 +25,35 @@
 	NOP			; 2
 	RTS			; 7
 
-; A holds number of miliseconds to wait
+;==================================================
+
+; WAIT_MILIS
+; P --- A: number of miliseconds to wait M
+; causes almost exactly M ms to elapse from the time of call to return
+
 >WAIT_MILIS
-	PHA
+	PHA			; store A
 >_WAIT_MILIS_LOOP
-	CMP.I	0
-	BEQ	_WAIT_MILIS_LOOP_END
-	JSR	WAIT_1MS
-	DEC
+	CMP.I	0		; test if 0 miliseconds left
+	BEQ	_WAIT_MILIS_LOOP_END	; if 0 then return
+	JSR	WAIT_1MS	; else wait 1 milisecond
+	DEC			; decrement count
 	BRA	_WAIT_MILIS_LOOP
 >_WAIT_MILIS_LOOP_END
-	PLA
-	RTS
+	PLA			; restore A
+	RTS			; return
+
+;==================================================
+
+; WAIT_SEC
+; causes almost exactly 1 s to elapse from the time of call to return
 
 >WAIT_SEC
-	PHA
-	LDA.I	250
-	JSR	WAIT_MILIS
-	JSR	WAIT_MILIS
-	JSR	WAIT_MILIS
-	JSR	WAIT_MILIS
-	PLA
-	RTS
+	PHA			; store A
+	LDA.I	250		; load number of miliseconds to wait
+	JSR	WAIT_MILIS	; 250
+	JSR	WAIT_MILIS	; 500
+	JSR	WAIT_MILIS	; 750
+	JSR	WAIT_MILIS	; 1000
+	PLA			; restore A
+	RTS			; return

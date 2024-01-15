@@ -1,56 +1,111 @@
-; vr0 str
+; PRINT.CVM
+; ===
+; PRINTS
+; PRINTC
+; PRINTB
+
+;==================================================
+
+; PRINTS
+; P --- VR0: string pointer S
+; calls the write BRK function to write out S over IO
+; must be null character delimited
+
 >PRINTS
-	PHA
-	JSR	STRLEN
-	LDA.Z	VR11
+	PHA			; store A
+	
+	LDA.Z	VR5		; copy out VR5
+	STA.Z	VR8
+	LDA.Z	VR5 1
+	STA.Z	VR8 1
+
+	LDA.Z	VR4		; copy out VR4/1
+	STA.Z	VR9
+
+	JSR	STRLEN		; get string length
+	LDA.Z	VR11		; copy strlen result into VR5
 	STA.Z	VR5
 	LDA.Z	VR11 1
 	STA.Z	VR5 1
-	LDA.I	BC_WRITE
-	BRK
-	PLA
-	RTS
+	LDA.I	BC_WRITE	; load write BRK code
+	STA.Z	VR4		; store in VR4
+	BRK			; call write BRK
 
-; a char
+	LDA.Z	VR9		; copy back VR4/1
+	STA.Z	VR4
+
+	LDA.Z	VR8		; copy back VR5
+	STA.Z	VR5
+	LDA.Z	VR8 1
+	STA.Z	VR5 1
+
+	PLA			; restore A
+	RTS			; return
+
+;==================================================
+
+; PRINTC
+; P --- A: character C
+; writes C to IO
+
 >PRINTC
-	STA.Z	VR8
-	LDA.I	VR8
+	STA.Z	VR8		; store C in VR8
+
+	LDA.Z	VR0		; copy out VR0
+	STA.Z	VR9
+	LDA.Z	VR0 1
+	STA.Z	VR9 1
+
+	LDA.Z	VR5		; copy out VR5
+	STA.Z	VR10
+	LDA.Z	VR5 1
+	STA.Z	VR10 1
+
+	LDA.Z	VR4		; copy out VR4/1
+	STA.Z	VR8 1
+
+	LDA.I	VR8		; load address of VR8 into VR0
 	STA.Z	VR0
 	STZ.Z	VR0 1
-	LDA.I	1
+	LDA.I	1		; load length of 1 into VR5
 	STA.Z	VR5
 	STZ.Z	VR5 1
-	LDA.I	BC_WRITE
+	LDA.I	BC_WRITE	; load write BRK code
+	STA.Z	VR4		; store in VR4
+	BRK			; BRK
+
+	LDA.Z	VR8 1		; copy back VR4/1
 	STA.Z	VR4
-	BRK
-	LDA.Z	VR8
-	RTS
+	
+	LDA.Z	VR10		; copy back VR5
+	STA.Z	VR5
+	LDA.Z	VR10 1
+	STA.Z	VR5 1
 
-; a byte
+	LDA.Z	VR9		; copy back VR0
+	STA.Z	VR0
+	LDA.Z	VR9 1
+	STA.Z	VR0 1
+	
+	LDA.Z	VR8		; restore C in A
+	RTS			; return
+
+;==================================================
+
+; PRINTB
+; P --- A: byte B
+; writes the hexadecimal representation of B to IO
+
 >PRINTB
-	PHA
+	STA.Z	VR8	; store B
+	ROR		; shift high nybble into low nybble
 	ROR
 	ROR
 	ROR
-	ROR
-	JSR	TOHEX
-	JSR	PRINTC
-	PLA
-	PHA
-	JSR	TOHEX
-	JSR	PRINTC
-	PLA
-	RTS
-
-; a num
->TOHEX
-	AND.I	0XF
-	CMP.I	10
-	BCS	_TOHEX_ALPHA
-	CLC
-	ADC.I	ASCII_0
-	RTS
->_TOHEX_ALPHA
-	CLC
-	ADC.I	ASCII_A - 10
-	RTS
+	JSR	TOHEX	; get hex character for high nybble
+	JSR	PRINTC	; print it
+	LDA.Z	VR8	; reload B value
+	JSR	TOHEX	; get hex character for low nybble
+	JSR	PRINTC	; print it
+	LDA.Z	VR8	; restore B
+	RTS		; return

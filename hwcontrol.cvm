@@ -12,53 +12,53 @@
 ; the state of the modules are tracked in memory at HW_STATUS
 
 >HW_ENABLE_SRAM
-	PHA
-	LDA.I	HW_SRAM
-	BRA	_HW_ENABLE_COMMON
+	PHA				; store A
+	LDA.I	HW_SRAM			; load constant for setting SRAM
+	BRA	_HW_ENABLE_COMMON	; go to common enable code
 
 >HW_ENABLE_NVRAMLO
-	PHA
-	LDA.I	HW_NVRAMLO
-	BRA	_HW_ENABLE_COMMON
+	PHA				; store A
+	LDA.I	HW_NVRAMLO		; load constant for setting NVRAM low
+	BRA	_HW_ENABLE_COMMON	; go to common enable code
 
 >HW_ENABLE_NVRAMHI
-	PHA
-	LDA.I	HW_NVRAMHI
-	BRA	_HW_ENABLE_COMMON
+	PHA				; store A
+	LDA.I	HW_NVRAMHI		; load constant for setting NVRAM high
+	BRA	_HW_ENABLE_COMMON	; go to common enable code
 
 >HW_ENABLE_VIA
-	PHA
-	LDA.I	HW_VIA
-	BRA	_HW_ENABLE_COMMON
+	PHA				; store A
+	LDA.I	HW_VIA			; load constant for setting VIA
+	BRA	_HW_ENABLE_COMMON	; go to common enable code
 
 >HW_DISABLE_SRAM
-	PHA
-	LDA.I	- 1 - HW_SRAM
-	BRA	_HW_DISABLE_COMMON
+	PHA				; store A
+	LDA.I	- 1 - HW_SRAM		; load constant for clearing SRAM
+	BRA	_HW_DISABLE_COMMON	; go to common disable code
 
 >HW_DISABLE_NVRAM
-	PHA
-	LDA.I	- 1 - HW_NVRAMHI
-	BRA	_HW_DISABLE_COMMON
+	PHA				; store A
+	LDA.I	- 1 - HW_NVRAMHI	; load constant for clearing NVRAM
+	BRA	_HW_DISABLE_COMMON	; go to common disable code
 
 >HW_DISABLE_VIA
-	PHA
-	LDA.I	- 1 - HW_VIA
-	BRA	_HW_DISABLE_COMMON
+	PHA				; store A
+	LDA.I	- 1 - HW_VIA		; load constant for clearing VIA
+	BRA	_HW_DISABLE_COMMON	; go to common disable code
 
 >_HW_ENABLE_COMMON
-	ORA	HW_STATUS
-	BRA	_HW_ED_UPDATE
+	ORA	HW_STATUS		; set corresponding bit in status
+	BRA	_HW_ED_UPDATE		; go to updating
 
 >_HW_DISABLE_COMMON
-	AND	HW_STATUS
-	BRA	_HW_ED_UPDATE
+	AND	HW_STATUS		; clear corresponding bit in status
+	BRA	_HW_ED_UPDATE		; go to updating
 
 >_HW_ED_UPDATE
-	STA	HW_STATUS
-	PHX
-	TAX
-	STA.X	HW_ENABLE_ADDR
-	PLX
-	PLA
-	RTS
+	STA	HW_STATUS		; update hardware status value in mem
+	PHX				; store X
+	TAX				; copy hardware values to X for offset calc
+	STA.X	HW_ENABLE_ADDR		; update hardware
+	PLX				; restore X
+	PLA				; restore A
+	RTS				; return

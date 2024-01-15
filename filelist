@@ -16,6 +16,7 @@ hwcontrol.cvm
 string.cvm
 print.cvm
 math16.cvm
+character.cvm
 
 const/hardware.cvm
 const/via.cvm

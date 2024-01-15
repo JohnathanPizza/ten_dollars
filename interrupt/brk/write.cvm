@@ -1,5 +1,7 @@
-; vr0 ptr to string
-; vr5 len of string
+; P --- VR0: string pointer S
+;	VR5: string length L
+; adds L characters from string S to the IO write buffer
+; also starts the writing operation if not happening already
 
 >BRK_WRITE
 	LDA.Z	VR5			; load low byte of length

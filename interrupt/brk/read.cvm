@@ -1,10 +1,12 @@
+; starts a new reading operation
+
 >BRK_READ
-	STZ	IO_READ_IDX
-	JSR	HW_ENABLE_VIA
-	BIT	VIA_READ_PORT
-	LDA.I	VIA_IER_ENABLE VIA_IB_CA1
-	STA	VIA_IER
-	JSR	HW_DISABLE_VIA
-	LDA.I	TRUE
-	STA	IO_READ_STATUS
-	RTS
+	STZ	IO_READ_IDX		; reset write buffer index
+	JSR	HW_ENABLE_VIA		; enable VIA to enable interrupt
+	BIT	VIA_READ_PORT		; clear any existing interrupt
+	LDA.I	VIA_IER_ENABLE VIA_IB_CA1	; load constant to enable CA1
+	STA	VIA_IER			; enable
+	JSR	HW_DISABLE_VIA		; disable VIA
+	LDA.I	TRUE			; load TRUE value to use in reading status
+	STA	IO_READ_STATUS		; set
+	RTS				; return

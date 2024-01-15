@@ -97,15 +97,16 @@
 ; writes the hexadecimal representation of B to IO
 
 >PRINTB
-	STA.Z	VR8	; store B
+	PHA		; store A
 	ROR		; shift high nybble into low nybble
 	ROR
 	ROR
 	ROR
 	JSR	TOHEX	; get hex character for high nybble
 	JSR	PRINTC	; print it
-	LDA.Z	VR8	; reload B value
+	PLA		; reload A
+	PHA		; store A
 	JSR	TOHEX	; get hex character for low nybble
 	JSR	PRINTC	; print it
-	LDA.Z	VR8	; restore B
+	PLA		; restore B
 	RTS		; return

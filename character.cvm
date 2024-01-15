@@ -1,3 +1,88 @@
+; CHARACTER.CVM
+; ===
+; ISUPPER
+; ISLOWER
+; TOUPPER
+; TOLOWER
+; TOHEX
+
+;==================================================
+
+; ISUPPER
+; P --- A: character C
+; R --- A: result B
+; returns a TRUE boolean B if C is an uppercase letter
+; otherwise B is FLASE
+
+>ISUPPER
+	CLC
+	ADC.I	255 - ASCII_Z
+	CMP.I	230
+	ROL
+	AND.I	1
+	RTS
+
+;==================================================
+
+; ISLOWER
+; P --- A: character C
+; R --- A: result B
+; returns a TRUE boolean B if C is a lowercase letter
+; otherwise B is FALSE
+
+>ISLOWER
+	CLC
+	ADC.I	255 - ASCII_ZL
+	CMP.I	230
+	ROL
+	AND.I	1
+	RTS
+
+;==================================================
+
+; TOUPPER
+; P --- A: character C
+; R --- A: uppercase character U
+; converts C into its uppercase letter equivalent U
+
+>TOUPPER
+	PHA
+	JSR	ISLOWER
+	BEQ	_TOUPPER_SAME
+	PLA
+	CLC
+	ADC.I	ASCII_A - ASCII_AL
+	RTS
+>_TOUPPER_SAME
+	PLA
+	RTS
+
+;==================================================
+
+; TOLOWER
+; P --- A: character C
+; R --- A: lowercase character L
+; converts C into its lowercase letter equivalent L
+
+>TOLOWER
+	PHA
+	JSR	ISUPPER
+	BEQ	_TOLOWER_SAME
+	PLA
+	CLC
+	ADC.I	ASCII_AL - ASCII_A
+	RTS
+>_TOLOWER_SAME
+	PLA
+	RTS
+
+;==================================================
+
+; TOHEX
+; P --- A: byte B
+; R --- A: hex character C
+; converts the LOW NYBBLE of B into its hex character equivalent
+
 >TOHEX
 	AND.I	0XF
 	CMP.I	10

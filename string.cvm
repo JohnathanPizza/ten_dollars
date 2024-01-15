@@ -20,25 +20,12 @@
 	LDA.Z	VR0 1
 	STA.Z	VR8 1
 >_STRLEN_LOOP
-	LDA.ZP	VR8
-	BEQ	_STRLEN_END
-
-	CLC		; clc for adc
-	LDA.Z	VR11	; add 1 to L
-	ADC.I	1
-	STA.Z	VR11
-	LDA.Z	VR11 1
-	ADC.I	0
-	STA.Z	VR11 1
-
-	CLC		; clc for adc
-	LDA.Z	VR8	; increment S
-	ADC.I	1
-	STA.Z	VR8
-	LDA.Z	VR8 1
-	ADC.I	0
-	STA.Z	VR8 1
-
+	LDA.ZP	VR8	; get next character fom S
+	BEQ	_STRLEN_END	; if 0 then stop counting and return
+	LDX.I	VRI_11	; load VRI for L
+	JSR	INC16	; inc L
+	LDX.I	VRI_8	; load VRI for S
+	JSR	INC16	; inc S
 	BRA	_STRLEN_LOOP	; loop
 >_STRLEN_END
 	PLX		; restore X
@@ -67,23 +54,10 @@
 	LDA.ZP	VR8	; load next character from the string
 	STA.ZP	VR9	; store at next location at the destination
 	BEQ	_STRCPY_END	; if it was the null character, return
-	
-	CLC		; clc for adc
-	LDA.Z	VR8	; increment S
-	ADC.I	1
-	STA.Z	VR8
-	LDA.Z	VR8 1
-	ADC.I	0
-	STA.Z	VR8 1
-
-	CLC		; clc for adc
-	LDA.Z	VR9	; increment D
-	ADC.I	1
-	STA.Z	VR9
-	LDA.Z	VR9 1
-	ADC.I	0
-	STA.Z	VR9 1
-	
+	LDX.I	VRI_8	; load VRI for S
+	JSR	INC16	; inc S
+	LDX.I	VRI_9	; load VRI for D
+	JSR	INC16	; inc D
 	BRA	_STRCPY_LOOP	; loop
 >_STRCPY_END
 	PLX		; restore X

@@ -3,6 +3,7 @@
 ; PRINTS
 ; PRINTC
 ; PRINTB
+; PRINTL
 
 ;==================================================
 
@@ -110,3 +111,15 @@
 	JSR	PRINTC	; print it
 	PLA		; restore B
 	RTS		; return
+
+;==================================================
+
+; PRINTL
+; writes the newline character
+
+>PRINTL
+	PHA
+	LDA.I	ASCII_LF
+	JSR	PRINTC
+	PLA
+	RTS

@@ -22,6 +22,9 @@ core/interrupt/via/t2.cvm
 
 extra/character.cvm
 extra/math16.cvm
+extra/memory.cvm
 extra/print.cvm
 extra/string.cvm
 extra/wait.cvm
+
+page.cvm

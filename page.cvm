@@ -1,0 +1,81 @@
+; if proc id is 0xff then no proc claims that row
+; if home is 0xff then not in map yet
+; if home is >= 0x80 then data page, relative id = home - 0x80
+; if map has 0xff then nothing at that spot
+
+; vr4/1 procid to claim
+; vr4/2 number to claim
+; ret A success
+>PAGE_TABLE_CLAIM
+	; return false if not enough space
+	LDA	PAGE_TABLE_EMPTY
+	CMP.Z	VR4 1
+	BCC	_PAGE_TABLE_CLAIM_SHORT
+	SEC
+	SBC.Z	VR4 1
+	STA	PAGE_TABLE_EMPTY
+	LDA.Z	VR4 1
+	STA.Z	VR8
+	PHY
+	LDY.I	0
+>_PAGE_TABLE_CLAIM_LOOP
+	LDA.Z	VR8
+	BEQ	_PAGE_TABLE_CLAIM_LOOP_END
+
+	LDA.Y	PAGE_TABLE_PROCID
+	CMP.I	0XFF
+	BNE	_PAGE_TABLE_CLAIM_LOOP_OCCUPIED
+	LDA.Z	VR4
+	STA.Y	PAGE_TABLE_PROCID
+	LDA.I	0XFF
+	STA.Y	PAGE_TABLE_HOME
+	DEC.Z	VR8
+>_PAGE_TABLE_CLAIM_LOOP_OCCUPIED
+	INY
+	BRA	_PAGE_TABLE_CLAIM_LOOP
+>_PAGE_TABLE_CLAIM_LOOP_END
+	PLY
+	LDA.I	TRUE
+	RTS
+>_PAGE_TABLE_CLAIM_SHORT
+	LDA.I	FALSE
+	RTS
+
+; vr4/1 procid to release
+>PAGE_TABLE_RELEASE
+	PHY
+	LDY.I	0
+>_PAGE_TABLE_RELEASE_LOOP
+	LDA.Y	PAGE_TABLE_PROCID
+	CMP.Z	VR4
+	BNE	_PAGE_TABLE_RELEASE_LOOP_NEXT
+	LDA.I	0XFF
+	STA.Y	PAGE_TABLE_PROCID
+	INC	PAGE_TABLE_EMPTY
+>_PAGE_TABLE_RELEASE_LOOP_NEXT
+	INY
+	BNE	_PAGE_TABLE_RELEASE_LOOP
+	PLY
+	RTS
+
+; vr4 procid
+>PAGE_MAP_CLAIM_CODE
+>PAGE_MAP_CLAIM_DATA
+
+; steps:
+; 1 process info block is created
+; 2 process needs to claim at least C + 2 pages to be started ( C is # of code pages )
+; 3 go through the page table and try to claim C code pages
+; 4 go through the page table again and try to claim 2 data pages with homes of 0 and 1
+; 5 process wants to be put into the map so find C pages that are contig and empty, set homes of pages linearly
+; 6 find 2 more open pages and move zp and stack pages there
+; 7 process code is copied into pages and stack + zp are wiped and set
+; 8 process runs.....
+; 9.1 data page is requested
+; 9.2 new page table row is claimed for that process and a map slot is filled
+; 10.1 data page is released
+; 10.2 map page is cleared and page table row is released
+; 11 repeat 9 and 10 many times
+; 12 process is scheduled to die
+; 13 go through all of page table and if page has the proc id, try to clear it in the map and then clear it in page table
+; 14 process itself is removed

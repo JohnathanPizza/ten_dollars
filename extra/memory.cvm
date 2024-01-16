@@ -1,0 +1,162 @@
+; MEMORY.CVM
+; ===
+; MEMSET
+; MEMCPY
+; PAGESET
+; PAGECPY
+
+;=========================================
+
+; MEMSET
+; P --- VR0: pointer to memory P
+;	VR4: length of memory L
+;	VR5/1: value V
+; sets the first L bytes at P to V
+
+>MEMSET
+	PHA		; store A
+	PHX		; store X
+	
+	LDA.Z	VR0	; copy P to VR8
+	STA.Z	VR8
+	LDA.Z	VR0 1
+	STA.Z	VR8 1
+
+	LDA.Z	VR4	; copy L to VR9
+	STA.Z	VR9
+	LDA.Z	VR4 1
+	STA.Z	VR9 1
+>_MEMSET_LOOP
+	LDA.Z	VR9	; test if L is 0
+	ORA.Z	VR9 1
+	BEQ	_MEMSET_LOOP_END	; if L is 0, exit loop
+
+	LDA.Z	VR5	; load V
+	STA.ZP	VR8	; set next byte at P to V
+
+	LDX.I	VRI_8	; increment P
+	JSR	INC16
+	LDX.I	VRI_9	; decrement L
+	JSR	DEC16
+
+	BRA	_MEMSET_LOOP	; loop
+>_MEMSET_LOOP_END
+	PLX		; restore X
+	PLA		; restore A
+	RTS		; return
+
+;==================================================
+
+; MEMCPY
+; P --- VR0: pointer to source memory S
+;	VR1: pointer to destination memory D
+;	VR4: length of source memory L
+; copies the first L bytes from S to D
+
+>MEMCPY
+	PHA		; store A
+	PHX		; store X
+	
+	LDA.Z	VR0	; copy S to VR8
+	STA.Z	VR8
+	LDA.Z	VR0 1
+	STA.Z	VR8 1
+
+	LDA.Z	VR1	; copy D to VR9
+	STA.Z	VR9
+	LDA.Z	VR1 1
+	STA.Z	VR9 1
+
+	LDA.Z	VR4	; copy L to VR10
+	STA.Z	VR10
+	LDA.Z	VR4 1
+	STA.Z	VR10 1
+>_MEMCPY_LOOP
+	LDA.Z	VR10	; test if L is 0
+	ORA.Z	VR10 1
+	BEQ	_MEMCPY_LOOP_END	; if L is 0, exit loop
+
+	LDA.ZP	VR8	; load next byte from S
+	STA.ZP	VR9	; store at next byte in D
+
+	LDX.I	VRI_8	; increment S
+	JSR	INC16
+	LDX.I	VRI_9	; increment D
+	JSR	INC16
+	LDX.I	VRI_10	; decrement L
+	JSR	DEC16
+
+	BRA	_MEMCPY_LOOP	; loop
+>_MEMCPY_LOOP_END
+	PLX		; restore X
+	PLA		; restore A
+	RTS		; return
+
+;==================================================
+
+; PAGESET
+; P --- VR0/2: page number P
+;	VR5/1: value V
+; sets every byte in page P to V
+
+>PAGESET
+	PHA		; store A
+	
+	LDA.Z	VR0	; save VR0/1 to stack
+	PHA
+	LDA.Z	VR4	; save VR4 to stack
+	PHA
+	LDA.Z	VR4 1
+	PHA
+
+	STZ.Z	VR0	; set memset ptr to address of first byte in page P
+	STZ.Z	VR4	; set memset len to 0x100
+	LDA.I	1
+	STA.Z	VR4 1
+	JSR	MEMSET	; call memset
+
+	PLA		; restore VR4 from stack
+	STA.Z	VR4 1
+	PLA
+	STA.Z	VR4
+	PLA		; restore VR0/1 from stack
+	STA.Z	VR0
+	PLA		; restore A
+	RTS		; return
+
+;==================================================
+
+; PAGECPY
+; P --- VR0/2: source page number S
+;	VR1/2: destination page number D
+; copies every byte in page S to page D
+
+>PAGECPY
+	PHA		; store A
+	
+	LDA.Z	VR0	; save VR0/1 to stack
+	PHA
+	LDA.Z	VR1	; save VR1/1 to stack
+	PHA
+	LDA.Z	VR4	; save VR4 to stack
+	PHA
+	LDA.Z	VR4 1
+	PHA
+
+	STZ.Z	VR0	; set memcpy source ptr to first byte of page S
+	STZ.Z	VR1	; set memcpy destination ptr to first byte of page D
+	STZ.Z	VR4	; set memcpy length to 0x100
+	LDA.I	1
+	STA.Z	VR4 1
+	JSR	MEMCPY	; call memcpy
+
+	PLA		; restore VR4 from stack
+	STA.Z	VR4 1
+	PLA
+	STA.Z	VR4
+	PLA		; restore VR1/1 from stack
+	STA.Z	VR1
+	PLA		; restore VR0/1 from stack
+	STA.Z	VR0
+	PLA		; restore A
+	RTS		; return

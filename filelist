@@ -28,3 +28,4 @@ extra/string.cvm
 extra/wait.cvm
 
 page.cvm
+bitarray.cvm

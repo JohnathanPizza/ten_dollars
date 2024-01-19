@@ -7,7 +7,7 @@
 	LDA.Z	VR5			; load low byte of length
 	ORA.Z	VR5 1			; OR with high byte to test for 0
 	BNE	_BRK_WRITE_CONT		; if 0 length then just return
-	RTS
+	BRA	_BRK_WRITE_EXIT
 >_BRK_WRITE_CONT
 	JSR	HW_ENABLE_VIA		; enable VIA to turn on the interrupt
 	LDA.I	VIA_IER_ENABLE VIA_IB_CB1	; load constant to enable CB1
@@ -65,4 +65,5 @@
 	LDX	IO_WRITE_LEN 1
 	STX.Z	VR5 1
 	STA	IO_WRITE_LEN 1
-	RTS				; return
+>_BRK_WRITE_EXIT
+	JMP	PROC_UNPAUSE

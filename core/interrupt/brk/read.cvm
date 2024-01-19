@@ -9,4 +9,4 @@
 	JSR	HW_DISABLE_VIA		; disable VIA
 	LDA.I	TRUE			; load TRUE value to use in reading status
 	STA	IO_READ_STATUS		; set
-	RTS				; return
+	JMP	PROC_UNPAUSE

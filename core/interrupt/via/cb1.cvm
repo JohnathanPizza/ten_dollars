@@ -42,7 +42,8 @@
 	ADC.I	0
 	STA	IO_WRITE_PTR 1
 >_INTERRUPT_CB1_EXIT
-	RTS				; return
+	JSR	HW_DISABLE_VIA
+	JMP	PROC_UNPAUSE
 
 >_INTERRUPT_CB1_OFF
 	LDA.I	VIA_IER_DISABLE VIA_IB_CB1	; load constant value to turn off write interrupt
@@ -50,4 +51,4 @@
 
 	LDA.I	FALSE			; load FALSE value to update io writing status to inactive
 	STA	IO_WRITE_STATUS		; update
-	RTS				; return
+	BRA	_INTERRUPT_CB1_EXIT

@@ -118,8 +118,8 @@
 ; writes the newline character
 
 >PRINTL
-	PHA
-	LDA.I	ASCII_LF
-	JSR	PRINTC
-	PLA
-	RTS
+	PHA		; store A
+	LDA.I	ASCII_LF	; load newline
+	JSR	PRINTC	; print newline
+	PLA		; restore A
+	RTS		; return

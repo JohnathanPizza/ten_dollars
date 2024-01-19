@@ -47,7 +47,8 @@
 
 >TOUPPER
 	PHA			; store A
-	JSR	ISLOWER		; test if C is lowercase
+	JSR	ISLOWER		; get case of C
+	CMP.I	FALSE		; test if not lowercase
 	BEQ	_TOUPPER_SAME	; if not then just return C
 	PLA			; restore A
 	CLC			; clc for adc
@@ -66,7 +67,8 @@
 
 >TOLOWER
 	PHA			; store A
-	JSR	ISUPPER		; test if C is uppercase
+	JSR	ISUPPER		; get case of C
+	CMP.I	FALSE		; test if not uppercase
 	BEQ	_TOLOWER_SAME	; if not then just return C
 	PLA			; restore A
 	CLC			; clc for adc

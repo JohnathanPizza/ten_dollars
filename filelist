@@ -29,3 +29,6 @@ extra/wait.cvm
 
 bitarray.cvm
 proc.cvm
+page.cvm
+adjust.cvm
+shell.cvm

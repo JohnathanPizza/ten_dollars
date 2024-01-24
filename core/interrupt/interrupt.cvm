@@ -22,15 +22,15 @@
 	JSR	HW_ENABLE_VIA	; turn on VIA so that interrupt code can use it
 	LDA	VIA_IFR		; load all active interrupts
 	AND	VIA_IER		; mask against enabled interrupts, only want to service enabled interrupts
-	AND.I	VIA_IB_T1		; test timer 1 bit
-	BEQ	_INTERRUPT_TEST_T2	; if not set, test timer 2
-	JMP	INTERRUPT_T1		; jump to timer 1 code
->_INTERRUPT_TEST_T2
+	AND.I	VIA_IB_T2		; test timer 2 bit
+	BEQ	_INTERRUPT_TEST_T1	; if not set, test timer 1
+	JMP	INTERRUPT_T2		; jump to timer 2 code
+>_INTERRUPT_TEST_T1
 	LDA	VIA_IFR
 	AND	VIA_IER
-	AND.I	VIA_IB_T2		; test timer 2 bit
+	AND.I	VIA_IB_T1		; test timer 1 bit
 	BEQ	_INTERRUPT_TEST_CA1	; if not set, test CA1
-	JMP	INTERRUPT_T2		; jump to timer 2 code
+	JMP	INTERRUPT_T1		; jump to timer 1 code
 >_INTERRUPT_TEST_CA1
 	LDA	VIA_IFR
 	AND	VIA_IER

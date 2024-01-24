@@ -1,81 +1,108 @@
 ; vr11 new process id
-; if 0xff then no space for one
+; if 0xff then none open
 ; else that is the new process id DONT LOSE IT!
+=PROC_MAX_COUNT	0x10
+
 >PROC_NEW
 	PHA
 	PHX
-	LDA.Z	VR0
-	STA.Z	VR8
-	LDA.Z	VR0 1
-	STA.Z	VR8 1
-	LDA.Z	VR4
-	STA.Z	VR9
-
-	LDA.I	PROC_ARRAY_ALIVE
-	STA.Z	VR0
-	LDA.I	PROC_ARRAY_ALIVE > 8
-	STA.Z	VR0 1
 	LDX.I	0
 >_PROC_NEW_LOOP
-	STX.Z	VR4
-	JSR	BITARRAY_GET
-	CMP.I	0
+	LDA.X	PROC_ARRAY_STATE
+	CMP.I	PROC_STATE_NULL
 	BEQ	_PROC_NEW_FOUND
 	INX
-	CPX.I	16
+	CPX.I	PROC_MAX_COUNT
 	BNE	_PROC_NEW_LOOP
 	LDA.I	0XFF
 	STA.Z	VR11
-	BRA	_PROC_NEW_RETURN
+	PLX
+	PLA
+	RTS
 >_PROC_NEW_FOUND
-	JSR	BITARRAY_SET
 	STX.Z	VR11
->_PROC_NEW_RETURN
-	LDA.Z	VR9
-	STA.Z	VR4
-	LDA.Z	VR8 1
-	STA.Z	VR0 1
-	LDA.Z	VR8
-	STA.Z	VR0
 	PLX
 	PLA
 	RTS
 
-; vr0 initial pc value
-; vr4 proc id
->PROC_INIT
+; A procid
+>PROC_EVALUATE
+
+; given a rom/ram program code
+
+; grab a new proc
+; check for C + 2 pages
+; claim
+; arrange a line of C pages
+; fill with program code
+; adjust
+; clear zero page and stack
+; init pcb
+; update state to ready
+
+; A procid
+>PROC_CREATE
 	PHA
 	PHX
-	LDX.Z	VR4
-	LDA.I	0B00100000
-	STA.X	PROC_ARRAY_P
-	LDA.I	0XFF
-	STA.X	PROC_ARRAY_S
-	TXA
-	ASL
 	TAX
-	LDA.Z	VR0
-	STA.X	PROC_ARRAY_PC
-	LDA.Z	VR0 1
-	STA.X	PROC_ARRAY_PC 1
-	PLX
+	LDA.X	PROC_ARRAY_A	; A will initially store program index, <0x80 is rom, >=0x80 is disk
+	BPL	_PROC_CREATE_ROM
+	; disk program index idk yet
 	PLA
+	PLX
 	RTS
-
-; vr4 proc id
->PROC_ENTER
-	LDY.Z	VR4
-	STY	PROC_ACTIVE_ID
-	LDX.Y	PROC_ARRAY_S
-	TXS
-	LDX.Y	PROC_ARRAY_P
-	PHX
-	TYA
-	ASL
+>_PROC_CREATE_ROM
+	CLC
+	ADC.X	PROC_ARRAY_A
+	ADC.X	PROC_ARRAY_A
+	ASL ; x6
 	TAX
-	PLP
-	JMP.XP	PROC_ARRAY_PC
+	LDA.X	ROM_PROGRAM_ARRAY	; start ptr
+	STA.Z	VR8
+	LDA.X	ROM_PROGRAM_ARRAY 1
+	STA.Z	VR8 1
+	LDA.X	ROM_PROGRAM_ARRAY 2	; code len
+	STA.Z	VR9
+	LDA.X	ROM_PROGRAM_ARRAY 3
+	STA.Z	VR9 1
+	LDA.X	ROM_PROGRAM_ARRAY 4	; full len
+	STA.Z	VR10
+	LDA.X	ROM_PROGRAM_ARRAY 5
+	STA.Z	VR10 1
 
+	; program info is loaded in vr8-10
+	; calculate needed pages
+	; total page count = 2 + (full len - 1 > 8) + 1
+	SEC
+	LDA.Z	VR10
+	SBC.I	1
+	LDA.Z	VR10 1
+	SBC.I	0
+	INC
+	INC
+	INC
+	; A has pages needed
+	STA.Z	VR11
+	LDA	PAGE_TABLE_EMPTY
+	CMP.Z	VR11
+	BLS	_PROC_CREATE_FEW_PAGES
+	; finish this
+>_PROC_CREATE_FEW_PAGES
+
+;; vr4 proc id
+;>PROC_ENTER
+;	LDY.Z	VR4
+;	STY	PROC_ACTIVE_ID
+;	LDX.Y	PROC_ARRAY_S
+;	TXS
+;	LDX.Y	PROC_ARRAY_P
+;	PHX
+;	TYA
+;	ASL
+;	TAX
+;	PLP
+;	JMP.XP	PROC_ARRAY_PC
+;
 >PROC_UNPAUSE
 	LDA	PROC_PAUSE_A
 	LDY	PROC_PAUSE_Y

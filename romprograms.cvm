@@ -1,0 +1,10 @@
+; pointer to start of program data
+; length of code
+; length of entire program
+
+=ROM_PROGRAM_COUNT	2
+>ROM_PROGRAM_ARRAY
+; 0
+$SHELL_PROGRAM
+$SHELL_PROGRAM - _SHELL_PROGRAM_CODE_END
+$SHELL_PROGRAM - _SHELL_PROGRAM_END

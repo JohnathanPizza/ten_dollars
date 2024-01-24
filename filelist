@@ -1,6 +1,7 @@
 const/ascii.cvm
 const/bool.cvm
 const/hardware.cvm
+const/procstate.cvm
 const/via.cvm
 const/vridx.cvm
 
@@ -28,7 +29,8 @@ extra/string.cvm
 extra/wait.cvm
 
 bitarray.cvm
-proc.cvm
-page.cvm
 adjust.cvm
+schedule.cvm
+proc.cvm
+romprograms.cvm
 shell.cvm

@@ -5,222 +5,100 @@
 ; home of 0x80 is the zero page
 ; home of 0x81 is the stack page
 
-; A proc id
-; ret A page id, 0xff is none
->PAGE_TABLE_CLAIM
-	PHY
-	PHA
-	LDY.I	0
->_PAGE_TABLE_CLAIM_LOOP
-	LDA.Y	PAGE_TABLE_PROCID
-	CMP.I	0XFF
-	BEQ	_PAGE_TABLE_CLAIM_FOUND
-	INY
-	CPY.I	0XFF
-	BNE	_PAGE_TABLE_CLAIM_LOOP
-	PLA
-	TYA
-	PLY
-	RTS
->_PAGE_TABLE_CLAIM_FOUND
-	DEC	PAGE_TABLE_EMPTY
-	PLA
-	STA.Y	PAGE_TABLE_PROCID
-	LDA.I	0XFF
-	STA.Y	PAGE_TABLE_HOME
-	TYA
-	PLY
-	RTS
+=PAGE_MAP_RAM_COUNT	0X70	; 0x1000 - 0x7fff
+=PAGE_MAP_RAM_BASE	0X1000
 
-; A page id
->PAGE_TABLE_RELEASE_PAGE
-	PHY
-	TAY
-	LDA.I	0XFF
-	STA.Y	PAGE_TABLE_PROCID
-	STY.Z	VR8
-	LDY.I	0
->_PAGE_TABLE_RELEASE_PAGE_LOOP
-	LDA.Y	PAGE_MAP
-	CMP.Z	VR8
-	BEQ	_PAGE_TABLE_RELEASE_PAGE_LOOP_FOUND
-	INY
-	CPY.I	0XFF
-	BNE	_PAGE_TABLE_RELEASE_PAGE_LOOP
-	LDA.Z	VR8
-	PLY
-	RTS
->_PAGE_TABLE_RELEASE_PAGE_LOOP_FOUND
-	LDA.I	0XFF
-	STA.Y	PAGE_MAP
-	LDA.Z	VR8
-	PLY
-	RTS
-
-; A proc id
->PAGE_TABLE_RELEASE_PROC
-	PHY
-	LDY.I	0
-	STA.Z	VR8
->_PAGE_TABLE_RELEASE_PROC_LOOP
-	LDA.Y	PAGE_TABLE_PROCID
-	CMP.Z	VR8
-	BNE	_PAGE_TABLE_RELEASE_PROC_LOOP_NEXT
-	TYA
-	JSR	PAGE_TABLE_RELEASE_PAGE
->_PAGE_TABLE_RELEASE_PROC_LOOP_NEXT
-	INY
-	CPY.I	0XFF
-	BNE	_PAGE_TABLE_RELEASE_PROC_LOOP
-	LDA.Z	VR8
-	PLY
-	RTS
-
-=PAGE_MAP_RAM_COUNT	0X70
-
-; vr11 number of open map spots in RAM
->PAGE_MAP_OPEN
+; vr4/1 first index
+; vr4/2 second index
+>PAGE_MAP_SWAP
 	PHA
 	PHX
-	LDX.I	0
-	STZ.Z	VR11
->_PAGE_MAP_OPEN_LOOP
+	LDX.Z	VR4
 	LDA.X	PAGE_MAP
-	CMP.I	0XFF
-	BNE	_PAGE_MAP_OPEN_LOOP_NEXT
-	INC.Z	VR11
->_PAGE_MAP_OPEN_LOOP_NEXT
-	INX
-	CPX.I	PAGE_MAP_RAM_COUNT
-	BNE	_PAGE_MAP_OPEN_LOOP
-	PLX
-	PLA
-	RTS
-
-; ret A map idx in RAM
-; 0xff if none
->PAGE_MAP_NEXT_OPEN
-	PHX
-	LDX.I	0
->_PAGE_MAP_NEXT_OPEN_LOOP
-	LDA.X	PAGE_MAP
-	CMP.I	0XFF
-	BEQ	_PAGE_MAP_NEXT_OPEN_FOUND
-	INX
-	CPX.I	PAGE_MAP_RAM_COUNT
-	BNE	_PAGE_MAP_NEXT_OPEN_LOOP
-	LDA.I	0XFF
-	PLX
-	RTS
->_PAGE_MAP_NEXT_OPEN_FOUND
-	TXA
-	PLX
-	RTS
-
-; a page id
->PAGE_MAP_ADD_DATA
-	PHX
 	STA.Z	VR8
-	JSR	PAGE_MAP_OPEN
-	LDA.Z	VR11
-	BEQ	_PAGE_MAP_ADD_DATA_FAIL
-	LDX.Z	VR8
-	LDA.X	PAGE_TABLE_PROCID
-	TAX
-	LDA.X	PROC_ARRAY_DPAGE_COUNT
-	CMP.I	20
-	BGE	_PAGE_MAP_ADD_DATA_FAIL
-	CLC
-	INC.X	PROC_ARRAY_DPAGE_COUNT
-	ADC.I	0X82
-	LDX.Z	VR8
-	STA.X	PAGE_TABLE_HOME
-	JSR	PAGE_MAP_NEXT_OPEN
-	TAX
-	LDA.Z	VR8
+	LDX.Z	VR4 1
+	LDA.X	PAGE_MAP
+	LDX.Z	VR4
 	STA.X	PAGE_MAP
->_PAGE_MAP_ADD_DATA_FAIL
-	PLX
 	LDA.Z	VR8
+	LDX.Z	VR4 1
+	STA.X	PAGE_MAP
+
+	LDA.Z	VR4
+	CLC
+	ADC.I	PAGE_MAP_RAM_BASE > 8
+	STA.Z	VR4
+	LDA.Z	VR4 1
+	CLC
+	ADC.I	PAGE_MAP_RAM_BASE > 8
+	STA.Z	VR4 1
+
+	JSR	PAGESWAP
+
+	LDA.Z	VR4
+	SEC
+	SBC.I	PAGE_MAP_RAM_BASE > 8
+	STA.Z	VR4
+	LDA.Z	VR4 1
+	SEC
+	SBC.I	PAGE_MAP_RAM_BASE > 8
+	STA.Z	VR4 1
+	PLX
+	PLA
 	RTS
 
-; A chunk size
-; ret A map idx start
-; 0xff if none
->PAGE_MAP_FIND_CHUNK
-	STA.Z	VR8
+; A number of pages to go in RAM
+; ret A spot where those pages should start from
+; may not all be clear
+>PAGE_MAP_LARGEST
+	; vr8/1 highset count
+	; vr8/2 highest count base
+	; vr9/1 current count
+	; vr9/2 current base
+	; vr10/1 pages to find
+	; vr11 map ptr
+	STA.Z	VR10
 	PHX
-	PHY
-	LDX.I	0
-	LDY.I	0
->_PAGE_MAP_FIND_CHUNK_LOOP
+	
+	STZ.Z	VR8
+	STZ.Z	VR8 1
+	
+	LDA.I	PAGE_MAP_RAM_COUNT
+	SEC
+	SBC.Z	VR10
+	STA.Z	VR9 1
+
+>_PAGE_MAP_LARGEST_LOOP
+	STZ.Z	VR9
+	LDA.Z	VR9 1
+	DEC
+	CLC
+	ADC.Z	VR10
+	TAX
+>_PAGE_MAP_LARGEST_LOOP2
 	LDA.X	PAGE_MAP
 	CMP.I	0XFF
-	BNE	_PAGE_MAP_FIND_CHUNK_LOOP_NEXT
-	INY
-	INX
-	CPY.Z	VR8
-	BEQ	_PAGE_MAP_FIND_CHUNK_FOUND
-	CPX.I	0XFF
-	BNE	_PAGE_MAP_FIND_CHUNK_LOOP
-	TXA
-	PLY
-	PLX
-	RTS
->_PAGE_MAP_FIND_CHUNK_LOOP_NEXT
-	LDY.I	0
-	INX
-	CPX.I	0XFF
-	BNE	_PAGE_MAP_FIND_CHUNK_LOOP
-	TXA
-	PLY
-	PLX
-	RTS
->_PAGE_MAP_FIND_CHUNK_FOUND
-	TXA
-	SEC
-	SBC.Z	VR8
-	PLY
-	PLX
-	RTS
-
-; vr5/1 number to add
-; vr5/2 proc id
-; vr0 code pointer
-; vr4 code len
->PAGE_MAP_ADD_CODE
-	PHA
-	LDA.Z	VR0 1
-	INC
-	JSR	PAGE_MAP_FIND_CHUNK
-	STA.Z	VR8
-	LDA.Z	VR1
-	STA.Z	VR9
-	LDA.Z	VR1 1
-	STA.Z	VR9 1
+	BNE	_PAGE_MAP_LARGEST_LOOP2_OCC
+	INC.Z	VR9
+>_PAGE_MAP_LARGEST_LOOP2_OCC
+	CPX.Z	VR9 1
+	BEQ	_PAGE_MAP_LARGEST_LOOP2_CALC
+	DEX
+	BRA	_PAGE_MAP_LARGEST_LOOP2
+>_PAGE_MAP_LARGEST_LOOP2_CALC
 	LDA.Z	VR8
-	CLC
-	ADC.I	0X10
-	STA.Z	VR1 1
-	STZ.Z	VR1
-	JSR	MEMCPY
->_PAGE_MAP_ADD_CODE_LOOP
-
-
-; steps:
-; 1 process info block is created
-; 2 process needs to claim at least C + 2 pages to be started ( C is # of code pages )
-; 3 go through the page table and try to claim C code pages
-; 4 go through the page table again and try to claim 2 data pages with homes of 0 and 1
-; 5 process wants to be put into the map so find C pages that are contig and empty, set homes of pages linearly
-; 6 find 2 more open pages and move zp and stack pages there
-; 7 process code is copied into pages and stack + zp are wiped and set
-; 8 process runs.....
-; 9.1 data page is requested
-; 9.2 new page table row is claimed for that process and a map slot is filled
-; 10.1 data page is released
-; 10.2 map page is cleared and page table row is released
-; 11 repeat 9 and 10 many times
-; 12 process is scheduled to die
-; 13 go through all of page table and if page has the proc id, try to clear it in the map and then clear it in page table
-; 14 process itself is removed
+	CMP.Z	VR9
+	BGE	_PAGE_MAP_LARGEST_LOOP2_KEEP
+	LDA.Z	VR9
+	STA.Z	VR8
+	LDA.Z	VR9 1
+	STA.Z	VR8 1
+>_PAGE_MAP_LARGEST_LOOP2_KEEP
+	LDA.Z	VR9 1
+	BEQ	_PAGE_MAP_LARGEST_EXIT
+	DEC.Z	VR9 1
+	BRA	_PAGE_MAP_LARGEST_LOOP
+>_PAGE_MAP_LARGEST_EXIT
+	PLX
+	LDA.Z	VR8 1
+	RTS

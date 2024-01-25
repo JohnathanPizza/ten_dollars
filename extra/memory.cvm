@@ -77,7 +77,7 @@
 	JSR	DEC10	; decrement L
 >_MEMCPY_LOOP_CHECK
 	LDA.Z	VR10	; test if L is 0
-	LDA.Z	VR10 1
+	ORA.Z	VR10 1
 	BNE	_MEMSET_LOOP	; if not 0 loop again
 >_MEMCPY_LOOP_END
 	PLX		; restore X

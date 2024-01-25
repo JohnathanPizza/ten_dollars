@@ -26,18 +26,16 @@
 	STA.Z	VR9
 	LDA.Z	VR4 1
 	STA.Z	VR9 1
+	BRA	_MEMSET_LOOP_CHECK
 >_MEMSET_LOOP
-	LDA.Z	VR9	; test if L is 0
-	ORA.Z	VR9 1
-	BEQ	_MEMSET_LOOP_END	; if L is 0, exit loop
-
 	LDA.Z	VR5	; load V
 	STA.ZP	VR8	; set next byte at P to V
-
 	JSR	INC8	; increment P
 	JSR	DEC9	; decrement L
-
-	BRA	_MEMSET_LOOP	; loop
+>_MEMSET_LOOP_CHECK
+	LDA.Z	VR9	; test if L is 0
+	ORA.Z	VR9 1
+	BNE	_MEMSET_LOOP	; if not 0 loop again
 >_MEMSET_LOOP_END
 	PLX		; restore X
 	PLA		; restore A
@@ -69,19 +67,17 @@
 	STA.Z	VR10
 	LDA.Z	VR4 1
 	STA.Z	VR10 1
+	BRA	_MEMCPY_LOOP_CHECK
 >_MEMCPY_LOOP
-	LDA.Z	VR10	; test if L is 0
-	ORA.Z	VR10 1
-	BEQ	_MEMCPY_LOOP_END	; if L is 0, exit loop
-
 	LDA.ZP	VR8	; load next byte from S
 	STA.ZP	VR9	; store at next byte in D
-
 	JSR	INC8	; increment S
 	JSR	INC9	; increment D
 	JSR	DEC10	; decrement L
-
-	BRA	_MEMCPY_LOOP	; loop
+>_MEMCPY_LOOP_CHECK
+	LDA.Z	VR10	; test if L is 0
+	LDA.Z	VR10 1
+	BNE	_MEMSET_LOOP	; if not 0 loop again
 >_MEMCPY_LOOP_END
 	PLX		; restore X
 	PLA		; restore A

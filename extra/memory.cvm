@@ -4,6 +4,7 @@
 ; MEMCPY
 ; PAGESET
 ; PAGECPY
+; PAGESWAP
 
 ;=========================================
 
@@ -151,3 +152,39 @@
 	STA.Z	VR0
 	PLA		; restore A
 	RTS		; return
+
+;==================================================
+
+; PAGESWAP
+; P --- VR4/1: page 1 number A
+;	VR4/2: page 2 number B
+; swaps the value of every byte in pages A and B
+
+>PAGESWAP
+	PHA
+	PHX
+	PHY
+
+	LDA.Z	VR4
+	STA.Z	VR8 1
+	STZ.Z	VR8
+	LDA.Z	VR4 1
+	STA.Z	VR9 1
+	STZ.Z	VR9
+
+	LDX.I	0
+>_PAGESWAP_LOOP
+	LDA.ZP	VR8
+	LDY.ZP	VR9
+	STA.ZP	VR9
+	STY.ZP	VR8
+
+	JSR	INC8
+	JSR	INC9
+	INX
+	BNE	_PAGESWAP_LOOP
+
+	PLY
+	PLX
+	PLA
+	RTS

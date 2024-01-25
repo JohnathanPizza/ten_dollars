@@ -41,11 +41,9 @@
 	STA.Y	IO_WRITE_BUFFER		; write character into buffer at head index
 	INC	IO_WRITE_BUFFER_HEAD	; increment head index
 
-	LDX.I	VRI_0			; load VRI for pointer
-	JSR	INC16			; inc pointer
+	JSR	INC0			; inc pointer
 
-	LDX.I	VRI_5			; load VRI for length
-	JSR	DEC16			; dec length
+	JSR	DEC5			; dec length
 
 	BRA	_BRK_WRITE_LOOP		; loop
 >_BRK_WRITE_LOOP_END

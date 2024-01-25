@@ -34,10 +34,8 @@
 	LDA.Z	VR5	; load V
 	STA.ZP	VR8	; set next byte at P to V
 
-	LDX.I	VRI_8	; increment P
-	JSR	INC16
-	LDX.I	VRI_9	; decrement L
-	JSR	DEC16
+	JSR	INC8	; increment P
+	JSR	DEC9	; decrement L
 
 	BRA	_MEMSET_LOOP	; loop
 >_MEMSET_LOOP_END
@@ -79,12 +77,9 @@
 	LDA.ZP	VR8	; load next byte from S
 	STA.ZP	VR9	; store at next byte in D
 
-	LDX.I	VRI_8	; increment S
-	JSR	INC16
-	LDX.I	VRI_9	; increment D
-	JSR	INC16
-	LDX.I	VRI_10	; decrement L
-	JSR	DEC16
+	JSR	INC8	; increment S
+	JSR	INC9	; increment D
+	JSR	DEC10	; decrement L
 
 	BRA	_MEMCPY_LOOP	; loop
 >_MEMCPY_LOOP_END

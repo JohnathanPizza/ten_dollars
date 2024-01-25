@@ -2,8 +2,8 @@
 ; ===
 ; ADD16
 ; SUB16
-; INC16
-; DEC16
+; INC*
+; DEC*
 
 ;==================================================
 
@@ -47,12 +47,62 @@
 
 ;==================================================
 
-; INC16
-; P ---	VRX: summand A
-; R ---	VRX: sum S=A+1
-; adds 1 to the 16-bit number in the register given by the VRI in X
+; INC* family
+; increments the targeted 16-bit number in one of the 12 virtual registers
+; for example INC5 adds 1 to the 16-bit number in VR5
+; INC16 uses a VRI held in X to increment one of the VRs
 
+>INC0
+	PHX		; store X
+	LDX.I	VRI_0	; load VRI for VR0
+	BRA	_INC	; go to inc code
+>INC1
+	PHX		; store X
+	LDX.I	VRI_1	; load VRI for VR1
+	BRA	_INC	; go to inc code
+>INC2
+	PHX		; store X
+	LDX.I	VRI_2	; load VRI for VR2
+	BRA	_INC	; go to inc code
+>INC3
+	PHX		; store X
+	LDX.I	VRI_3	; load VRI for VR3
+	BRA	_INC	; go to inc code
+>INC4
+	PHX		; store X
+	LDX.I	VRI_4	; load VRI for VR4
+	BRA	_INC	; go to inc code
+>INC5
+	PHX		; store X
+	LDX.I	VRI_5	; load VRI for VR5
+	BRA	_INC	; go to inc code
+>INC6
+	PHX		; store X
+	LDX.I	VRI_6	; load VRI for VR6
+	BRA	_INC	; go to inc code
+>INC7
+	PHX		; store X
+	LDX.I	VRI_7	; load VRI for VR7
+	BRA	_INC	; go to inc code
+>INC8
+	PHX		; store X
+	LDX.I	VRI_8	; load VRI for VR8
+	BRA	_INC	; go to inc code
+>INC9
+	PHX		; store X
+	LDX.I	VRI_9	; load VRI for VR9
+	BRA	_INC	; go to inc code
+>INC10
+	PHX		; store X
+	LDX.I	VRI_10	; load VRI for VR10
+	BRA	_INC	; go to inc code
+>INC11
+	PHX		; store X
+	LDX.I	VRI_11	; load VRI for VR11
+	BRA	_INC	; go to inc code
 >INC16
+	PHX		; store X
+>_INC
 	PHA		; store A
 	CLC		; clear carry for ADC
 	LDA.ZX	VRB	; load low byte of A
@@ -62,16 +112,67 @@
 	ADC.I	0	; add 0 + C to it
 	STA.ZX	VRB 1	; store into high byte of S
 	PLA		; restore A
+	PLX		; restore X
 	RTS		; return
 
 ;==================================================
 
-; DEC16
-; P ---	VRX: minuend A
-; R ---	VRX: difference D=A-1
-; subtracts 1 from the 16-bit number in the register given by the VRI in X
+; DEC* family
+; decrements the targeted 16-bit number in one of the 12 virtual registers
+; for example DEC5 subtracts 1 from the 16-bit number in VR5
+; DEC16 uses a VRI held in X to decrement one of the VRs
 
+>DEC0
+	PHX		; store X
+	LDX.I	VRI_0	; load VRI for VR0
+	BRA	_DEC	; go to dec code
+>DEC1
+	PHX		; store X
+	LDX.I	VRI_1	; load VRI for VR1
+	BRA	_DEC	; go to dec code
+>DEC2
+	PHX		; store X
+	LDX.I	VRI_2	; load VRI for VR2
+	BRA	_DEC	; go to dec code
+>DEC3
+	PHX		; store X
+	LDX.I	VRI_3	; load VRI for VR3
+	BRA	_DEC	; go to dec code
+>DEC4
+	PHX		; store X
+	LDX.I	VRI_4	; load VRI for VR4
+	BRA	_DEC	; go to dec code
+>DEC5
+	PHX		; store X
+	LDX.I	VRI_5	; load VRI for VR5
+	BRA	_DEC	; go to dec code
+>DEC6
+	PHX		; store X
+	LDX.I	VRI_6	; load VRI for VR6
+	BRA	_DEC	; go to dec code
+>DEC7
+	PHX		; store X
+	LDX.I	VRI_7	; load VRI for VR7
+	BRA	_DEC	; go to dec code
+>DEC8
+	PHX		; store X
+	LDX.I	VRI_8	; load VRI for VR8
+	BRA	_DEC	; go to dec code
+>DEC9
+	PHX		; store X
+	LDX.I	VRI_9	; load VRI for VR9
+	BRA	_DEC	; go to dec code
+>DEC10
+	PHX		; store X
+	LDX.I	VRI_10	; load VRI for VR10
+	BRA	_DEC	; go to dec code
+>DEC11
+	PHX		; store X
+	LDX.I	VRI_11	; load VRI for VR11
+	BRA	_DEC	; go to dec code
 >DEC16
+	PHX		; store X
+>_DEC
 	PHA		; store A
 	SEC		; set carry for SBC
 	LDA.ZX	VRB	; load low byte of A
@@ -81,4 +182,5 @@
 	SBC.I	0	; subtract 0 + C from it
 	STA.ZX	VRB 1	; store into high byte of D
 	PLA		; restore A
+	PLX		; restore X
 	RTS		; return

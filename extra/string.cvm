@@ -22,10 +22,8 @@
 >_STRLEN_LOOP
 	LDA.ZP	VR8	; get next character fom S
 	BEQ	_STRLEN_END	; if 0 then stop counting and return
-	LDX.I	VRI_11	; load VRI for L
-	JSR	INC16	; inc L
-	LDX.I	VRI_8	; load VRI for S
-	JSR	INC16	; inc S
+	JSR	INC11	; inc L
+	JSR	INC8	; inc S
 	BRA	_STRLEN_LOOP	; loop
 >_STRLEN_END
 	PLX		; restore X
@@ -54,10 +52,8 @@
 	LDA.ZP	VR8	; load next character from the string
 	STA.ZP	VR9	; store at next location at the destination
 	BEQ	_STRCPY_END	; if it was the null character, return
-	LDX.I	VRI_8	; load VRI for S
-	JSR	INC16	; inc S
-	LDX.I	VRI_9	; load VRI for D
-	JSR	INC16	; inc D
+	JSR	INC8	; inc S
+	JSR	INC9	; inc D
 	BRA	_STRCPY_LOOP	; loop
 >_STRCPY_END
 	PLX		; restore X

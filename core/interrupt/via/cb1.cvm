@@ -24,6 +24,11 @@
 	SBC.I	0
 	STA	IO_WRITE_LEN 1
 
+	LDA.Z	VR8			; save VR8
+	PHA
+	LDA.Z	VR8 1
+	PHA
+
 	LDA	IO_WRITE_PTR		; load the write ptr into VR8
 	STA.Z	VR8
 	LDA	IO_WRITE_PTR 1
@@ -33,6 +38,11 @@
 	LDY	IO_WRITE_BUFFER_HEAD	; load head index
 	STA.Y	IO_WRITE_BUFFER		; store character at head index
 	INC	IO_WRITE_BUFFER_HEAD	; increment head
+
+	PLA				; restore VR8
+	STA.Z	VR8 1
+	PLA
+	STA.Z	VR8
 
 	CLC				; clc for adc
 	LDA	IO_WRITE_PTR		; add 1 to the pointer

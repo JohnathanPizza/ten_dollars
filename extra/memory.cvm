@@ -72,13 +72,14 @@
 >_MEMCPY_LOOP
 	LDA.ZP	VR8	; load next byte from S
 	STA.ZP	VR9	; store at next byte in D
+
 	JSR	INC8	; increment S
 	JSR	INC9	; increment D
 	JSR	DEC10	; decrement L
 >_MEMCPY_LOOP_CHECK
 	LDA.Z	VR10	; test if L is 0
 	ORA.Z	VR10 1
-	BNE	_MEMSET_LOOP	; if not 0 loop again
+	BNE	_MEMCPY_LOOP	; if not 0 loop again
 >_MEMCPY_LOOP_END
 	PLX		; restore X
 	PLA		; restore A

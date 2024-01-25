@@ -42,7 +42,6 @@
 	INC	IO_WRITE_BUFFER_HEAD	; increment head index
 
 	JSR	INC0			; inc pointer
-
 	JSR	DEC5			; dec length
 
 	BRA	_BRK_WRITE_LOOP		; loop

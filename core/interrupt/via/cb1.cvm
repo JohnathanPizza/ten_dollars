@@ -52,8 +52,9 @@
 	ADC.I	0
 	STA	IO_WRITE_PTR 1
 >_INTERRUPT_CB1_EXIT
-	JSR	HW_DISABLE_VIA
-	JMP	PROC_UNPAUSE
+	LDX	HW_STATUS	; load hardware module enabling codes
+	STA.X	HW_ENABLE_ADDR	; restore previous state of hardware modules while turning off VIA
+	JMP	PROC_UNPAUSE	; resume process
 
 >_INTERRUPT_CB1_OFF
 	LDA.I	VIA_IER_DISABLE VIA_IB_CB1	; load constant value to turn off write interrupt

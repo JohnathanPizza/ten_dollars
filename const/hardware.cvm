@@ -1,10 +1,10 @@
 ; for enabling and disabling hardware modules
 ; useful because these modules compete in the memory map
 ; use: STA HW_ENABLE_ADDR [modules you want to enable]
-; ex: STA HW_ENABLE_ADDR HW_SRAM HW_VIA
+; ex: STA HW_ENABLE_ADDR HW_RAM1 HW_VIA
 
 =HW_ENABLE_ADDR	0X8000
-=HW_SRAM	0B0001	; main/static ram module
-=HW_NVRAMLO	0B0010	; non-volatile ram module lower half
-=HW_NVRAMHI	0B0110	; non-volatile ram module upper half
+=HW_RAM1	0B0001	; main ram module
+=HW_RAM2LO	0B0010	; secondary ram module lower half
+=HW_RAM2HI	0B0110	; secondary ram module upper half
 =HW_VIA		0B1000	; via module

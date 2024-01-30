@@ -9,20 +9,21 @@
 	TXS		; set stack pointer to 0x1FF
 
 	; turning on hardware modules
-	STA	HW_ENABLE_ADDR HW_SRAM HW_VIA	; enable the SRAM and VIA
-	LDA.I	HW_SRAM		; load the value of the SRAM toggle (not VIA, it is turned off soon)
-	STA	HW_STATUS	; store into status to track it
+	STA	HW_ENABLE_ADDR HW_RAM1	; enable the main RAM
+	LDA.I	HW_RAM1			; load the value of the main RAM toggle
+	STA	HW_STATUS		; store into status to track it
 
 	; setting register values in the VIA
-	LDA.I	0B11000101	; initial value for the PCR
-	STA	VIA_PCR		; update PCR
+	JSR	HW_ENABLE_VIA		; enable VIA
+	LDA.I	0B11000101		; initial value for the PCR
+	STA	VIA_PCR			; update PCR
 	STZ	VIA_READ_PORT_DIR	; set the reading port to all input
 	STZ	VIA_WRITE_PORT		; preset the write port to output 0
 	LDA.I	0XFF			; load value to set write port to all output
 	STA	VIA_WRITE_PORT_DIR	; set write port to all output
-	LDA.I	0B00000000
-	STA	VIA_ACR
-	STA	HW_ENABLE_ADDR HW_SRAM	; disable the VIA now
+	LDA.I	0B00000000		; load initial ACR value
+	STA	VIA_ACR			; store into ACR
+	JSR	HW_DISABLE_VIA		; disable VIA since setup is done
 
 	; initialize RAM variables
 
@@ -70,43 +71,8 @@
 	JSR	PRINTC
 	LDA.I	ASCII_AT
 	JSR	PRINTC
-
-	LDA.I	5
-	JSR	PAGE_MAP_LARGEST
-	JSR	PRINTB
-
-	LDA.I	0xff
-	STA	PAGE_MAP 0X04
-	STA	PAGE_MAP 0X08
-	STA	PAGE_MAP 0X07
-	STA	PAGE_MAP 0X50
-	LDA.I	10
-	JSR	PAGE_MAP_LARGEST
-	JSR	PRINTB
-	JSR	PRINTL
-
 >LOOP
 	JMP	LOOP
-
->PRINTSCHED
-	PHA
-	PHX
-	LDX.I	0
->_PRINTSCHED_LOOP
-	LDA.X	PROC_ARRAY_SCHEDULE_COUNT
-	JSR	PRINTB
-	INX
-	CPX.I	PROC_MAX_COUNT
-	BNE	_PRINTSCHED_LOOP
-	JSR	PRINTL
-	JSR	SCHEDULER_SELECT
-	LDA.Z	VR11
-	JSR	PRINTB
-	JSR	PRINTL
-	JSR	PRINTWAIT
-	PLX
-	PLA
-	RTS
 
 >PRINTWAIT
 	LDA	IO_WRITE_STATUS

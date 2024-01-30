@@ -94,26 +94,23 @@
 
 >PAGESET
 	PHA		; store A
-	
+	PHY		; store Y
+
 	LDA.Z	VR0	; save VR0/1 to stack
 	PHA
-	LDA.Z	VR4	; save VR4 to stack
-	PHA
-	LDA.Z	VR4 1
-	PHA
+	
+	STZ.Z	VR0	; make VR0 a pointer to the beginning of page P
+	
+	LDY.I	0	; set index to 0
+	LDA.Z	VR5	; load value to store
+>_PAGESET_LOOP
+	STA.ZPY	VR0	; store value at index
+	INY		; increment index
+	BNE	_PAGESET_LOOP	; loop if not 0 again
 
-	STZ.Z	VR0	; set memset ptr to address of first byte in page P
-	STZ.Z	VR4	; set memset len to 0x100
-	LDA.I	1
-	STA.Z	VR4 1
-	JSR	MEMSET	; call memset
-
-	PLA		; restore VR4 from stack
-	STA.Z	VR4 1
-	PLA
-	STA.Z	VR4
-	PLA		; restore VR0/1 from stack
+	PLA		; restore VR0/1
 	STA.Z	VR0
+	PLY		; restore Y
 	PLA		; restore A
 	RTS		; return
 
@@ -126,68 +123,65 @@
 
 >PAGECPY
 	PHA		; store A
-	
+	PHY		; store Y
+
 	LDA.Z	VR0	; save VR0/1 to stack
 	PHA
 	LDA.Z	VR1	; save VR1/1 to stack
 	PHA
-	LDA.Z	VR4	; save VR4 to stack
-	PHA
-	LDA.Z	VR4 1
-	PHA
 
-	STZ.Z	VR0	; set memcpy source ptr to first byte of page S
-	STZ.Z	VR1	; set memcpy destination ptr to first byte of page D
-	STZ.Z	VR4	; set memcpy length to 0x100
-	LDA.I	1
-	STA.Z	VR4 1
-	JSR	MEMCPY	; call memcpy
+	STZ.Z	VR0	; make VR0 a pointer to the beginning of page S
+	STZ.Z	VR1	; make VR1 a pointer to the beginning of page D
 
-	PLA		; restore VR4 from stack
-	STA.Z	VR4 1
-	PLA
-	STA.Z	VR4
-	PLA		; restore VR1/1 from stack
+	LDY.I	0	; set index to 0
+>_PAGECPY_LOOP
+	LDA.ZPY	VR0	; get value in S at index
+	STA.ZPY	VR1	; store into D at index
+	INY		; increment index
+	BNE	_PAGECPY_LOOP	; loop if not 0 again
+
+	PLA		; restore VR1/1
 	STA.Z	VR1
-	PLA		; restore VR0/1 from stack
+	PLA		; restore VR0/1
 	STA.Z	VR0
+	PLY		; restore Y
 	PLA		; restore A
 	RTS		; return
 
 ;==================================================
 
 ; PAGESWAP
-; P --- VR4/1: page 1 number A
-;	VR4/2: page 2 number B
+; P --- VR0/2: page 1 number A
+;	VR1/2: page 2 number B
 ; swaps the value of every byte in pages A and B
 
 >PAGESWAP
 	PHA		; store A
-	PHX		; store X
 	PHY		; store Y
 
-	LDA.Z	VR4	; create page A pointer in VR8
-	STA.Z	VR8 1
-	STZ.Z	VR8
-	LDA.Z	VR4 1	; create page B pointer in VR9
-	STA.Z	VR9 1
-	STZ.Z	VR9
+	LDA.Z	VR0	; save VR0/1 to stack
+	PHA
+	LDA.Z	VR1	; save VR1/1 to stack
+	PHA
 
-	LDX.I	0	; set index counter to 0
+	STZ.Z	VR0	; make VR0 a pointer to the beginning of page A
+	STZ.Z	VR1	; make VR1 a pointer to the beginning of page B
+
+	LDY.I	0	; set index to 0
 >_PAGESWAP_LOOP
-	LDA.ZP	VR8	; load from page A
-	TAY		; put in Y
-	LDA.ZP	VR9	; load from page B
-	STA.ZP	VR8	; store page B byte to page A
-	TYA		; get from Y
-	STA.ZP	VR9	; store page A byte to page B
+	LDA.ZPY	VR0	; load value at index from A
+	PHA		; store it on the stack
+	LDA.ZPY	VR1	; load value at index from B
+	STA.ZPY VR0	; store B value in A at index
+	PLA		; get A value off stack
+	STA.ZPY VR1	; store A value in B at index
+	INY		; increment index
+	BNE	_PAGESWAP_LOOP	; loop again if not 0
 
-	JSR	INC8	; increment A pointer
-	JSR	INC9	; increment B pointer
-	INX		; increment index
-	BNE	_PAGESWAP_LOOP	; if index not 0 then loop
-
+	PLA		; restore VR1/1
+	STA.Z	VR1
+	PLA		; restore VR0/1
+	STA.Z	VR0
 	PLY		; restore Y
-	PLX		; restore X
 	PLA		; restore A
 	RTS		; return

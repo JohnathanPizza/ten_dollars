@@ -2,11 +2,11 @@
 
 >BRK_READ
 	STZ	IO_READ_IDX		; reset write buffer index
-	JSR	HW_ENABLE_VIA		; enable VIA to enable interrupt
+	STA	HW_ENABLE_ADDR HW_RAM1 HW_VIA	; enable VIA to enable interrupt
 	BIT	VIA_READ_PORT		; clear any existing interrupt
 	LDA.I	VIA_IER_ENABLE VIA_IB_CA1	; load constant to enable CA1
 	STA	VIA_IER			; enable
-	JSR	HW_DISABLE_VIA		; disable VIA
+	STA	HW_ENABLE_ADDR HW_RAM1	; disable VIA
 	LDA.I	TRUE			; load TRUE value to use in reading status
 	STA	IO_READ_STATUS		; set
 	JMP	PROC_UNPAUSE

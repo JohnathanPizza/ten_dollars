@@ -7,7 +7,6 @@ const/vridx.cvm
 
 core/map.cvm
 core/start.cvm
-core/hwcontrol.cvm
 
 core/interrupt/interrupt.cvm
 

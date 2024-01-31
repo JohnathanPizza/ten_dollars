@@ -9,10 +9,10 @@
 	BNE	_BRK_WRITE_CONT		; if 0 length then just return
 	BRA	_BRK_WRITE_EXIT
 >_BRK_WRITE_CONT
-	JSR	HW_ENABLE_VIA		; enable VIA to turn on the interrupt
+	STA	HW_ENABLE_ADDR HW_RAM1 HW_VIA	; enable VIA to turn on the interrupt
 	LDA.I	VIA_IER_ENABLE VIA_IB_CB1	; load constant to enable CB1
 	STA	VIA_IER			; enable
-	JSR	HW_DISABLE_VIA		; disable VIA since done with it now
+	STA	HW_ENABLE_ADDR HW_RAM1	; disable VIA since done with it now
 
 	LDA.I	TRUE			; load TRUE value to indicate writing status active
 	STA	IO_WRITE_STATUS		; store

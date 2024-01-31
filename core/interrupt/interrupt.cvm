@@ -19,7 +19,7 @@
 	AND.I	0X10		; mask the BRK flag (5th bit)
 	BNE	_INTERRUPT_BRK	; BRK flag is set, handle interrupt as a BRK instruction
 	; handle a hardware interrupt
-	STA	HW_ENABLE_ADDR HW_RAM1 HW_VIA ; force on VIA and force off RAM2 so that interrupt code can use it
+	STA	HW_ENABLE_ADDR HW_RAM1 HW_VIA ; turn on VIA so that interrupt code can use it
 	LDA	VIA_IFR			; load all active interrupts
 	AND	VIA_IER			; mask against enabled interrupts, only want to service enabled interrupts
 	AND.I	VIA_IB_T2		; test timer 2 bit
@@ -44,8 +44,7 @@
 	BEQ	_INTERRUPT_TEST_EXIT	; if not set, no more hardware interrupts left that are serviceable, return
 	JMP	INTERRUPT_CB1		; jump to CB1/output code
 >_INTERRUPT_TEST_EXIT
-	LDX	HW_STATUS	; load hardware module enabling codes
-	STA.X	HW_ENABLE_ADDR	; restore previous state of hardware modules while turning off VIA
+	STA	HW_ENABLE_ADDR HW_RAM1	; turn off the VIA
 >_INTERRUPT_EXIT
 	JMP	PROC_UNPAUSE	; resume process
 

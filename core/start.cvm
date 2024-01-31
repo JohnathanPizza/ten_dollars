@@ -9,12 +9,9 @@
 	TXS		; set stack pointer to 0x1FF
 
 	; turning on hardware modules
-	STA	HW_ENABLE_ADDR HW_RAM1	; enable the main RAM
-	LDA.I	HW_RAM1			; load the value of the main RAM toggle
-	STA	HW_STATUS		; store into status to track it
+	STA	HW_ENABLE_ADDR HW_RAM1 HW_VIA	; enable RAM1 and VIA
 
 	; setting register values in the VIA
-	JSR	HW_ENABLE_VIA		; enable VIA
 	LDA.I	0B11000101		; initial value for the PCR
 	STA	VIA_PCR			; update PCR
 	STZ	VIA_READ_PORT_DIR	; set the reading port to all input
@@ -23,7 +20,7 @@
 	STA	VIA_WRITE_PORT_DIR	; set write port to all output
 	LDA.I	0B00000000		; load initial ACR value
 	STA	VIA_ACR			; store into ACR
-	JSR	HW_DISABLE_VIA		; disable VIA since setup is done
+	STA	HW_ENABLE_ADDR HW_RAM1	; disable VIA since setup is done
 
 	; initialize RAM variables
 
@@ -38,9 +35,6 @@
 	STA.Z	VR4 1
 	STZ.Z	VR5
 	JSR	MEMSET
-
-	LDA.I	0XFF
-	STA	PAGE_TABLE_EMPTY
 	
 	LDA.I	PAGE_TABLE_PROCID
 	STA.Z	VR0
@@ -71,6 +65,7 @@
 	JSR	PRINTC
 	LDA.I	ASCII_AT
 	JSR	PRINTC
+
 >LOOP
 	JMP	LOOP
 

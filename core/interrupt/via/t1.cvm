@@ -1,4 +1,3 @@
 >INTERRUPT_T1
-	LDX	HW_STATUS	; load hardware module enabling codes
-	STA.X	HW_ENABLE_ADDR	; restore previous state of hardware modules while turning off VIA
+	STA	HW_ENABLE_ADDR HW_RAM1	; turn off VIA
 	JMP	PROC_UNPAUSE	; resume process

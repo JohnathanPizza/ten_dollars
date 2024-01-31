@@ -24,14 +24,12 @@
 
 	; initialize RAM variables
 
-	; zero everything from 0X201 to 0XFFF
-	LDA.I	0X201
-	STA.Z	VR0
-	LDA.I	0X201 > 8
+	; zero everything from 0X200 to 0XFFF
+	STZ.Z	VR0
+	LDA.I	0X2
 	STA.Z	VR0 1
-	LDA.I	0XFFF - 0X201 + 1
-	STA.Z	VR4
-	LDA.I	0XFFF - 0X201 + 1 > 8
+	STZ.Z	VR4
+	LDA.I	0XE
 	STA.Z	VR4 1
 	STZ.Z	VR5
 	JSR	MEMSET
@@ -50,7 +48,7 @@
 	STA.Z	VR0
 	LDA.I	PAGE_MAP > 8
 	STA.Z	VR0 1
-	LDA.I	0
+	LDA.I	0XFF
 	STA.Z	VR5
 	JSR	MEMSET
 
@@ -65,7 +63,6 @@
 	JSR	PRINTC
 	LDA.I	ASCII_AT
 	JSR	PRINTC
-
 >LOOP
 	JMP	LOOP
 

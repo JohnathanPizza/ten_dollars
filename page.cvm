@@ -1,53 +1,175 @@
-; if proc id is 0xff then no proc claims that row
-; if home is 0xff then not in map yet
-; if home is >= 0x80 then data page, relative id = home - 0x80
-; if map has 0xff then nothing at that spot
-; home of 0x80 is the zero page
-; home of 0x81 is the stack page
+=PAGE_MAP_RAM_BASE	0X10
+=PAGE_COUNT_RAM1	0X70
+=PAGE_COUNT_TOTAL	0XF0 ; 0x80 + 0x70
 
-=PAGE_MAP_RAM_COUNT	0X70	; 0x1000 - 0x7fff
-=PAGE_MAP_RAM_BASE	0X1000
+; return a vacant page id in A
+; if none vacant, returns PAGE_COUNT_TOTAL
+>PAGE_TABLE_GET_VACANT
+	PHX
+	LDX.I	0
+>_PAGE_TABLE_GET_VACANT_LOOP
+	LDA.X	PAGE_TABLE_PROCID
+	CMP.I	0XFF
+	BEQ	_PAGE_TABLE_GET_VACANT_FOUND
+	INX
+	CPX.I	PAGE_COUNT_TOTAL
+	BNE	_PAGE_TABLE_GET_VACANT_LOOP
+>_PAGE_TABLE_GET_VACANT_FOUND
+	TXA
+	PLX
+	RTS
 
-; vr4/1 first index
-; vr4/2 second index
+; return a vacant map idx in A
+; if none vacant, returns PAGE_COUNT_TOTAL
+; priority in RAM1
+>PAGE_MAP_GET_VACANT
+	PHX
+	LDX.I	0
+>_PAGE_MAP_GET_VACANT_LOOP
+	LDA.X	PAGE_MAP
+	CMP.I	0XFF
+	BEQ	_PAGE_MAP_GET_VACANT_FOUND
+	INX
+	CPX.I	PAGE_COUNT_TOTAL
+	BNE	_PAGE_MAP_GET_VACANT_LOOP
+>_PAGE_MAP_GET_VACANT_FOUND
+	TXA
+	PLX
+	RTS
+
+; return number of vacant pages in the page table in A
+>PAGE_TABLE_TOTAL_VACANT
+	PHX
+	LDX.I	0
+	STZ.Z	VR8
+>_PAGE_TABLE_TOTAL_VACANT_LOOP
+	LDA.X	PAGE_TABLE_PROCID
+	CMP.I	0XFF
+	BNE	_PAGE_TABLE_TOTAL_VACANT_OCC
+	INC.Z	VR8
+>_PAGE_TABLE_TOTAL_VACANT_OCC
+	INX
+	CPX.I	PAGE_COUNT_TOTAL
+	BNE	_PAGE_TABLE_TOTAL_VACANT_LOOP
+	LDA.Z	VR8
+	PLX
+	RTS
+
+; return number of vacant pages in the RAM1 page map in A
+>PAGE_MAP_RAM1_VACANT
+	PHX
+	LDX.I	0
+	STZ.Z	VR8
+>_PAGE_MAP_RAM1_VACANT_LOOP
+	LDA.X	PAGE_MAP
+	CMP.I	0XFF
+	BNE	_PAGE_MAP_RAM1_VACANT_OCC
+	INC.Z	VR8
+>_PAGE_MAP_RAM1_VACANT_OCC
+	INX
+	CPX.I	PAGE_COUNT_RAM1
+	BNE	_PAGE_MAP_RAM1_VACANT_LOOP
+	LDA.Z	VR8
+	PLX
+	RTS
+
+; vr8/2 map index 1
+; vr9/2 map index 2
+; can always assume that a swap will be between something in RAM1 and RAM1 or RAM1 and RAM2
 >PAGE_MAP_SWAP
 	PHA
 	PHX
-	LDX.Z	VR4
+	PHY
+	; put smallest map index / RAM1 index in vr8/2
+	LDA.Z	VR8 1
+	CMP.Z	VR9 1
+	BLS	_PAGE_MAP_SWAP_GOOD
+	LDA.Z	VR8 1
+	PHA
+	LDA.Z	VR9 1
+	STA.Z	VR8 1
+	PLA
+	STA.Z	VR9 1
+>_PAGE_MAP_SWAP_GOOD
+	; swap map values at each index
+	LDX.Z	VR8 1
 	LDA.X	PAGE_MAP
-	STA.Z	VR8
-	LDX.Z	VR4 1
+	PHA
+	LDX.Z	VR9 1
 	LDA.X	PAGE_MAP
-	LDX.Z	VR4
+	LDX.Z	VR8 1
 	STA.X	PAGE_MAP
+	PLA
+	LDX.Z	VR9 1
+	STA.X	PAGE_MAP
+
 	LDA.Z	VR8
-	LDX.Z	VR4 1
-	STA.X	PAGE_MAP
+	PHA
+	LDA.Z	VR9
+	PHA
+	STZ.Z	VR8
+	STZ.Z	VR9
 
-	LDA.Z	VR4
+	; now test vr9/2 to determine path
+	LDA.Z	VR9 1
+	CMP.I	PAGE_COUNT_RAM1 + 0X40
+	BGE	_PAGE_MAP_SWAP_RAM2H
+	CMP.I	PAGE_COUNT_RAM1
+	BGE	_PAGE_MAP_SWAP_RAM2L
+	LDA.I	HW_RAM1
+	STA.Z	VR10
+	LDA.Z	VR9 1
 	CLC
-	ADC.I	PAGE_MAP_RAM_BASE > 8
-	STA.Z	VR4
-	LDA.Z	VR4 1
+	ADC.I	0X80 - PAGE_COUNT_RAM1
+	STA.Z	VR9 1
+	BRA	_PAGE_MAP_SWAP_START
+>_PAGE_MAP_SWAP_RAM2H
+	LDA.I	HW_RAM1 HW_RAM2HI
+	STA.Z	VR10
+	LDA.Z	VR9 1
+	SEC
+	SBC.I	PAGE_COUNT_RAM1
+	STA.Z	VR9 1
+	BRA	_PAGE_MAP_SWAP_START
+>_PAGE_MAP_SWAP_RAM2L
+	LDA.I	HW_RAM1 HW_RAM2LO
+	STA.Z	VR10
+	LDA.Z	VR9 1
 	CLC
-	ADC.I	PAGE_MAP_RAM_BASE > 8
-	STA.Z	VR4 1
+	ADC.I	0X40 - PAGE_COUNT_RAM1
+	STA.Z	VR9 1
+>_PAGE_MAP_SWAP_START
+	LDA.Z	VR8 1
+	CLC
+	ADC.I	0X80 - PAGE_COUNT_RAM1
+	STA.Z	VR8 1
+	LDX.Z	VR10
+	LDY.I	0
+>_PAGE_MAP_SWAP_LOOP
+	SEI
+	STA.X	HW_ENABLE_ADDR
+	LDA.ZPY	VR8
+	PHA
+	LDA.ZPY	VR9
+	STA.ZPY	VR8
+	PLA
+	STA.ZPY	VR9
+	STA	HW_ENABLE_ADDR HW_RAM1
+	CLI
+	INY
+	BNE	_PAGE_MAP_SWAP_LOOP
 
-	JSR	PAGESWAP
+	PLA
+	STA.Z	VR9
+	PLA
+	STA.Z	VR8
 
-	LDA.Z	VR4
-	SEC
-	SBC.I	PAGE_MAP_RAM_BASE > 8
-	STA.Z	VR4
-	LDA.Z	VR4 1
-	SEC
-	SBC.I	PAGE_MAP_RAM_BASE > 8
-	STA.Z	VR4 1
+	PLY
 	PLX
 	PLA
 	RTS
 
-; A number of pages to go in RAM
+; A number of pages to go in RAM1
 ; ret A spot where those pages should start from
 ; may not all be clear
 >PAGE_MAP_LARGEST
@@ -57,48 +179,48 @@
 	; vr9/2 current base
 	; vr10/1 pages to find
 	; vr11 map ptr
-	STA.Z	VR10
-	PHX
+	STA.Z	VR10		; store pages to find
+	PHX			; store X
 	
-	STZ.Z	VR8
-	STZ.Z	VR8 1
+	STZ.Z	VR8		; zero out highest count
+	STZ.Z	VR8 1		; zero out base
 	
-	LDA.I	PAGE_MAP_RAM_COUNT
+	LDA.I	PAGE_COUNT_RAM1	; load initial starting location PAGE_COUNT_RAM1 - pages
 	SEC
 	SBC.Z	VR10
 	STA.Z	VR9 1
 
 >_PAGE_MAP_LARGEST_LOOP
-	STZ.Z	VR9
-	LDA.Z	VR9 1
+	STZ.Z	VR9		; zero current count
+	LDA.Z	VR9 1		; load starting map idx
 	DEC
 	CLC
 	ADC.Z	VR10
-	TAX
+	TAX			; x = top idx to search down from
 >_PAGE_MAP_LARGEST_LOOP2
-	LDA.X	PAGE_MAP
+	LDA.X	PAGE_MAP	; load map value
 	CMP.I	0XFF
-	BNE	_PAGE_MAP_LARGEST_LOOP2_OCC
+	BNE	_PAGE_MAP_LARGEST_LOOP2_OCC	; if vacant add 1 to current count
 	INC.Z	VR9
 >_PAGE_MAP_LARGEST_LOOP2_OCC
 	CPX.Z	VR9 1
-	BEQ	_PAGE_MAP_LARGEST_LOOP2_CALC
-	DEX
+	BEQ	_PAGE_MAP_LARGEST_LOOP2_CALC	; if x = start idx then stop
+	DEX			; else dec x and go again
 	BRA	_PAGE_MAP_LARGEST_LOOP2
 >_PAGE_MAP_LARGEST_LOOP2_CALC
-	LDA.Z	VR8
+	LDA.Z	VR8		; load highest count
 	CMP.Z	VR9
-	BGE	_PAGE_MAP_LARGEST_LOOP2_KEEP
-	LDA.Z	VR9
-	STA.Z	VR8
-	LDA.Z	VR9 1
-	STA.Z	VR8 1
+	BGE	_PAGE_MAP_LARGEST_LOOP2_KEEP	; if highest count >= current then skip update
+	LDA.Z	VR9		; load current count
+	STA.Z	VR8		; store in high
+	LDA.Z	VR9 1		; load start idx
+	STA.Z	VR8 1		; store in highest idx
 >_PAGE_MAP_LARGEST_LOOP2_KEEP
 	LDA.Z	VR9 1
-	BEQ	_PAGE_MAP_LARGEST_EXIT
-	DEC.Z	VR9 1
+	BEQ	_PAGE_MAP_LARGEST_EXIT	; if start idx is 0 then finish
+	DEC.Z	VR9 1		; go down an idx and do again
 	BRA	_PAGE_MAP_LARGEST_LOOP
 >_PAGE_MAP_LARGEST_EXIT
-	PLX
-	LDA.Z	VR8 1
-	RTS
+	PLX			; restore X
+	LDA.Z	VR8 1		; load return map idx
+	RTS			; return

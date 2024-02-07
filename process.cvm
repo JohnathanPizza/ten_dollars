@@ -1,0 +1,207 @@
+; vr11 new process id
+; if 0xff then none open
+; else that is the new process id DONT LOSE IT!
+=PROC_COUNT	0x10
+
+;==================================================
+
+; PROC_GET
+; R --- A: process id P
+; returns a process id of a process that is not in use
+; if P is 0xFF then no process is open
+
+>PROC_GET
+	PHX			; store X
+	LDX.I	0		; set proc index to 0
+>_PROC_GET_LOOP
+	LDA.X	PROC_STATE	; load process state at idx
+	CMP.I	PROC_STATE_NULL	; compare to null state
+	BEQ	_PROC_GET_FOUND	; if null state then return this proc id
+	INX			; increment idx
+	CPX.I	PROC_COUNT	; test if last idx
+	BNE	_PROC_GET_LOOP	; if not then loop
+	LDX.I	0XFF		; no more procs left, load fail code
+>_PROC_GET_FOUND
+	TXA			; move P to A
+	PLX			; restore X
+	RTS			; return
+
+;==================================================
+
+; set up code pages, stack, zp, dap, regs, and enter
+>PROC_ENTER
+	LDX.I	0
+>_PROC_ENTER_CODE_LOOP
+	TXA
+	JSR	PAGE_TABLE_TEST
+	CMP.I	0XFE
+	BNE	_PROC_ENTER_CODE_LOOP_NEXT
+	TXA
+	JSR	PAGE_MAP_HOME_SWAP
+>_PROC_ENTER_CODE_LOOP_NEXT
+	INX
+	CPX.I	PAGE_COUNT_TOTAL
+	BNE	_PROC_ENTER_CODE_LOOP
+
+	; code pages set
+	; stack time
+
+	JSR	PAGE_TABLE_GET_STACK
+	JSR	PAGE_MAP_FIND
+	JSR	PAGE_LOAD_DAP
+	LDY.I	0
+>_PROC_ENTER_STACK_LOOP
+	LDA.Y	DYNAMIC_ACCESS_PAGE
+	STA.Y	0X100
+	INY
+	BNE	_PROC_ENTER_STACK_LOOP
+
+	LDY	PROC_ACTIVE_ID
+	LDX.Y	PROC_S
+	TXS
+
+	; in stack space now
+	; zp time
+
+	JSR	PAGE_TABLE_GET_ZP
+	JSR	PAGE_MAP_FIND
+	JSR	PAGE_LOAD_DAP
+	LDX.I	0
+>_PROC_ENTER_ZP_LOOP
+	LDA.X	DYNAMIC_ACCESS_PAGE
+	STA.ZX	0
+	INX
+	BNE	_PROC_ENTER_ZP_LOOP
+
+	; zp is okie dokey
+	; test dap
+
+	LDX	PROC_ACTIVE_ID
+	LDA.X	PROC_ACTIVE_DAP_ID
+	JSR	PAGE_TABLE_GET_DATA
+	CMP.I	PAGE_COUNT_TOTAL
+	BEQ	_PROC_ENTER_DAP_SKIP
+	; found a matching dap go crazy
+	JSR	PAGE_MAP_FIND		; ok - does not touch zp
+	LDY.Z	VR8
+	PHY
+	LDY.Z	VR8 1
+	PHY
+	LDY.Z	VR10
+	PHY
+	JSR	PAGE_LOAD_DAP
+	PLY
+	STY.Z	VR10
+	PLY
+	STY.Z	VR8 1
+	PLY
+	STY.Z	VR8
+>_PROC_ENTER_DAP_SKIP
+	; all good :D
+	; regs and enter
+
+	LDY	PROC_ACTIVE_ID
+	LDX.Y	PROC_X
+	TYA
+	ASL
+	TAY
+	LDA.Y	PROC_PC 1
+	PHA
+	LDA.Y	PROC_PC
+	PHA
+	LDY	PROC_ACTIVE_ID
+	LDA.Y	PROC_P
+	PHA
+	LDA.Y	PROC_Y
+	PHA
+	LDA.Y	PROC_A
+	PLY
+	RTI
+
+; AHHH EMERGENCY!!! WHOOP WHOOP WHOOP!!!!!!!!!!
+; flush dap
+; store zp
+; store stack
+
+; things that are ok:
+; no need to preserve registers, they are already saved in the pause vars
+; stack can be used freely since the the stack idx is saved
+; do NOT touch zero page until the zp is out
+
+>PROC_LEAVE
+	; flush dap
+	LDX	PROC_ACTIVE_ID
+	LDA.X	PROC_ACTIVE_DAP_ID
+	JSR	PAGE_TABLE_GET_DATA
+	CMP.I	PAGE_COUNT_TOTAL
+	BEQ	_PROC_LEAVE_DAP_SKIP
+	JSR	PAGE_MAP_FIND
+	LDY.Z	VR8
+	PHY
+	LDY.Z	VR8 1
+	PHY
+	LDY.Z	VR10
+	PHY
+	JSR	PAGE_STORE_DAP
+	PLY
+	STY.Z	VR10
+	PLY
+	STY.Z	VR8 1
+	PLY
+	STY.Z	VR8
+>_PROC_LEAVE_DAP_SKIP
+	; flush zp lol :D
+	LDX.I	0
+>_PROC_LEAVE_ZP_LOOP
+	LDA.ZX	0
+	STA.X	DYNAMIC_ACCESS_PAGE
+	INX
+	BNE	_PROC_LEAVE_ZP_LOOP
+
+	JSR	PAGE_TABLE_GET_ZP
+	JSR	PAGE_MAP_FIND
+	JSR	PAGE_STORE_DAP
+
+	LDY.I	0
+>_PROC_LEAVE_STACK_LOOP
+	LDA.Y	0X100
+	STA.Y	DYNAMIC_ACCESS_PAGE
+	INY
+	BNE	_PROC_LEAVE_STACK_LOOP
+
+	JSR	PAGE_TABLE_GET_STACK
+	JSR	PAGE_MAP_FIND
+	JSR	PAGE_STORE_DAP
+
+	; pause registers
+	LDY	PROC_ACTIVE_ID
+	LDA	PROC_PAUSE_A
+	STA.Y	PROC_A
+	LDA	PROC_PAUSE_X
+	STA.Y	PROC_X
+	LDA	PROC_PAUSE_Y
+	STA.Y	PROC_Y
+	LDA	PROC_PAUSE_S
+	STA.Y	PROC_S
+	LDA	PROC_PAUSE_P
+	STA.Y	PROC_P
+	TYA
+	ASL
+	TAY
+	LDA	PROC_PAUSE_PCL
+	STA.Y	PROC_PAUSE_PC
+	LDA	PROC_PAUSE_PCH
+	STA.Y	PROC_PAUSE_PC 1
+
+	RTS
+
+>PROC_UNPAUSE
+	LDA	PROC_PAUSE_A
+	LDY	PROC_PAUSE_Y
+	LDX	PROC_PAUSE_S
+	TXS
+	LDX	PROC_PAUSE_P
+	PHX
+	LDX	PROC_PAUSE_X
+	PLP
+	JMP.P	PROC_PAUSE_PC

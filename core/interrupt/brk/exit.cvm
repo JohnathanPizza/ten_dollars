@@ -1,0 +1,8 @@
+>BRK_EXIT
+	; change active proc state to exit
+	; unload
+	; go to scheduler
+	LDY	PROC_ACTIVE_ID
+	LDA.I	PROC_STATE_EXIT
+	STA.Y	PROC_STATE
+	JMP	SERVICE_CYCLE_BEGIN

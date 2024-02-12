@@ -14,32 +14,52 @@
 
 >PRINTS
 	PHA			; store A
+	PHX
+	PHY
 	
-	LDA.Z	VR5		; copy out VR5
-	STA.Z	VR8
-	LDA.Z	VR5 1
-	STA.Z	VR8 1
-
 	LDA.Z	VR4		; copy out VR4/1
-	STA.Z	VR9
+	PHA
+	LDA.Z	VR7		; copy out VR7
+	PHA
+	LDA.Z	VR7 1
+	PHA
+	LDA.Z	VR0
+	PHA
+	LDA.Z	VR0 1
+	PHA
 
 	JSR	STRLEN		; get string length
-	LDA.Z	VR11		; copy strlen result into VR5
-	STA.Z	VR5
+	LDA.Z	VR11		; copy strlen result into VR7
+	STA.Z	VR7
 	LDA.Z	VR11 1
-	STA.Z	VR5 1
-	LDA.I	BC_WRITE	; load write BRK code
+	STA.Z	VR7 1
+	LDA.I	BC_WRITES	; load write string BRK code
 	STA.Z	VR4		; store in VR4
+>_PRINTS_LOOP
 	BRK			; call write BRK
+	STZ.Z	VR11 1
+	LDX.I	VRI_7
+	LDY.I	VRI_11
+	JSR	EQU16
+	BNE	_PRINTS_LOOP_END
+	JSR	SUB16
+	LDX.I	VRI_0
+	JSR	ADD16
+	BRA	_PRINTS_LOOP
+>_PRINTS_LOOP_END
+	PLA
+	STA.Z	VR0 1
+	PLA
+	STA.Z	VR0
+	PLA
+	STA.Z	VR7 1
+	PLA
+	STA.Z	VR7
+	PLA
+	STA.Z	VR4		; copy back VR4/1
 
-	LDA.Z	VR9		; copy back VR4/1
-	STA.Z	VR4
-
-	LDA.Z	VR8		; copy back VR5
-	STA.Z	VR5
-	LDA.Z	VR8 1
-	STA.Z	VR5 1
-
+	PLY
+	PLX
 	PLA			; restore A
 	RTS			; return
 
@@ -51,43 +71,24 @@
 
 >PRINTC
 	STA.Z	VR8		; store C in VR8
-
-	LDA.Z	VR0		; copy out VR0
-	STA.Z	VR9
-	LDA.Z	VR0 1
-	STA.Z	VR9 1
-
 	LDA.Z	VR5		; copy out VR5
-	STA.Z	VR10
-	LDA.Z	VR5 1
-	STA.Z	VR10 1
-
+	PHA
 	LDA.Z	VR4		; copy out VR4/1
-	STA.Z	VR8 1
-
-	LDA.I	VR8		; load address of VR8 into VR0
-	STA.Z	VR0
-	STZ.Z	VR0 1
-	LDA.I	1		; load length of 1 into VR5
+	PHA
+	LDA.Z	VR8
 	STA.Z	VR5
-	STZ.Z	VR5 1
-	LDA.I	BC_WRITE	; load write BRK code
-	STA.Z	VR4		; store in VR4
-	BRK			; BRK
-
-	LDA.Z	VR8 1		; copy back VR4/1
+	LDA.I	BC_WRITEC
 	STA.Z	VR4
-	
-	LDA.Z	VR10		; copy back VR5
+>_PRINTC_LOOP
+	BRK
+	LDA.Z	VR11
+	BEQ	_PRINTC_LOOP
+	LDA.Z	VR5
+	STA.Z	VR8
+	PLA
+	STA.Z	VR4
+	PLA
 	STA.Z	VR5
-	LDA.Z	VR10 1
-	STA.Z	VR5 1
-
-	LDA.Z	VR9		; copy back VR0
-	STA.Z	VR0
-	LDA.Z	VR9 1
-	STA.Z	VR0 1
-	
 	LDA.Z	VR8		; restore C in A
 	RTS			; return
 

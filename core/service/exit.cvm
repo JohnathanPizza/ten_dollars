@@ -1,0 +1,26 @@
+>SERVICE_EXIT
+	; active proc wants to die
+	; free all resources
+	; all pages in map and then in table
+	; set process state to null
+	LDY.I	0
+>_SERVICE_EXIT_LOOP
+	TYA
+	JSR	PAGE_TABLE_TEST
+	CMP.I	0XFF
+	BEQ	_SERVICE_EXIT_SKIP
+	; need to free this page buddytron
+	TYA
+	JSR	PAGE_MAP_FIND
+	TAX
+	LDA.I	0XFF
+	STA.X	PAGE_MAP
+	STA.Y	PAGE_TABLE_PROCID
+>_SERVICE_EXIT_SKIP
+	INY
+	CPY.I	PAGE_COUNT_TOTAL
+	BNE	_SERVICE_EXIT_LOOP
+	LDY	PROC_ACTIVE_ID
+	LDA.I	PROC_STATE_NULL
+	STA.Y	PROC_STATE
+	JMP	SERVICE_CYCLE_BEGIN

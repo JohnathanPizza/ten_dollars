@@ -7,18 +7,34 @@ const/vridx.cvm
 
 core/map.cvm
 core/start.cvm
+core/cycle.cvm
 
 core/interrupt/interrupt.cvm
 
 core/interrupt/brk/array.cvm
+core/interrupt/brk/writes.cvm
+core/interrupt/brk/writec.cvm
 core/interrupt/brk/read.cvm
-core/interrupt/brk/write.cvm
+core/interrupt/brk/ptroff.cvm
+core/interrupt/brk/exit.cvm
+core/interrupt/brk/suspend.cvm
+core/interrupt/brk/get_data.cvm
+core/interrupt/brk/load_data.cvm
+core/interrupt/brk/release_data.cvm
 
 core/interrupt/via/ca1.cvm
 core/interrupt/via/cb1.cvm
 core/interrupt/via/kbtl.cvm
 core/interrupt/via/t1.cvm
 core/interrupt/via/t2.cvm
+
+core/service/array.cvm
+core/service/null.cvm
+core/service/init_rom.cvm
+core/service/init_disk.cvm
+core/service/ready.cvm
+core/service/io_read_wait.cvm
+core/service/exit.cvm
 
 extra/character.cvm
 extra/math16.cvm
@@ -30,7 +46,7 @@ extra/wait.cvm
 bitarray.cvm
 adjust.cvm
 schedule.cvm
-proc.cvm
+process.cvm
 romprograms.cvm
 shell.cvm
 page.cvm

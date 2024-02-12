@@ -4,6 +4,8 @@
 ; SUB16
 ; INC*
 ; DEC*
+; EQU16
+; GREU16
 
 ;==================================================
 
@@ -184,3 +186,49 @@
 	PLA		; restore A
 	PLX		; restore X
 	RTS		; return
+
+;==================================================
+
+; EQU16
+; P --- VRX: number 1 A
+;	VRY: number 2 B
+; R --- A: comparison result R
+; performs an unsigned comparison of A == B
+; can directly compare flags after function call
+
+>EQU16
+	LDA.ZX	VRB 1
+	CMP.Y	VRB 1
+	BNE	_EQU16_FALSE
+	LDA.ZX	VRB
+	CMP.Y	VRB
+	BNE	_EQU16_FALSE
+	LDA.I	TRUE
+	RTS
+>_EQU16_FALSE
+	LDA.I	FALSE
+	RTS
+
+;==================================================
+
+; GREU16
+; P --- VRX: number 1 A
+;	VRY: number 2 B
+; R --- A: comparison result R
+; performs an unsigned comparison of A >= B
+; can directly compare flags after function call
+
+>GREU16
+	LDA.ZX	VRB 1
+	CMP.Y	VRB 1
+	BLS	_GREU16_FALSE
+	BNE	_GREU16_TRUE
+	LDA.ZX	VRB
+	CMP.Y	VRB
+	BLS	_GREU16_FALSE
+>_GREU16_TRUE
+	LDA.I	TRUE
+	RTS
+>_GREU16_FALSE
+	LDA.I	FALSE
+	RTS

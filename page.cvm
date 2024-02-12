@@ -2,8 +2,6 @@
 =PAGE_COUNT_RAM1	0X70
 =PAGE_COUNT_TOTAL	0XF0 ; 0x80 + 0x70
 
-; swap a page into its home
-
 ;==================================================
 
 ; PAGE_TABLE_VACANT
@@ -238,8 +236,8 @@
 ;==================================================
 
 ; PAGE_MAP_SWAP
-; P --- VRX: map idx A
-;	VRY: map idx B
+; P --- X: map idx A
+;	Y: map idx B
 ; swaps the page ids and memory contents of pages A and B in the map
 ; ONLY SWAPS BETWEEN RAM1 AND RAM1 OR RAM1 AND RAM2
 ; please make sure that either A or B are idxs in RAM1
@@ -304,6 +302,7 @@
 	LDX.Z	VR10		; load hardware toggle
 	LDY.I	0		; set page idx to 0
 >_PAGE_MAP_SWAP_LOOP
+	PHP
 	SEI			; SEI to potentially access RAM2
 	STA.X	HW_ENABLE_ADDR	; turn on appropriate hardware
 	LDA.ZPY	VR8		; load value from first page
@@ -313,7 +312,8 @@
 	PLA			; pull value from first page
 	STA.ZPY	VR9		; store into second page
 	STA	HW_ENABLE_ADDR HW_RAM1	; turn off all except RAM1
-	CLI			; CLI to restore
+	PLP
+	;CLI			; CLI to restore
 	INY			; increment page idx
 	BNE	_PAGE_MAP_SWAP_LOOP	; loop if not done
 >_PAGE_MAP_SWAP_EXIT
@@ -383,12 +383,14 @@
 	LDX.Z	VR10			; load hardware toggle
 	LDY.I	0			; set page idx to 0
 >_PAGE_LOAD_DAP_LOOP
+	PHP
 	SEI				; SEI to potentially access RAM2
 	STA.X	HW_ENABLE_ADDR		; turn on appropriate hardware
 	LDA.ZPY	VR8			; load value from page
 	STA.Y	DYNAMIC_ACCESS_PAGE	; store into DAP
 	STA	HW_ENABLE_ADDR HW_RAM1	; turn off all except RAM1
-	CLI				; CLI to restore
+	PLP
+	;CLI				; CLI to restore
 	INY				; increment page idx
 	BNE	_PAGE_LOAD_DAP_LOOP	; loop if not done
 	PLY				; restore Y
@@ -435,15 +437,126 @@
 	LDX.Z	VR10			; load hardware toggle
 	LDY.I	0			; set page idx to 0
 >_PAGE_STORE_DAP_LOOP
+	PHP
 	SEI				; SEI to potentially access RAM2
 	STA.X	HW_ENABLE_ADDR		; turn on appropriate hardware
 	LDA.Y	DYNAMIC_ACCESS_PAGE	; load value from DAP
 	STA.ZPY	VR8			; store into page
 	STA	HW_ENABLE_ADDR HW_RAM1	; turn off all except RAM1
-	CLI				; CLI to restore
+	PLP
+	;CLI				; CLI to restore
 	INY				; increment page idx
 	BNE	_PAGE_STORE_DAP_LOOP	; loop if not done
 	PLY				; restore Y
 	PLX				; restore X
 	PLA				; restore A
+	RTS				; return
+
+;==================================================
+
+; PAGE_MAP_FREE_SWAP
+; P --- A: map idx to swap I
+; if idx I is occupied with a page, swaps that page with a vacant one in the back of the map
+
+;>PAGE_MAP_FREE_SWAP
+;	PHX				; store X
+;	PHY				; store Y
+;	TAX				; move I to X
+;	LDA.X	PAGE_MAP		; load value at I
+;	CMP.I	0XFF			; if null page then dont need to swap
+;	BEQ	_PAGE_MAP_FREE_SWAP_DONE	; exit on null page
+;	JSR	PAGE_MAP_GET_BACK	; get idx of next null page
+;	TAY				; move to Y
+;	JSR	PAGE_MAP_SWAP		; swap idx I and the free page
+;>_PAGE_MAP_FREE_SWAP_DONE
+;	TXA				; restore I from X
+;	PLY				; restore Y
+;	PLX				; restore X
+;	RTS				; return
+
+;==================================================
+
+; PAGE_MAP_HOME_SWAP
+; P --- A: page id P
+; swaps page P with its current map idx and its home map idx
+
+>PAGE_MAP_HOME_SWAP
+	PHA				; store A
+	PHX				; store X
+	PHY				; store Y
+	TAX				; move P to X
+	JSR	PAGE_MAP_FIND		; P still in A, find its current map idx
+	CMP.X	PAGE_TABLE_HOME		; compare it to P home value
+	BEQ	_PAGE_MAP_HOME_SWAP_DONE	; if equal then P is already at home, exit
+	TAY				; move P current map idx to Y
+	LDA.X	PAGE_TABLE_HOME		; get P home idx
+	TAX				; move to X
+	JSR	PAGE_MAP_SWAP		; swap P current idx and home idx
+>_PAGE_MAP_HOME_SWAP_DONE
+	PLY				; restore Y
+	PLX				; restore X
+	PLA				; restore A
+	RTS				; return
+
+;==================================================
+
+; PAGE_TABLE_GET_DATA
+; P --- A: relative data page id D
+; R --- A: page id P
+; returns the page id of the Dth user data page (start from 0) for the active process
+; if P is PAGE_COUNT_TOTAL then the data page doesnt actually exist for that proc
+
+>PAGE_TABLE_GET_DATA
+	PHX				; store X
+	LDX.Z	VR7			; load VR7/1
+	PHX				; store
+	INC				; D + 1
+	INC				; D + 2
+	STA.Z	VR7			; store to VR7/1 as value to compare with
+	LDX.I	0			; set page idx to 0
+>_PAGE_TABLE_GET_DATA_LOOP
+	TXA				; move idx to A
+	JSR	PAGE_TABLE_TEST		; test current page idx
+	CMP.Z	VR7			; test if data page is the desired one
+	BEQ	_PAGE_TABLE_GET_DATA_FOUND	; if equal then found, exit
+	INX				; increment page idx
+	CPX.I	PAGE_COUNT_TOTAL	; test if last idx
+	BNE	_PAGE_TABLE_GET_DATA_LOOP	; if not then loop
+>_PAGE_TABLE_GET_DATA_FOUND
+	TXA				; set A to P
+	PLX				; pull VR7/1
+	STX.Z	VR7			; restore VR7/1
+	PLX				; restore X
+	RTS				; return
+
+;==================================================
+
+; PAGE_TABLE_NEXT_DATA
+; R --- A: relative data page id D
+; returns the id that the next data page for the active process should use when allocating
+
+>PAGE_TABLE_NEXT_DATA
+	PHX				; store X
+	LDA.Z	VR7			; load VR7/1
+	PHA				; store
+	LDA.I	2			; load inital id to check
+	STA.Z	VR7			; store in VR7/1
+	LDX.I	0			; set page idx to 0
+>_PAGE_TABLE_NEXT_DATA_LOOP
+	TXA				; move idx to A
+	JSR	PAGE_TABLE_TEST		; test current page idx
+	CMP.Z	VR7			; test if this page is a data page with the current test id
+	BNE	_PAGE_TABLE_NEXT_DATA_SKIP	; if id is different then dont increment test id
+	INC.Z	VR7			; increment test id
+	LDX.I	0XFF			; restart page idx
+>_PAGE_TABLE_NEXT_DATA_SKIP
+	INX				; increment page idx
+	CPX.I	PAGE_COUNT_TOTAL	; test if last idx
+	BNE	_PAGE_TABLE_NEXT_DATA_LOOP	; if not then loop
+	LDA.Z	VR7			; set A to D + 2
+	DEC				; D + 1
+	DEC				; D
+	PLX				; pull VR7/1
+	STX.Z	VR7			; restore VR7/1
+	PLX				; restore X
 	RTS				; return

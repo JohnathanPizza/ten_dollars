@@ -39,9 +39,3 @@
 	PLX
 	PLA
 	RTS
-
-; new idea:
-; service cycle
-; the os is essentially just picking out processes and 'serving' their needs for a bit
-; a service cycle includes running the scheduler, picking a proc, running it, completeing its interrupts, then eventually suspending for some reason and put on hold
-; then the os will start a new service cycle to store the last proc, pick another and go

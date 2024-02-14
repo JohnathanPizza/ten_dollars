@@ -21,6 +21,8 @@ core/interrupt/brk/suspend.cvm
 core/interrupt/brk/get_data.cvm
 core/interrupt/brk/load_data.cvm
 core/interrupt/brk/release_data.cvm
+core/interrupt/brk/write_claim.cvm
+core/interrupt/brk/write_release.cvm
 
 core/interrupt/via/ca1.cvm
 core/interrupt/via/cb1.cvm

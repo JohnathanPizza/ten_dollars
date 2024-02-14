@@ -55,6 +55,7 @@
 
 	LDA.I	0XFF
 	STA	PROC_ACTIVE_ID
+	STA	IO_WRITE_CLAIM
 
 	; init finished
 

@@ -36,6 +36,8 @@
 	CPX.I	0XFF			; compare write index to last idx
 	BEQ	_INTERRUPT_CA1_EXIT	; if last, there is no room so return
 >_INTERRUPT_CA1_WRITABLE
+	; turn off valid buffer
+	STZ	IO_READ_VALID
 	STA.X	IO_READ_BUFFER		; store character in buffer
 	INC	IO_READ_IDX		; inc write index
 	BRA	_INTERRUPT_CA1_EXIT	; exit
@@ -52,9 +54,13 @@
 >_INTERRUPT_CA1_ENTER
 	LDX	IO_READ_IDX		; load write index to write nul char
 	STZ.X	IO_READ_BUFFER		; write nul char
-	LDA.I	VIA_IER_DISABLE VIA_IB_CA1	; load constant to turn of the keybaord interrupt
-	STA	VIA_IER			; turn off
-	STZ	IO_READ_STATUS	; zero to status
+	;LDA.I	VIA_IER_DISABLE VIA_IB_CA1	; load constant to turn of the keybaord interrupt
+	;STA	VIA_IER			; turn off
+	;STZ	IO_READ_STATUS	; zero to status
+	; turn on valid
+	LDA.I	TRUE
+	STA	IO_READ_VALID
+	STZ	IO_READ_IDX
 	STZ	IO_KEYBOARD_FLAGS	; reset flags
 	STZ	IO_KEYBOARD_SHIFT	; reset shift
 	BRA	_INTERRUPT_CA1_EXIT	; exit

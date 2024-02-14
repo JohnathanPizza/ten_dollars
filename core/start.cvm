@@ -20,6 +20,9 @@
 	STA	VIA_WRITE_PORT_DIR	; set write port to all output
 	LDA.I	0B00000000		; load initial ACR value
 	STA	VIA_ACR			; store into ACR
+	LDA.I	VIA_IER_ENABLE VIA_IB_CA1	; enable keyboard at start since it will always be on
+	STA	VIA_IER			; enable
+	BIT	VIA_READ_PORT		; clear any random possible interrupt quickly
 	STA	HW_ENABLE_ADDR HW_RAM1	; disable VIA since setup is done
 
 	; initialize RAM variables
@@ -56,6 +59,9 @@
 	LDA.I	0XFF
 	STA	PROC_ACTIVE_ID
 	STA	IO_WRITE_CLAIM
+
+	LDA.I	0
+	STA	IO_READ_FOCUS	; focus proc 0
 
 	; init finished
 

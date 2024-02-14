@@ -1,12 +1,16 @@
 ; starts a new reading operation
+; vr0 buffer
+; vr5/1 buffer len
 
 >BRK_READ
+	LDA	IO_READ_STATUS
+	BNE	_BRK_READ_SKIP
 	STZ	IO_READ_IDX		; reset write buffer index
-	STA	HW_ENABLE_ADDR HW_RAM1 HW_VIA	; enable VIA to enable interrupt
-	BIT	VIA_READ_PORT		; clear any existing interrupt
-	LDA.I	VIA_IER_ENABLE VIA_IB_CA1	; load constant to enable CA1
-	STA	VIA_IER			; enable
-	STA	HW_ENABLE_ADDR HW_RAM1	; disable VIA
-	LDA.I	TRUE			; load TRUE value to use in reading status
-	STA	IO_READ_STATUS		; set
-	JMP	PROC_UNPAUSE
+>_BRK_READ_SKIP
+	INC	IO_READ_STATUS
+	; change state and suspend
+	JSR	PROC_LEAVE
+	LDA.I	PROC_STATE_IO_READ
+	LDY	PROC_ACTIVE_ID
+	STA.Y	PROC_STATE
+	JMP	SERVICE_CYCLE_BEGIN

@@ -18,9 +18,9 @@ core/interrupt/brk/read.cvm
 core/interrupt/brk/ptroff.cvm
 core/interrupt/brk/exit.cvm
 core/interrupt/brk/suspend.cvm
-core/interrupt/brk/get_data.cvm
-core/interrupt/brk/load_data.cvm
-core/interrupt/brk/release_data.cvm
+core/interrupt/brk/data_get.cvm
+core/interrupt/brk/data_load.cvm
+core/interrupt/brk/data_release.cvm
 core/interrupt/brk/write_claim.cvm
 core/interrupt/brk/write_release.cvm
 
@@ -35,7 +35,7 @@ core/service/null.cvm
 core/service/init_rom.cvm
 core/service/init_disk.cvm
 core/service/ready.cvm
-core/service/io_read_wait.cvm
+core/service/io_read.cvm
 core/service/exit.cvm
 
 extra/character.cvm

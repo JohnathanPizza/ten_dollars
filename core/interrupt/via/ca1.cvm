@@ -1,8 +1,6 @@
 =KEYBOARD_SC_BREAK	0XF0
 =KEYBOARD_SC_EXTEND	0XE0
 =KEYBOARD_SC_LSHIFT	0X12
-=KEYBOARD_SC_RETURN	0X5A
-=KEYBOARD_SC_BACK	0X66
 
 =IO_READ_BUFFER_LEN	0X80
 
@@ -15,10 +13,6 @@
 	BEQ	_INTERRUPT_CA1_SPECIAL	; if break, adjust flags
 	CMP.I	KEYBOARD_SC_EXTEND	; compare scan code to extend
 	BEQ	_INTERRUPT_CA1_SPECIAL	; if extend, adjust flags
-	CMP.I	KEYBOARD_SC_RETURN	; compare scan code to enter/return
-	BEQ	_INTERRUPT_CA1_ENTER	; if return, end input
-	CMP.I	KEYBOARD_SC_BACK	; compare scan code to backspace
-	BEQ	_INTERRUPT_CA1_BACK	; if backspace, take out a character
 	; ascii then
 	BIT	IO_KEYBOARD_FLAGS	; bit test the flags var, N flag will have bit 7
 	STZ	IO_KEYBOARD_FLAGS	; flags are consumed, reset
@@ -33,6 +27,10 @@
 	BNE	_INTERRUPT_CA1_LOOP	; if value not 0, keep looping (exit when null character)
 	BRA	_INTERRUPT_CA1_EXIT	; exit
 >_INTERRUPT_CA1_LOOP_END
+	CPX.I	ASCII_BS
+	BEQ	_INTERRUPT_CA1_BACK
+	CPX.I	ASCII_LF
+	BEQ	_INTERRUPT_CA1_ENTER
 	TXA				; move ASCII value to acc for return value
 	LDX	IO_READ_IDX		; load the write index
 	CPX.I	IO_READ_BUFFER_LEN - 1	; compare write index to last idx

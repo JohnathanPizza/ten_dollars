@@ -1,7 +1,7 @@
 ; vr11 new process id
 ; if 0xff then none open
 ; else that is the new process id DONT LOSE IT!
-=PROC_COUNT	0x10
+=PROC_COUNT	8
 
 ;==================================================
 
@@ -166,6 +166,10 @@
 >PROC_LEAVE
 	; flush dap
 	LDX	PROC_ACTIVE_ID
+	; test dap rom
+	LDA.X	PROC_FLAGS
+	AND.I	PROC_FLAG_DAP_ROM
+	BNE	_PROC_LEAVE_DAP_SKIP
 	LDA.X	PROC_ACTIVE_DAP_ID
 	JSR	PAGE_TABLE_GET_DATA
 	CMP.I	PAGE_COUNT_TOTAL

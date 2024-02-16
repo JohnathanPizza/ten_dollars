@@ -1,6 +1,7 @@
 const/ascii.cvm
 const/bool.cvm
 const/hardware.cvm
+const/procflag.cvm
 const/procstate.cvm
 const/via.cvm
 const/vridx.cvm
@@ -23,6 +24,8 @@ core/interrupt/brk/data_load.cvm
 core/interrupt/brk/data_release.cvm
 core/interrupt/brk/write_claim.cvm
 core/interrupt/brk/write_release.cvm
+core/interrupt/brk/flag_enable.cvm
+core/interrupt/brk/flag_disable.cvm
 
 core/interrupt/via/ca1.cvm
 core/interrupt/via/cb1.cvm
@@ -36,6 +39,7 @@ core/service/init_rom.cvm
 core/service/init_disk.cvm
 core/service/ready.cvm
 core/service/io_read.cvm
+core/service/io_write.cvm
 core/service/exit.cvm
 
 extra/character.cvm

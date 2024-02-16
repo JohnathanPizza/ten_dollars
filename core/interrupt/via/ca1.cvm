@@ -4,6 +4,8 @@
 =KEYBOARD_SC_RETURN	0X5A
 =KEYBOARD_SC_BACK	0X66
 
+=IO_READ_BUFFER_LEN	0X80
+
 >INTERRUPT_CA1
 	LDA	VIA_READ_PORT	; load inverted scan code from keyboard
 	EOR.I	0XFF			; invert bits
@@ -33,7 +35,7 @@
 >_INTERRUPT_CA1_LOOP_END
 	TXA				; move ASCII value to acc for return value
 	LDX	IO_READ_IDX		; load the write index
-	CPX.I	0XFF			; compare write index to last idx
+	CPX.I	IO_READ_BUFFER_LEN - 1	; compare write index to last idx
 	BEQ	_INTERRUPT_CA1_EXIT	; if last, there is no room so return
 >_INTERRUPT_CA1_WRITABLE
 	; turn off valid buffer

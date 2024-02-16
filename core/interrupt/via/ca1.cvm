@@ -31,6 +31,8 @@
 	BEQ	_INTERRUPT_CA1_BACK
 	CPX.I	ASCII_LF
 	BEQ	_INTERRUPT_CA1_ENTER
+	CPX.I	ASCII_ESC
+	BEQ	_INTERRUPT_CA1_ESC
 	TXA				; move ASCII value to acc for return value
 	LDX	IO_READ_IDX		; load the write index
 	CPX.I	IO_READ_BUFFER_LEN - 1	; compare write index to last idx
@@ -68,6 +70,10 @@
 	LDA	IO_READ_IDX		; load index to "delete"
 	BEQ	_INTERRUPT_CA1_EXIT	; if at 0 already, nothing to delete so return
 	DEC	IO_READ_IDX		; else decrement write index, effectively deleting char
+	BRA	_INTERRUPT_CA1_EXIT
+>_INTERRUPT_CA1_ESC
+	LDA.I	0
+	STA	IO_READ_FOCUS
 >_INTERRUPT_CA1_EXIT
 	STA	HW_ENABLE_ADDR HW_RAM1	; turn off VIA
 	JMP	PROC_UNPAUSE	; resume process

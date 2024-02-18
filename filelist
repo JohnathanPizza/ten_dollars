@@ -27,6 +27,7 @@ core/interrupt/brk/write_release.cvm
 core/interrupt/brk/flag_enable.cvm
 core/interrupt/brk/flag_disable.cvm
 core/interrupt/brk/data_flush.cvm
+core/interrupt/brk/priority.cvm
 
 core/interrupt/via/ca1.cvm
 core/interrupt/via/cb1.cvm

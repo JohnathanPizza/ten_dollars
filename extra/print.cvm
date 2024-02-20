@@ -19,40 +19,38 @@
 	
 	LDA.Z	VR4		; copy out VR4/1
 	PHA
-	LDA.Z	VR7		; copy out VR7
+	LDA.Z	VR7		; copy out VR7/1
 	PHA
-	LDA.Z	VR7 1
-	PHA
-	LDA.Z	VR0
+	LDA.Z	VR0		; copy out VR0
 	PHA
 	LDA.Z	VR0 1
 	PHA
 
 	JSR	STRLEN		; get string length
-	LDA.Z	VR11		; copy strlen result into VR7
-	STA.Z	VR7
-	LDA.Z	VR11 1
-	STA.Z	VR7 1
+	STA.Z	VR7		; copy strlen result into VR7
 	LDA.I	BC_WRITES	; load write string BRK code
 	STA.Z	VR4		; store in VR4
 >_PRINTS_LOOP
 	BRK			; call write BRK
-	STZ.Z	VR11 1
-	LDX.I	VRI_7
-	LDY.I	VRI_11
-	JSR	EQU16
-	BNE	_PRINTS_LOOP_END
-	JSR	SUB16
-	LDX.I	VRI_0
-	JSR	ADD16
+	LDA.Z	VR7
+	CMP.Z	VR11
+	BEQ	_PRINTS_LOOP_END
+	SEC
+	SBC.Z	VR11
+	STA.Z	VR7
+	LDA.Z	VR0
+	CLC
+	ADC.Z	VR7
+	STA.Z	VR0
+	LDA.Z	VR0 1
+	ADC.I	0
+	STA.Z	VR0 1
 	BRA	_PRINTS_LOOP
 >_PRINTS_LOOP_END
 	PLA
 	STA.Z	VR0 1
 	PLA
 	STA.Z	VR0
-	PLA
-	STA.Z	VR7 1
 	PLA
 	STA.Z	VR7
 	PLA

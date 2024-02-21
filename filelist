@@ -10,6 +10,7 @@ core/map.cvm
 core/start.cvm
 core/cycle.cvm
 core/page.cvm
+core/schedule.cvm
 
 core/interrupt/interrupt.cvm
 
@@ -54,7 +55,6 @@ extra/wait.cvm
 extra/bit.cvm
 
 adjust.cvm
-schedule.cvm
 process.cvm
 romprograms.cvm
 shell.cvm

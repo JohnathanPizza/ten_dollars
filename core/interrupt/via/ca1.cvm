@@ -1,3 +1,5 @@
+; user input interrupt connected to port A (with the keyboard)
+
 =KEYBOARD_SC_BREAK	0XF0
 =KEYBOARD_SC_EXTEND	0XE0
 =KEYBOARD_SC_LSHIFT	0X12
@@ -5,20 +7,20 @@
 =IO_READ_BUFFER_LEN	0X80
 
 >INTERRUPT_CA1
-	LDA	VIA_READ_PORT	; load inverted scan code from keyboard
-	EOR.I	0XFF			; invert bits
+	LDA	VIA_READ_PORT		; load inverted scan code from keyboard
+	EOR.I	0XFF			; uninvert bits
 	CMP.I 	KEYBOARD_SC_LSHIFT	; compare scan code to left shift
 	BEQ	_INTERRUPT_CA1_LSHIFT	; if left shift, adjust shift flag
 	CMP.I	KEYBOARD_SC_BREAK	; compare scan code to break
 	BEQ	_INTERRUPT_CA1_SPECIAL	; if break, adjust flags
 	CMP.I	KEYBOARD_SC_EXTEND	; compare scan code to extend
 	BEQ	_INTERRUPT_CA1_SPECIAL	; if extend, adjust flags
-	; ascii then
-	BIT	IO_KEYBOARD_FLAGS	; bit test the flags var, N flag will have bit 7
+
+	; can translate the scan code to an ASCII character
+	BIT	IO_KEYBOARD_FLAGS	; BIT the flags var, N flag will have bit 7
 	STZ	IO_KEYBOARD_FLAGS	; flags are consumed, reset
-	BMI	_INTERRUPT_CA1_EXIT	; if N = 0, good to read an ascii since no flags, else return
->_INTERRUPT_CA1_READ
-	ORA	IO_KEYBOARD_SHIFT	; acc still has the scan code, add 0x80 if shift is down
+	BMI	_INTERRUPT_CA1_EXIT	; if N = 0, good to read since no flags, else return
+	ORA	IO_KEYBOARD_SHIFT	; A still has the scan code, add 0x80 if shift is down
 	LDX.I	0X7F			; load highest ASCII value
 >_INTERRUPT_CA1_LOOP
 	CMP.X	KEYBOARD_TLARRAY	; see if scan code matches at index of ASCII value
@@ -27,19 +29,19 @@
 	BNE	_INTERRUPT_CA1_LOOP	; if value not 0, keep looping (exit when null character)
 	BRA	_INTERRUPT_CA1_EXIT	; exit
 >_INTERRUPT_CA1_LOOP_END
-	CPX.I	ASCII_BS
-	BEQ	_INTERRUPT_CA1_BACK
-	CPX.I	ASCII_LF
-	BEQ	_INTERRUPT_CA1_ENTER
-	CPX.I	ASCII_ESC
-	BEQ	_INTERRUPT_CA1_ESC
-	TXA				; move ASCII value to acc for return value
-	LDX	IO_READ_IDX		; load the write index
-	CPX.I	IO_READ_BUFFER_LEN - 1	; compare write index to last idx
-	BEQ	_INTERRUPT_CA1_EXIT	; if last, there is no room so return
->_INTERRUPT_CA1_WRITABLE
-	; turn off valid buffer
-	STZ	IO_READ_VALID
+	CPX.I	ASCII_BS		; compare against backspace character
+	BEQ	_INTERRUPT_CA1_BACK	; go to backspace code
+	CPX.I	ASCII_LF		; compare against enter character
+	BEQ	_INTERRUPT_CA1_ENTER	; go to enter code
+	CPX.I	ASCII_ESC		; compare against escape character
+	BEQ	_INTERRUPT_CA1_ESC	; go to escape code
+	
+	; treat as a normal ASCII character and add to the buffer
+	TXA				; move ASCII value to A
+	LDX	IO_READ_IDX		; load buffer write index
+	CPX.I	IO_READ_BUFFER_LEN - 1	; compare write index to last index
+	BEQ	_INTERRUPT_CA1_EXIT	; if last, there is no room so exit
+	STZ	IO_READ_VALID		; set buffer data as invalid since new data just came in
 	STA.X	IO_READ_BUFFER		; store character in buffer
 	INC	IO_READ_IDX		; inc write index
 	BRA	_INTERRUPT_CA1_EXIT	; exit
@@ -56,24 +58,19 @@
 >_INTERRUPT_CA1_ENTER
 	LDX	IO_READ_IDX		; load write index to write nul char
 	STZ.X	IO_READ_BUFFER		; write nul char
-	;LDA.I	VIA_IER_DISABLE VIA_IB_CA1	; load constant to turn of the keybaord interrupt
-	;STA	VIA_IER			; turn off
-	;STZ	IO_READ_STATUS	; zero to status
-	; turn on valid
-	LDA.I	TRUE
-	STA	IO_READ_VALID
-	STZ	IO_READ_IDX
+	LDA.I	TRUE			; load true value
+	STA	IO_READ_VALID		; set valid to true since user hit enter to signal end of input
+	STZ	IO_READ_IDX		; reset write index to 0
 	STZ	IO_KEYBOARD_FLAGS	; reset flags
-	STZ	IO_KEYBOARD_SHIFT	; reset shift
 	BRA	_INTERRUPT_CA1_EXIT	; exit
 >_INTERRUPT_CA1_BACK
-	LDA	IO_READ_IDX		; load index to "delete"
+	LDA	IO_READ_IDX		; load index to delete
 	BEQ	_INTERRUPT_CA1_EXIT	; if at 0 already, nothing to delete so return
 	DEC	IO_READ_IDX		; else decrement write index, effectively deleting char
-	BRA	_INTERRUPT_CA1_EXIT
+	BRA	_INTERRUPT_CA1_EXIT	; exit
 >_INTERRUPT_CA1_ESC
-	LDA.I	0
-	STA	IO_READ_FOCUS
+	LDA.I	0			; load 0 to switch focus to proc id 0
+	STA	IO_READ_FOCUS		; set proc id focus
 >_INTERRUPT_CA1_EXIT
 	STA	HW_ENABLE_ADDR HW_RAM1	; turn off VIA
-	JMP	PROC_UNPAUSE	; resume process
+	JMP	PROC_UNPAUSE		; resume process

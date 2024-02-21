@@ -1,7 +1,7 @@
 ; entrypoint into interrupt handling code when hardware or software interrupt happens
 
 >INTERRUPT
-	; save volatile runtime variables from the proc immediately
+	; save volatile register variables from the proc immediately
 	STA	PROC_PAUSE_A	; save A
 	STX	PROC_PAUSE_X	; save X
 	STY	PROC_PAUSE_Y	; save Y
@@ -26,20 +26,20 @@
 	BEQ	_INTERRUPT_TEST_T1	; if not set, test timer 1
 	JMP	INTERRUPT_T2		; jump to timer 2 code
 >_INTERRUPT_TEST_T1
-	LDA	VIA_IFR
-	AND	VIA_IER
+	LDA	VIA_IFR			; load active interrupts
+	AND	VIA_IER			; mask against enabled interrupts
 	AND.I	VIA_IB_T1		; test timer 1 bit
 	BEQ	_INTERRUPT_TEST_CA1	; if not set, test CA1
 	JMP	INTERRUPT_T1		; jump to timer 1 code
 >_INTERRUPT_TEST_CA1
-	LDA	VIA_IFR
-	AND	VIA_IER
+	LDA	VIA_IFR			; load active interrupts
+	AND	VIA_IER			; mask against enabled interrupts
 	AND.I	VIA_IB_CA1		; test CA1 bit
 	BEQ	_INTERRUPT_TEST_CB1	; if not set, test CB1
 	JMP	INTERRUPT_CA1		; jump to CA1/input code
 >_INTERRUPT_TEST_CB1
-	LDA	VIA_IFR
-	AND	VIA_IER
+	LDA	VIA_IFR			; load active interrupts
+	AND	VIA_IER			; mask against enabled interrupts
 	AND.I	VIA_IB_CB1		; test CB1 bit
 	BEQ	_INTERRUPT_TEST_EXIT	; if not set, no more hardware interrupts left that are serviceable, return
 	JMP	INTERRUPT_CB1		; jump to CB1/output code
@@ -50,13 +50,13 @@
 
 >_INTERRUPT_BRK
 	; want to decrement the return address by 1 so BRK NOP pattern can become just BRK
-	SEC			; set carry for subtraction operation
-	LDA	PROC_PAUSE_PCL
+	SEC			; sec for subtraction
+	LDA	PROC_PAUSE_PCL	; load low byte
 	SBC.I	1		; sub 1
-	STA	PROC_PAUSE_PCL
-	LDA	PROC_PAUSE_PCH
-	SBC.I	0		; sub 0 so the carry goes over
-	STA	PROC_PAUSE_PCH
+	STA	PROC_PAUSE_PCL	; store back
+	LDA	PROC_PAUSE_PCH	; load high byte
+	SBC.I	0		; sub 0 + C
+	STA	PROC_PAUSE_PCH	; store back
 	; calculate a jump address based on the code in VR4
 	LDA.Z	VR4		; load the BRK code given
 	CMP.I	BRK_COUNT	; compare it to the total number of BRK codes usable

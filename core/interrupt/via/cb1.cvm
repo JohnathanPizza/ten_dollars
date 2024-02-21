@@ -1,25 +1,22 @@
+; output interrupt connected to port B (UART out) 
+
 >INTERRUPT_CB1
-	LDA	IO_WRITE_BUFFER_TAIL	; load tail
-	CMP	IO_WRITE_BUFFER_HEAD	; compare to head
-	BEQ	_INTERRUPT_CB1_OFF	; if tail = head then write queue is empty so turn off the int
-
 	LDY	IO_WRITE_BUFFER_TAIL	; load tail index
-	LDA.Y	IO_WRITE_BUFFER		; get the next character in the queue
-	INC	IO_WRITE_BUFFER_TAIL	; increment tail
-
+	CPY	IO_WRITE_BUFFER_HEAD	; compare to head index
+	BEQ	_INTERRUPT_CB1_OFF	; if tail = head then write queue is empty so turn off the interrupt
+	LDA.Y	IO_WRITE_BUFFER		; get next character in the buffer
 	ORA.I	0X80			; set high bit to prep for sending
 	STA	VIA_WRITE_PORT		; send
 	AND.I	0X7F			; clear high bit
 	STA	VIA_WRITE_PORT		; update
-
+	INC	IO_WRITE_BUFFER_TAIL	; increment tail index
 >_INTERRUPT_CB1_EXIT
 	STA	HW_ENABLE_ADDR HW_RAM1	; turn off VIA
-	JMP	PROC_UNPAUSE	; resume process
+	JMP	PROC_UNPAUSE		; resume process
 
 >_INTERRUPT_CB1_OFF
 	LDA.I	VIA_IER_DISABLE VIA_IB_CB1	; load constant value to turn off write interrupt
-	STA	VIA_IER				; disable
-
-	LDA.I	FALSE			; load FALSE value to update io writing status to inactive
+	STA	VIA_IER			; disable
+	LDA.I	FALSE			; load false value to update io writing status to inactive
 	STA	IO_WRITE_STATUS		; update
-	BRA	_INTERRUPT_CB1_EXIT
+	BRA	_INTERRUPT_CB1_EXIT	; exit

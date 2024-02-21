@@ -17,17 +17,16 @@
 >MEMSET
 	PHA		; store A
 	PHX		; store X
-	
 	LDA.Z	VR0	; copy P to VR8
 	STA.Z	VR8
 	LDA.Z	VR0 1
 	STA.Z	VR8 1
-
 	LDA.Z	VR4	; copy L to VR9
 	STA.Z	VR9
 	LDA.Z	VR4 1
 	STA.Z	VR9 1
-	BRA	_MEMSET_LOOP_CHECK
+	
+	BRA	_MEMSET_LOOP_CHECK	; enter loop
 >_MEMSET_LOOP
 	LDA.Z	VR5	; load V
 	STA.ZP	VR8	; set next byte at P to V
@@ -53,26 +52,23 @@
 >MEMCPY
 	PHA		; store A
 	PHX		; store X
-	
 	LDA.Z	VR0	; copy S to VR8
 	STA.Z	VR8
 	LDA.Z	VR0 1
 	STA.Z	VR8 1
-
 	LDA.Z	VR1	; copy D to VR9
 	STA.Z	VR9
 	LDA.Z	VR1 1
 	STA.Z	VR9 1
-
 	LDA.Z	VR4	; copy L to VR10
 	STA.Z	VR10
 	LDA.Z	VR4 1
 	STA.Z	VR10 1
-	BRA	_MEMCPY_LOOP_CHECK
+
+	BRA	_MEMCPY_LOOP_CHECK	;  enter loop
 >_MEMCPY_LOOP
 	LDA.ZP	VR8	; load next byte from S
 	STA.ZP	VR9	; store at next byte in D
-
 	JSR	INC8	; increment S
 	JSR	INC9	; increment D
 	JSR	DEC10	; decrement L
@@ -95,21 +91,19 @@
 >PAGESET
 	PHA		; store A
 	PHY		; store Y
-
 	LDA.Z	VR0	; save VR0/1 to stack
 	PHA
 	
-	STZ.Z	VR0	; make VR0 a pointer to the beginning of page P
-	
+	STZ.Z	VR0	; make VR0 a pointer to the beginning of page P	
 	LDY.I	0	; set index to 0
 	LDA.Z	VR5	; load value to store
 >_PAGESET_LOOP
 	STA.ZPY	VR0	; store value at index
 	INY		; increment index
 	BNE	_PAGESET_LOOP	; loop if not 0 again
-
+	
 	PLA		; restore VR0/1
-	STA.Z	VR0
+	STA.Z	VR0	
 	PLY		; restore Y
 	PLA		; restore A
 	RTS		; return
@@ -124,7 +118,6 @@
 >PAGECPY
 	PHA		; store A
 	PHY		; store Y
-
 	LDA.Z	VR0	; save VR0/1 to stack
 	PHA
 	LDA.Z	VR1	; save VR1/1 to stack
@@ -132,7 +125,6 @@
 
 	STZ.Z	VR0	; make VR0 a pointer to the beginning of page S
 	STZ.Z	VR1	; make VR1 a pointer to the beginning of page D
-
 	LDY.I	0	; set index to 0
 >_PAGECPY_LOOP
 	LDA.ZPY	VR0	; get value in S at index
@@ -158,7 +150,6 @@
 >PAGESWAP
 	PHA		; store A
 	PHY		; store Y
-
 	LDA.Z	VR0	; save VR0/1 to stack
 	PHA
 	LDA.Z	VR1	; save VR1/1 to stack
@@ -166,7 +157,6 @@
 
 	STZ.Z	VR0	; make VR0 a pointer to the beginning of page A
 	STZ.Z	VR1	; make VR1 a pointer to the beginning of page B
-
 	LDY.I	0	; set index to 0
 >_PAGESWAP_LOOP
 	LDA.ZPY	VR0	; load value at index from A

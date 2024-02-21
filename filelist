@@ -50,8 +50,8 @@ extra/memory.cvm
 extra/print.cvm
 extra/string.cvm
 extra/wait.cvm
+extra/bit.cvm
 
-bitarray.cvm
 adjust.cvm
 schedule.cvm
 process.cvm

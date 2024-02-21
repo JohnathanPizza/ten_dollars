@@ -197,17 +197,17 @@
 ; can directly compare flags after function call
 
 >EQU16
-	LDA.ZX	VRB 1
-	CMP.Y	VRB 1
-	BNE	_EQU16_FALSE
-	LDA.ZX	VRB
-	CMP.Y	VRB
-	BNE	_EQU16_FALSE
-	LDA.I	TRUE
-	RTS
+	LDA.ZX	VRB		; load low byte of A
+	CMP.Y	VRB		; compare to low byte of B
+	BNE	_EQU16_FALSE	; if not equal, return false
+	LDA.ZX	VRB 1		; load high byte of A
+	CMP.Y	VRB 1		; compare to high byte of B
+	BNE	_EQU16_FALSE	; if not equal, return false
+	LDA.I	TRUE		; load true
+	RTS			; return
 >_EQU16_FALSE
-	LDA.I	FALSE
-	RTS
+	LDA.I	FALSE		; load false
+	RTS			; return
 
 ;==================================================
 
@@ -219,16 +219,17 @@
 ; can directly compare flags after function call
 
 >GREU16
-	LDA.ZX	VRB 1
-	CMP.Y	VRB 1
-	BLS	_GREU16_FALSE
-	BNE	_GREU16_TRUE
-	LDA.ZX	VRB
-	CMP.Y	VRB
-	BLS	_GREU16_FALSE
+	LDA.ZX	VRB 1		; load high byte of A
+	CMP.Y	VRB 1		; compare to low byte of B
+	BLS	_GREU16_FALSE	; if Ah < Bh return false
+	BNE	_GREU16_TRUE	; if Ah > Bh return true
+	; high bytes are equal, compare lower bytes
+	LDA.ZX	VRB		; load low byte of A
+	CMP.Y	VRB		; compare to low byte of B
+	BLS	_GREU16_FALSE	; if Al < Bl return false
 >_GREU16_TRUE
-	LDA.I	TRUE
-	RTS
+	LDA.I	TRUE		; load true
+	RTS			; return
 >_GREU16_FALSE
-	LDA.I	FALSE
-	RTS
+	LDA.I	FALSE		; load false
+	RTS			; return

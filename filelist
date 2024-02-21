@@ -9,6 +9,7 @@ const/vridx.cvm
 core/map.cvm
 core/start.cvm
 core/cycle.cvm
+core/page.cvm
 
 core/interrupt/interrupt.cvm
 
@@ -57,4 +58,3 @@ schedule.cvm
 process.cvm
 romprograms.cvm
 shell.cvm
-page.cvm

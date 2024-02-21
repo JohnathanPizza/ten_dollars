@@ -517,24 +517,32 @@
 
 ; PAGE_MAP_HOME_SWAP
 ; P --- A: page id P
+; R --- A: success boolean S
 ; swaps page P with its current map idx and its home map idx
+; if S is false then the swap failed
 
 >PAGE_MAP_HOME_SWAP
-	PHA				; store A
 	PHX				; store X
 	PHY				; store Y
 	TAX				; move P to X
 	JSR	PAGE_MAP_FIND		; P still in A, find its current map idx
+	CMP.I	PAGE_COUNT_TOTAL	; test if the find failed
+	BEQ	_PAGE_MAP_HOME_SWAP_FAIL	; if the find failed return false
 	CMP.X	PAGE_TABLE_HOME		; compare it to P home value
 	BEQ	_PAGE_MAP_HOME_SWAP_DONE	; if equal then P is already at home, exit
-	TAY				; move P current map idx to Y
+	TAY				; move P map idx to Y
 	LDA.X	PAGE_TABLE_HOME		; get P home idx
 	TAX				; move to X
 	JSR	PAGE_MAP_SWAP		; swap P current idx and home idx
 >_PAGE_MAP_HOME_SWAP_DONE
 	PLY				; restore Y
 	PLX				; restore X
-	PLA				; restore A
+	LDA.I	TRUE			; load true return value
+	RTS				; return
+>_PAGE_MAP_HOME_SWAP_FAIL
+	PLY				; restore Y
+	PLX				; restore X
+	LDA.I	FALSE			; load false return value
 	RTS				; return
 
 ;==================================================

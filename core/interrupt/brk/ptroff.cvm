@@ -1,9 +1,11 @@
+; returns the current process pointer offset constant in VR11
+
 >BRK_PTROFF
-	LDA	PROC_ACTIVE_ID
-	ASL
-	TAX
-	LDA.X	PROC_PTROFF
-	STA.Z	VR11
-	LDA.X	PROC_PTROFF 1
-	STA.Z	VR11 1
-	JMP	PROC_UNPAUSE
+	LDA	PROC_ACTIVE_ID	; load proc id
+	ASL			; shift left for *2 for 16-bit val offset
+	TAX			; move offset to X
+	LDA.X	PROC_PTROFF	; load ptr offset low
+	STA.Z	VR11		; store
+	LDA.X	PROC_PTROFF 1	; load ptr offset high
+	STA.Z	VR11 1		; store
+	JMP	PROC_UNPAUSE	; return to proc

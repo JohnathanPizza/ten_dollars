@@ -35,9 +35,9 @@
 	LDA.I	0XE
 	STA.Z	VR4 1
 	STZ.Z	VR5
-	JSR	MEMSET
+	JSR	MEMSET			; clear 0x200 to 0xFFF
 	
-	LDA.I	PAGE_TABLE_PROCID
+	LDA.I	PAGE_TABLE_PROCID	; set page procids to 0xFF
 	STA.Z	VR0
 	LDA.I	PAGE_TABLE_PROCID > 8
 	STA.Z	VR0 1
@@ -48,7 +48,7 @@
 	STA.Z	VR5
 	JSR	MEMSET
 
-	LDA.I	PAGE_MAP
+	LDA.I	PAGE_MAP		; set map values to 0xFF
 	STA.Z	VR0
 	LDA.I	PAGE_MAP > 8
 	STA.Z	VR0 1
@@ -57,46 +57,25 @@
 	JSR	MEMSET
 
 	LDA.I	0XFF
-	STA	PROC_ACTIVE_ID
-	STA	IO_WRITE_CLAIM
-
+	STA	PROC_ACTIVE_ID		; no proc active id at first
+	STA	IO_WRITE_CLAIM		; clear write claim
 	LDA.I	0
-	STA	IO_READ_FOCUS	; focus proc 0
+	STA	IO_READ_FOCUS		; start with proc 0 focused
 
 	; init finished
 
-	CLI
+	CLI				; interrupts on
 
-	LDA.I	ASCII_ESC
+	LDA.I	ASCII_ESC		; print ESC and @ to initialize printer
 	JSR	PRINTC
 	LDA.I	ASCII_AT
 	JSR	PRINTC
-	LDA.I	ASCII_EXCLAIMATION
+	LDA.I	ASCII_EXCLAIMATION	; print !!\n to let user know code started running
 	JSR	PRINTC
 	JSR	PRINTC
 	JSR	PRINTL
 
-	LDA.I	0
-	JSR	LOADROM
-	JSR	LOADROM
-
-	JMP	SERVICE_CYCLE_BEGIN
-
-; A program idx
->LOADROM
-	PHY
-	PHA
-	JSR	PROC_GET
-	TAY
-	PLA
-	PHA
-	STA.Y	PROC_A
-	LDA.I	PROC_STATE_INIT_ROM
-	STA.Y	PROC_STATE
-	LDA.I	1
-	STA.Y	PROC_SCHEDULE_PRIORITY
-	LDA.I	0
-	STA.Y	PROC_SCHEDULE_COUNT
-	PLA
-	PLY
-	RTS
+	LDA.I	0			; load shell program code
+	JSR	LOADROM			; start a shell program in proc 0
+	
+	JMP	SERVICE_CYCLE_BEGIN	; start the very first service cycle

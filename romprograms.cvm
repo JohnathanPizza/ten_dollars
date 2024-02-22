@@ -10,3 +10,25 @@ $SHELL_PROGRAM_ADJUST
 
 >ROM_PROGRAM_LENGTH
 $_SHELL_PROGRAM_END - SHELL_PROGRAM
+
+; A program idx to start
+; ret A proc id, PROC_COUNT = fail
+>LOADROM
+	STA.Z	VR8			; store program idx in VR8/1
+	PHY				; store Y
+	JSR	PROC_GET		; get an open process id
+	CMP.I	PROC_COUNT		; test if no proc is open
+	BEQ	_LOADROM_FAIL		; fail if no proc
+	TAY				; move proc id to Y
+	LDA.Z	VR8			; load program idx
+	STA.Y	PROC_A			; store in process A register
+	LDA.I	PROC_STATE_INIT_ROM	; load init_rom state
+	STA.Y	PROC_STATE		; update proc state
+	LDA.I	1			; load low priority value
+	STA.Y	PROC_SCHEDULE_PRIORITY	; update priority
+	LDA.I	0			; load 0 to reset schedule counter
+	STA.Y	PROC_SCHEDULE_COUNT	; reset counter
+	TYA				; move proc id to A for return value
+>_LOADROM_FAIL
+	PLY				; restore Y
+	RTS				; return

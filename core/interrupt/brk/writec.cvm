@@ -1,0 +1,32 @@
+; writes the character in VR4/1 to the print buffer and returns a success boolean in VR11/1
+
+>BRK_WRITEC
+	LDA	IO_WRITE_CLAIM		; load write claim value to check permission
+	CMP.I	0XFF			; compare to null
+	BEQ	_BRK_WRITEC_CONT	; continue if no process claimed
+	CMP	PROC_ACTIVE_ID		; compare to current proc id
+	BEQ	_BRK_WRITEC_CONT	; continue if this proc has write claimed
+	BRA	_BRK_WRITEC_FAIL	; else fail
+>_BRK_WRITEC_CONT
+	STA	HW_ENABLE_ADDR HW_RAM1 HW_VIA	; turn on VIA to update IER
+	LDA.I	VIA_IER_ENABLE VIA_IB_CB1	; load value to enable write IER
+	STA	VIA_IER			; enable
+	STA	HW_ENABLE_ADDR HW_RAM1	; turn off VIA
+	LDA.I	TRUE			; load true value
+	STA	IO_WRITE_STATUS		; store true in status to signal write operation is happening
+	LDA	IO_WRITE_BUFFER_HEAD	; load buffer head value
+	INC				; inc
+	CMP	IO_WRITE_BUFFER_TAIL	; compare to tail value
+	BEQ	_BRK_WRITEC_FAIL	; if equal then no room in buffer, fail
+	DEC				; dec buffer head
+	TAY				; move head value to Y
+	LDA.Z	VR4			; load charater to write from A
+	STA.Y	IO_WRITE_BUFFER		; store in write buffer
+	INC	IO_WRITE_BUFFER_HEAD	; inc buffer head value
+	LDA.I	TRUE			; load success value
+	STA.Z	VR11			; store in VR11/1
+	JMP	PROC_UNPAUSE		; return to proc
+>_BRK_WRITEC_FAIL
+	LDA.I	FALSE			; load fail value
+	STA.Z	VR11			; store in VR11/1
+	JMP	PROC_UNPAUSE		; return to proc

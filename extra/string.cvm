@@ -1,65 +1,359 @@
 ; STRING.CVM
 ; ===
 ; STRLEN
+; STRNLEN
 ; STRCPY
+; STRNCPY
+; STRCMP
+; STRNCMP
+; STRCHR
+; STRRCHR
+; STRCAT
+; STRNCAT
+
+; string functions operate under the assumption that no string will have a length of more than 254
 
 ;==================================================
 
 ; STRLEN
-; P ---	VR0: string pointer S
-; R ---	VR11: string length L
-; calculates the length of the string at S which is delimited by the null character
+; P --- VR0: string pointer S
+; R --- A: string length L
+; if L = 255, then 255 bytes were read that were not the nul character, actual string length is unknown
 
 >STRLEN
-	PHA		; store A
-	PHX		; store X
-	STZ.Z	VR11	; set L to 0
-	STZ.Z	VR11 1
-	LDA.Z	VR0	; copy S into VR8
+	LDA.Z	VR0		; copy S to VR8
 	STA.Z	VR8
 	LDA.Z	VR0 1
 	STA.Z	VR8 1
+	STZ.Z	VR9		; set temp counter for L to 0
 >_STRLEN_LOOP
-	LDA.ZP	VR8	; get next character fom S
-	BEQ	_STRLEN_END	; if 0 then stop counting and return
-	LDX.I	VRI_11	; load VRI for L
-	JSR	INC16	; inc L
-	LDX.I	VRI_8	; load VRI for S
-	JSR	INC16	; inc S
-	BRA	_STRLEN_LOOP	; loop
+	LDA.ZP	VR8		; load next character from S
+	BEQ	_STRLEN_END	; exit if nul char
+	JSR	INC8		; inc S
+	INC.Z	VR9		; inc L
+	LDA.I	0XFF		; load max value
+	CMP.Z	VR9		; compare L to max value
+	BNE	_STRLEN_LOOP	; if not max value then loop
 >_STRLEN_END
-	PLX		; restore X
-	PLA		; restore A
-	RTS		; return
+	LDA.Z	VR9		; load L to A
+	RTS			; return
+
+;==================================================
+
+; STRNLEN
+; P --- VR0: string pointer S
+;	VR4/1: number to check N
+; R --- A: string length L
+; calculates the length of the string at S which is delimited by the null character
+; checks the first N characters of the string
+; L = N if the string contains more than N non-null characters
+; if N is greater than or equal to the number of non-null characters, this function behaves just like STRLEN
+
+>STRNLEN
+	LDA.Z	VR0		; copy S into VR8
+	STA.Z	VR8
+	LDA.Z	VR0 1
+	STA.Z	VR8 1
+	LDA.Z	VR4		; copy N into VR9/1
+	STA.Z	VR9
+	STZ.Z	VR10		; set temp counter for L to 0
+
+	BRA	_STRNLEN_LOOP_CHECK	; enter loop
+>_STRNLEN_LOOP
+	LDA.ZP	VR8		; get next character from S
+	BEQ	_STRNLEN_END	; if 0 then stop counting and return
+	JSR	INC8		; inc S
+	DEC.Z	VR9		; dec N
+	INC.Z	VR10		; inc L
+	LDA.I	0XFF		; load max value
+	CMP.Z	VR10		; compare L to max value
+	BEQ	_STRNLEN_END	; if max value then exit
+>_STRNLEN_LOOP_CHECK
+	LDA.Z	VR9		; test if N is 0
+	BNE	_STRNLEN_LOOP	; loop if not 0
+>_STRNLEN_END
+	LDA.Z	VR10		; load L to A
+	RTS			; return
 
 ;==================================================
 
 ; STRCPY
 ; P ---	VR0: existing string pointer S
 ;	VR1: destination pointer D
-; copies S to D stopping after the delimiting null character is copied
+; copies string S to D, stopping after the delimiting nul character is copied
 
 >STRCPY
-	PHA		; store A
-	PHX		; store X
-	LDA.Z	VR0	; copy S to VR8
+	PHA			; store A
+	LDA.Z	VR0		; copy S to VR8
 	STA.Z	VR8
 	LDA.Z	VR0 1
 	STA.Z	VR8 1
-	LDA.Z	VR1	; copy D to VR9
+	LDA.Z	VR1		; copy D to VR9
 	STA.Z	VR9
 	LDA.Z	VR1 1
 	STA.Z	VR9 1
 >_STRCPY_LOOP
-	LDA.ZP	VR8	; load next character from the string
-	STA.ZP	VR9	; store at next location at the destination
+	LDA.ZP	VR8		; load next character from the string
+	STA.ZP	VR9		; store at next location at the destination
 	BEQ	_STRCPY_END	; if it was the null character, return
-	LDX.I	VRI_8	; load VRI for S
-	JSR	INC16	; inc S
-	LDX.I	VRI_9	; load VRI for D
-	JSR	INC16	; inc D
+	JSR	INC8		; inc S
+	JSR	INC9		; inc D
 	BRA	_STRCPY_LOOP	; loop
 >_STRCPY_END
-	PLX		; restore X
-	PLA		; restore A
-	RTS		; return
+	PLA			; restore A
+	RTS			; return
+
+;==================================================
+
+; STRNCPY
+; P --- VR0: existing string pointer S
+;	VR1: destination pointer D
+;	VR4/1: number to copy N
+; copies string S to D, stopping after the delimiting nul character is copied or N characters have been copied
+; if N characters are copied before the nul character is copied, no nul character is appended at the destination by this function
+
+>STRNCPY
+	PHA			; store A
+	LDA.Z	VR0		; copy S to VR8
+	STA.Z	VR8
+	LDA.Z	VR0 1
+	STA.Z	VR8 1
+	LDA.Z	VR1		; copy D to VR9
+	STA.Z	VR9
+	LDA.Z	VR1 1
+	STA.Z	VR9 1
+	LDA.Z	VR4		; copy N to VR10/1
+	STA.Z	VR10
+
+	BRA	_STRNCPY_LOOP_CHECK	; enter loop
+>_STRNCPY_LOOP
+	LDA.ZP	VR8		; load next character from S
+	STA.ZP	VR9		; store into next spot in D
+	BEQ	_STRNCPY_END	; exit if nul character was copied
+	JSR	INC8		; inc S
+	JSR	INC9		; inc D
+	DEC.Z	VR10		; dec N
+>_STRNCPY_LOOP_CHECK
+	LDA.Z	VR10		; test if N is 0
+	BNE	_STRNCPY_LOOP	; if not 0 then loop
+>_STRNCPY_END
+	PLA			; restore A
+	RTS			; return
+
+;==================================================
+
+; STRCMP
+; P --- VR0: pointer to first string A
+;	VR1: pointer to second string B
+; R --- A: comparison value V
+; returns the difference of the first unequal characters at equal indicies from A and B
+; stops comparing after the first nul character is found in either string
+; if V = 0 then the strings are equal up to the first nul character
+; otherwise the strings are not equal at some point
+
+>STRCMP
+	LDA.Z	VR0		; copy A to VR8
+	STA.Z	VR8
+	LDA.Z	VR0 1
+	STA.Z	VR8 1
+	LDA.Z	VR1		; copy B to VR9
+	STA.Z	VR9
+	LDA.Z	VR1 1
+	STA.Z	VR9 1
+>_STRCMP_LOOP
+	LDA.ZP	VR8		; load character from A
+	SEC			; sec for sbc
+	SBC.ZP	VR9		; subtract value from character in B
+	BNE	_STRCMP_END	; if values not equal, return
+	LDA.ZP	VR8		; load value from A
+	BEQ	_STRCMP_END	; if nul char, return
+	JSR	INC8		; inc A
+	JSR	INC9		; inc B
+	BRA	_STRCMP_LOOP	; loop
+>_STRCMP_END
+	RTS			; return
+
+;==================================================
+
+; STRNCMP
+; P --- VR0: pointer to first string A
+;	VR1: pointer to second string B
+;	VR4/1: number to compare N
+; R --- A: comparison value V
+; returns the difference of the first unequal characters at equal indicies from A and B
+; stops comparing after the first nul character is found in either string or when N characters are compared
+; if V = 0 then the strings are equal up to the first nul character or N characters
+; otherwise the strings are not equal at some point
+
+>STRNCMP
+	LDA.Z	VR0		; copy A to VR8
+	STA.Z	VR8
+	LDA.Z	VR0 1
+	STA.Z	VR8 1
+	LDA.Z	VR1		; copy B to VR9
+	STA.Z	VR9
+	LDA.Z	VR1 1
+	STA.Z	VR9 1
+	LDA.Z	VR4		; copy N to VR10/1
+	STA.Z	VR10
+
+	BRA	_STRNCMP_LOOP_CHECK
+>_STRNCMP_LOOP
+	LDA.ZP	VR8		; load character from A
+	SEC			; sec for sbc
+	SBC.ZP	VR9		; subtract value from character in B
+	BNE	_STRNCMP_END	; if values not equal, return
+	LDA.ZP	VR8		; load value from A
+	BEQ	_STRNCMP_END	; if nul char, return
+	JSR	INC8		; inc A
+	JSR	INC9		; inc B
+	DEC.Z	VR10		; dec N
+>_STRNCMP_LOOP_CHECK
+	LDA.Z	VR10		; test if N is 0
+	BNE	_STRNCMP_LOOP	; loop
+>_STRNCMP_END
+	RTS			; return
+
+;==================================================
+
+; STRCHR
+; P --- VR0: string pointer S
+;	A: character C
+; R --- A: character index I
+; returns the index I of the first occurance of C in string S
+; if I = 255 then the character was not found in the string
+
+>STRCHR
+	PHX			; store X
+	LDX.I	0		; set I to 0
+	STA.Z	VR8		; store C in VR8/1
+	LDA.Z	VR0		; copy S to VR9
+	STA.Z	VR9
+	LDA.Z	VR0 1
+	STA.Z	VR9 1
+>_STRCHR_LOOP
+	LDA.ZP	VR9		; load character from S
+	CMP.Z	VR8		; compare to C
+	BEQ	_STRCHR_END	; if equal, return at I
+	LDA.ZP	VR9		; load character from S again
+	BEQ	_STRCHR_FAIL	; if nul char, return failure
+	INX			; inc I
+	CPX.I	0XFF		; compare I to max value 0xFF
+	BNE	_STRCHR_LOOP	; if not max, loop
+>_STRCHR_FAIL
+	LDX.I	0XFF		; set I to 0xFF max value
+>_STRCHR_END
+	TXA			; move I to A
+	PLX			; restore X
+	RTS			; return
+
+;==================================================
+
+; STRRCHR
+; P --- VR0: string pointer S
+;	A: character C
+; R --- A: character index I
+; returns the index I of the last occurance of C in string S
+; if I = 255 then the character was not found in the string
+
+>STRRCHR
+	PHX			; store X
+	LDX.I	0		; set index to 0
+	STA.Z	VR8		; store C in VR8/1
+	LDA.Z	VR0		; copy S to VR9
+	STA.Z	VR9
+	LDA.Z	VR0 1
+	STA.Z	VR9 1
+	LDA.I	0XFF		; load max value
+	STA.Z	VR10		; store in VR10/1 to track most recent index of C
+>_STRRCHR_LOOP
+	LDA.ZP	VR9		; load character from S
+	CMP.Z	VR8		; compare to C
+	BNE	_STRRCHR_LOOP_CONT	; if not equal, keep scanning
+	STX.Z	VR10		; C is at this index, update most recent
+>_STRRCHR_LOOP_CONT
+	LDA.ZP	VR9		; load character from S again
+	BEQ	_STRRCHR_END	; if nul char, return
+	INX			; inc index
+	CPX.I	0XFF		; compare index to max value 0xFF
+	BNE	_STRRCHR_LOOP	; if not max, loop
+>_STRRCHR_END
+	LDA.Z	VR10		; load I to A
+	PLX			; restore X
+	RTS			; return
+
+;==================================================
+
+; STRCAT
+; P --- VR0: base string B
+;	VR1: appending string C
+; copies the characters in C to the very end of B to concatenate the two strings
+; starts at the nul character in B and also copies the nul character from C
+
+>STRCAT
+	PHA			; store A
+	LDA.Z	VR0		; copy B to VR8
+	STA.Z	VR8
+	LDA.Z	VR0 1
+	STA.Z	VR8 1
+	LDA.Z	VR1		; copy C to VR9
+	STA.Z	VR9
+	LDA.Z	VR1 1
+	STA.Z	VR9 1
+>_STRCAT_LOOP1
+	LDA.ZP	VR8		; load character from B
+	BEQ	_STRCAT_LOOP2	; if nul char, go to the next loop
+	JSR	INC8		; inc B
+	BRA	_STRCAT_LOOP1	; loop
+>_STRCAT_LOOP2
+	LDA.ZP	VR9		; load character from C
+	STA.ZP	VR8		; store in B
+	BEQ	_STRCAT_END	; if nul char was stored, end
+	JSR	INC8		; inc B
+	JSR	INC9		; inc C
+	BRA	_STRCAT_LOOP2	; loop
+>_STRCAT_END
+	PLA			; restore A
+	RTS			; return
+
+;==================================================
+
+; STRNCAT
+; P --- VR0: base string B
+;	VR1: appending string C
+;	VR4/1: number to copy N
+; copies the characters in C to the very end of B to concatenate the two strings
+; starts at the nul character in B and also copies the nul character from C
+; stops after copying N characters or reaching the end of string C
+; if N is less than or equal to the length of C then the nul character is not copied
+
+>STRNCAT
+	PHA			; store A
+	LDA.Z	VR0		; copy B to VR8
+	STA.Z	VR8
+	LDA.Z	VR0 1
+	STA.Z	VR8 1
+	LDA.Z	VR1		; copy C to VR9
+	STA.Z	VR9
+	LDA.Z	VR1 1
+	STA.Z	VR9 1
+	LDA.Z	VR4		; copy N to VR10/1
+	STA.Z	VR10
+>_STRNCAT_LOOP1
+	LDA.ZP	VR8		; load character from B
+	BEQ	_STRNCAT_LOOP2_CHECK	; if nul char, go to the next loop
+	JSR	INC8		; inc B
+	BRA	_STRNCAT_LOOP1	; loop
+>_STRNCAT_LOOP2
+	LDA.ZP	VR9		; load character from C
+	STA.ZP	VR8		; store in B
+	BEQ	_STRNCAT_END	; if nul char was stored, end
+	JSR	INC8		; inc B
+	JSR	INC9		; inc C
+	DEC.Z	VR10		; dec N
+>_STRNCAT_LOOP2_CHECK
+	LDA.Z	VR10		; test if N is 0
+	BNE	_STRNCAT_LOOP2	; if not 0 loop
+>_STRNCAT_END
+	PLA			; restore A
+	RTS			; return

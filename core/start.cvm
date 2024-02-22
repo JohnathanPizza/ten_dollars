@@ -9,32 +9,73 @@
 	TXS		; set stack pointer to 0x1FF
 
 	; turning on hardware modules
-	STA	HW_ENABLE_ADDR HW_SRAM HW_VIA	; enable the SRAM and VIA
-	LDA.I	HW_SRAM		; load the value of the SRAM toggle (not VIA, it is turned off soon)
-	STA	HW_STATUS	; store into status to track it
+	STA	HW_ENABLE_ADDR HW_RAM1 HW_VIA	; enable RAM1 and VIA
 
 	; setting register values in the VIA
-	LDA.I	0B11000101	; initial value for the PCR
-	STA	VIA_PCR		; update PCR
+	LDA.I	0B11000101		; initial value for the PCR
+	STA	VIA_PCR			; update PCR
 	STZ	VIA_READ_PORT_DIR	; set the reading port to all input
 	STZ	VIA_WRITE_PORT		; preset the write port to output 0
 	LDA.I	0XFF			; load value to set write port to all output
 	STA	VIA_WRITE_PORT_DIR	; set write port to all output
-	LDA.I	0B00000000
-	STA	VIA_ACR
-	STA	HW_ENABLE_ADDR HW_SRAM	; disable the VIA now
+	LDA.I	0B00000000		; load initial ACR value
+	STA	VIA_ACR			; store into ACR
+	LDA.I	VIA_IER_ENABLE VIA_IB_CA1	; enable keyboard at start since it will always be on
+	STA	VIA_IER			; enable
+	BIT	VIA_READ_PORT		; clear any random possible interrupt quickly
+	STA	HW_ENABLE_ADDR HW_RAM1	; disable VIA since setup is done
 
 	; initialize RAM variables
-	STZ	IO_WRITE_BUFFER_HEAD
-	STZ	IO_WRITE_BUFFER_TAIL
-	STZ	IO_WRITE_LEN
-	STZ	IO_WRITE_LEN 1
-	STZ	IO_WRITE_STATUS
-	STZ	IO_READ_IDX
-	STZ	IO_READ_STATUS
-	STZ	IO_KEYBOARD_SHIFT
-	STZ	IO_KEYBOARD_FLAGS
+
+	; zero everything from 0X200 to 0XFFF
+	STZ.Z	VR0
+	LDA.I	0X2
+	STA.Z	VR0 1
+	STZ.Z	VR4
+	LDA.I	0XE
+	STA.Z	VR4 1
+	STZ.Z	VR5
+	JSR	MEMSET			; clear 0x200 to 0xFFF
 	
-	CLI
->LOOP
-	JMP LOOP
+	LDA.I	PAGE_TABLE_PROCID	; set page procids to 0xFF
+	STA.Z	VR0
+	LDA.I	PAGE_TABLE_PROCID > 8
+	STA.Z	VR0 1
+	LDA.I	PAGE_COUNT_TOTAL
+	STA.Z	VR4
+	STZ.Z	VR4 1
+	LDA.I	0XFF
+	STA.Z	VR5
+	JSR	MEMSET
+
+	LDA.I	PAGE_MAP		; set map values to 0xFF
+	STA.Z	VR0
+	LDA.I	PAGE_MAP > 8
+	STA.Z	VR0 1
+	LDA.I	0XFF
+	STA.Z	VR5
+	JSR	MEMSET
+
+	LDA.I	0XFF
+	STA	PROC_ACTIVE_ID		; no proc active id at first
+	STA	IO_WRITE_CLAIM		; clear write claim
+	LDA.I	0
+	STA	IO_READ_FOCUS		; start with proc 0 focused
+
+	; init finished
+
+	CLI				; interrupts on
+
+	LDA.I	ASCII_ESC		; print ESC and @ to initialize printer
+	JSR	PRINTC
+	LDA.I	ASCII_AT
+	JSR	PRINTC
+	LDA.I	ASCII_EXCLAIMATION	; print !!\n to let user know code started running
+	JSR	PRINTC
+	JSR	PRINTC
+	JSR	PRINTL
+
+	LDA.I	0			; load shell program code
+	JSR	LOADROM			; start a shell program in proc 0
+	
+	JMP	SERVICE_CYCLE_BEGIN	; start the very first service cycle

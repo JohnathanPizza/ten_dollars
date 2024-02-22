@@ -1,0 +1,55 @@
+; SCHEDULE.CVM
+; ===
+; SCHEDULER_SELECT
+; SCHEDULER_INCREMENT
+
+;==================================================
+
+; SCHEDULER_SELECT
+; R --- VR11/1: selected process id P
+; returns the process id that should be serviced next P
+
+>SCHEDULER_SELECT
+	PHA				; store A
+	PHX				; store X
+	STZ.Z	VR8			; set high count to 0
+	STZ.Z	VR11			; set high proc id to 0
+	LDX.I	0			; set proc idx to 0
+>_SCHEDULER_SELECT_LOOP
+	LDA.Z	VR8			; get the high count
+	CMP.X	PROC_SCHEDULE_COUNT	; compare high count to this procs count
+	BGE	_SCHEDULER_SELECT_LOOP_CONT	; if the high count >= this proc count skip
+	STX.Z	VR11			; else update highest proc id
+	LDA.X	PROC_SCHEDULE_COUNT	; get this count
+	STA.Z	VR8			; update high count
+>_SCHEDULER_SELECT_LOOP_CONT
+	INX				; inc proc index
+	CPX.I	PROC_COUNT		; compare to num of procs
+	BNE	_SCHEDULER_SELECT_LOOP	; loop if not done all procs
+	PLX				; restore X
+	PLA				; restore A
+	RTS				; return
+
+;==================================================
+
+; SCHEDULER_INCREMENT
+; updates the value of each process schedule count based on process schedule priority
+
+>SCHEDULER_INCREMENT
+	PHA					; store A
+	PHX					; store X
+	LDX.I	0				; set proc index to 0
+>_SCHEDULER_INCREMENT_LOOP
+	LDA.X	PROC_SCHEDULE_COUNT		; load schedule counter for proc
+	CLC					; clc for adc
+	ADC.X	PROC_SCHEDULE_PRIORITY		; add priority to counter
+	BCC	_SCHEDULER_INCREMENT_LOOP_CONT	; if value didnt exceed 0xFF then keep going
+	LDA.I	0XFF				; else cap new value at 0xFF
+>_SCHEDULER_INCREMENT_LOOP_CONT
+	STA.X	PROC_SCHEDULE_COUNT		; store value back into counter
+	INX					; inc proc index
+	CPX.I	PROC_COUNT			; compare proc index to max procs
+	BNE	_SCHEDULER_INCREMENT_LOOP	; loop if not done all
+	PLX					; restore X
+	PLA					; restore A
+	RTS					; return

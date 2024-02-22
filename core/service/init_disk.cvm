@@ -1,0 +1,2 @@
+>SERVICE_INIT_DISK
+	JMP	SERVICE_CYCLE_BEGIN	; just go to next cycle for now

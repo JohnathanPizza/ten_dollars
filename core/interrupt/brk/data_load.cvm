@@ -1,0 +1,25 @@
+; attempt to load the given data page id from VR4/1 into the DAP
+
+>BRK_DATA_LOAD
+	; writeback for current DAP
+	LDY	PROC_ACTIVE_ID		; load proc id
+	LDA.Y	PROC_ACTIVE_DAP_ID	; get DAP id
+	JSR	PAGE_TABLE_GET_DATA	; try to find its page
+	CMP.I	PAGE_COUNT_TOTAL	; test if page count
+	BEQ	_BRK_DATA_LOAD_SKIP	; skip writeback if not found
+	JSR	PAGE_MAP_FIND		; get map idx
+	JSR	PAGE_STORE_DAP		; store DAP to memory
+>_BRK_DATA_LOAD_SKIP
+	LDA.Z	VR4			; get new data page id
+	JSR	PAGE_TABLE_GET_DATA	; try to to find its page
+	CMP.I	PAGE_COUNT_TOTAL	; test if actually found
+	BEQ	_BRK_DATA_LOAD_FAIL	; fail if not found
+	JSR	PAGE_MAP_FIND		; get map idx
+	JSR	PAGE_LOAD_DAP		; load DAP
+	LDA.Z	VR4			; load page id
+	STA.Y	PROC_ACTIVE_DAP_ID	; store in DAP id
+	JMP	PROC_UNPAUSE		; return to proc
+>_BRK_DATA_LOAD_FAIL
+	LDA.I	0X80			; set active DAP id null
+	STA.Y	PROC_ACTIVE_DAP_ID	; update DAP id
+	JMP	PROC_UNPAUSE		; return to proc

@@ -1,0 +1,3 @@
+; flag bitmasks for process configs
+
+=PROC_FLAG_DAP_ROM	0X1	; set DAP access to read only mode

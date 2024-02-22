@@ -1,0 +1,10 @@
+; constants for all states that a process could be in
+; used by the scheduler
+
+=PROC_STATE_NULL		0
+=PROC_STATE_INIT_ROM		1
+=PROC_STATE_INIT_DISK		2
+=PROC_STATE_READY		3
+=PROC_STATE_IO_READ		4
+=PROC_STATE_IO_WRITE		5
+=PROC_STATE_EXIT		6

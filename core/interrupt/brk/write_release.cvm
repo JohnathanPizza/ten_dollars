@@ -1,0 +1,10 @@
+; free write claim if this process had it claimed
+
+>BRK_WRITE_RELEASE
+	LDA	IO_WRITE_CLAIM		; load write claim value
+	CMP	PROC_ACTIVE_ID		; compare to current proc id
+	BNE	_BRK_WRITE_RELEASE_FAIL	; if not equal then just return
+	LDA.I	0XFF			; load null value
+	STA	IO_WRITE_CLAIM		; store in write claim
+>_BRK_WRITE_RELEASE_FAIL
+	JMP	PROC_UNPAUSE		; return to proc

@@ -1,0 +1,7 @@
+; resets the current active proc priority to 0 so that it cant be scheduled again really
+; if you end up here then there is probably no process doing anything
+
+>SERVICE_NULL
+	LDX	PROC_ACTIVE_ID		; load proc id
+	STZ.X	PROC_SCHEDULE_PRIORITY	; set proc priority to 0
+	JMP	SERVICE_CYCLE_BEGIN	; start next cycle

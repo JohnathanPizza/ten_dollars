@@ -1,0 +1,5 @@
+; forcibly suspends the current process
+
+>BRK_SUSPEND
+	JSR	PROC_LEAVE		; save process
+	JMP	SERVICE_CYCLE_BEGIN	; start new cycle

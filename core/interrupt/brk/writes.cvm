@@ -1,0 +1,36 @@
+; writes the string given by a pointer in VR0 to to the write buffer and starts a write operation
+; returns the number of characters written to the buffer in VR11/1
+
+>BRK_WRITES
+	LDA	IO_WRITE_CLAIM		; load write claim value
+	CMP.I	0XFF			; compare to null value
+	BEQ	_BRK_WRITES_CONT	; continue if no write claim
+	CMP	PROC_ACTIVE_ID		; compare to proc id
+	BEQ	_BRK_WRITES_CONT	; continue if this proc owns the write claim
+	LDY.I	0			; load 0 for no characters written to buffer
+	BRA	_BRK_WRITES_LOOP_END	; return
+>_BRK_WRITES_CONT
+	STA	HW_ENABLE_ADDR HW_RAM1 HW_VIA	; turn on VIA
+	LDA.I	VIA_IER_ENABLE VIA_IB_CB1	; load code to enable write interrupt
+	STA	VIA_IER			; enable
+	STA	HW_ENABLE_ADDR HW_RAM1	; turn off VIA
+	LDA.I	TRUE			; load true value to update write status
+	STA	IO_WRITE_STATUS		; update status
+	LDY.I	0			; set string index to 0
+>_BRK_WRITES_LOOP
+	LDA.ZPY	VR0			; load character from string
+	BEQ	_BRK_WRITES_LOOP_END	; if nul char then stop writing
+	LDA	IO_WRITE_BUFFER_HEAD	; load head idx
+	INC				; inc
+	CMP	IO_WRITE_BUFFER_TAIL	; test head + 1 against tail idx
+	BEQ	_BRK_WRITES_LOOP_END	; if equal, no more space in buffer, return
+	DEC				; dec to get head idx value again
+	TAX				; move head idx value to X
+	LDA.ZPY	VR0			; load character from string again
+	STA.X	IO_WRITE_BUFFER		; store in buffer at head idx
+	INC	IO_WRITE_BUFFER_HEAD	; inc head idx
+	INY				; inc string idx
+	BNE	_BRK_WRITES_LOOP	; if string idx not over 255 then loop
+>_BRK_WRITES_LOOP_END
+	STY.Z	VR11			; store characters written in VR11/1
+	JMP	PROC_UNPAUSE		; return to proc

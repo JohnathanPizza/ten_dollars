@@ -1,16 +1,23 @@
-; vr5 number
+; frees the data page from the id in A
+
 >BRK_DATA_RELEASE
-	LDA.Z	VR5
-	JSR	PAGE_TABLE_GET_DATA
-	CMP.I	PAGE_COUNT_TOTAL
-	BEQ	_BRK_DATA_RELEASE_FAIL
-	TAY
-	LDA.I	0XFF
-	STA.Y	PAGE_TABLE_PROCID
-	TYA
-	JSR	PAGE_MAP_FIND
-	TAY
-	LDA.I	0XFF
-	STA.Y	PAGE_MAP
+	LDA	PROC_PAUSE_A		; get data page id
+	JSR	PAGE_TABLE_GET_DATA	; try to find in map
+	CMP.I	PAGE_COUNT_TOTAL	; test if found
+	BEQ	_BRK_DATA_RELEASE_FAIL	; return if not a real page
+	TAY				; move page id to Y
+	LDA.I	0XFF			; load null procid value
+	STA.Y	PAGE_TABLE_PROCID	; store in page owner id to release it
+	TYA				; move page it to A
+	JSR	PAGE_MAP_FIND		; find map idx
+	TAY				; move map idx to Y
+	LDA.I	0XFF			; load map null value
+	STA.Y	PAGE_MAP		; store in map idx
+	LDA	PROC_PAUSE_A		; load data page id that was released
+	LDY	PROC_ACTIVE_ID		; load proc id
+	CMP.Y	PROC_ACTIVE_DAP_ID	; compare current DAP id to released id
+	BNE	_BRK_DATA_RELEASE_FAIL	; skip if not the same id
+	LDA.I	0X80			; load DAP null value
+	STA.Y	PROC_ACTIVE_DAP_ID	; store into DAP id
 >_BRK_DATA_RELEASE_FAIL
-	JMP	PROC_UNPAUSE
+	JMP	PROC_UNPAUSE		; return to proc

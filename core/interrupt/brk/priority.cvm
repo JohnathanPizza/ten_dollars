@@ -1,5 +1,7 @@
+; updates current process priority value to value given in A
+
 >BRK_PRIORITY
-	LDY	PROC_ACTIVE_ID
-	LDA.Z	VR5
-	STA.Y	PROC_SCHEDULE_PRIORITY
-	JMP	PROC_UNPAUSE
+	LDA	PROC_PAUSE_A		; load new priority
+	LDY	PROC_ACTIVE_ID		; load proc id
+	STA.Y	PROC_SCHEDULE_PRIORITY	; update proc priority
+	JMP	PROC_UNPAUSE		; return to proc

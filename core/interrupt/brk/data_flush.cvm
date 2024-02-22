@@ -1,10 +1,12 @@
+; force a writeback of the current DAP
+
 >BRK_DATA_FLUSH
-	LDX	PROC_ACTIVE_ID
-	LDA.X	PROC_ACTIVE_DAP_ID
-	JSR	PAGE_TABLE_GET_DATA
-	CMP.I	PAGE_COUNT_TOTAL
-	BEQ	_BRK_DATA_FLUSH_SKIP
-	JSR	PAGE_MAP_FIND
-	JSR	PAGE_STORE_DAP
+	LDX	PROC_ACTIVE_ID		; load proc id
+	LDA.X	PROC_ACTIVE_DAP_ID	; load DAP id
+	JSR	PAGE_TABLE_GET_DATA	; try to find DAP page
+	CMP.I	PAGE_COUNT_TOTAL	; test if page was found
+	BEQ	_BRK_DATA_FLUSH_SKIP	; if not found then just return
+	JSR	PAGE_MAP_FIND		; get map idx
+	JSR	PAGE_STORE_DAP		; write DAP to memory
 >_BRK_DATA_FLUSH_SKIP
-	JMP	PROC_UNPAUSE
+	JMP	PROC_UNPAUSE		; return to proc

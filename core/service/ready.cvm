@@ -1,3 +1,5 @@
+; loads the process code and data and stuff and enters it
+
 >SERVICE_READY
-	JSR	PROC_LOAD
-	JMP	PROC_UNPAUSE
+	JSR	PROC_LOAD		; load all related proc resources into memory
+	JMP	PROC_UNPAUSE		; enter proc

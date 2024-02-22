@@ -1,40 +1,36 @@
+; tries to start a reading operation for the current process
+; buffer pointer is in VR0 and buffer length is in VR5/1
+
 >SERVICE_IO_READ
-	; check if we are current focus
-	LDA	IO_READ_FOCUS
-	CMP	PROC_ACTIVE_ID
-	BNE	_SERVICE_IO_READ_FAIL
-	; check if data is valid
-	LDA	IO_READ_VALID
-	BEQ	_SERVICE_IO_READ_FAIL
-	; good to go
-	; load it and fill buf and dive in
-	DEC	IO_READ_STATUS
-	STZ	IO_READ_VALID
-	JSR	PROC_LOAD
-	;vr0 buf ptr
-	;vr5/1 buf len
-	LDX.Z	VR5
-	LDY.I	0
-	BRA	_SERVICE_IO_READ_LOOP
+	; check if this proc has focus
+	LDA	IO_READ_FOCUS		; load focus proc id
+	CMP	PROC_ACTIVE_ID		; compare to current proc id
+	BNE	_SERVICE_IO_READ_FAIL	; if not focused then fail and keep suspended
+	LDA	IO_READ_VALID		; load valid status
+	BEQ	_SERVICE_IO_READ_FAIL	; if valid status = 0 then no data, keep suspended
+	DEC	IO_READ_STATUS		; good to read, decrement read status semaphore
+	STZ	IO_READ_VALID		; clear valid status since it is being consumed
+	JSR	PROC_LOAD		; load in all process resources to get access to VR0 and VR5/1
+	LDX.Z	VR5			; load length of buffer into X
+	LDY.I	0			; set buffer index to 0
+	BRA	_SERVICE_IO_READ_LOOP	; enter loop
 >_SERVICE_IO_READ_LOOP
-	LDA.Y	IO_READ_BUFFER
-	STA.ZPY	VR0
-	BEQ	_SERVICE_IO_READ_LOOP_END
-	INY
-	DEX
+	LDA.Y	IO_READ_BUFFER		; load next character from read buffer
+	STA.ZPY	VR0			; store into process buffer at index Y
+	BEQ	_SERVICE_IO_READ_LOOP_END	; if stored the nul char then exit loop
+	INY				; inc buffer idx
+	DEX				; dec buffer remaining len
 >_SERVICE_IO_READ_CHECK
-	CPX.I	0
-	BNE	_SERVICE_IO_READ_LOOP
+	CPX.I	0			; check if remaining buffer length is 0
+	BNE	_SERVICE_IO_READ_LOOP	; if space left keep looping
 >_SERVICE_IO_READ_LOOP_END
-	LDA.I	0
-	LDY.Z	VR5
-	DEY
-	STA.ZPY	VR0
-
-	LDA.I	PROC_STATE_READY
-	LDY	PROC_ACTIVE_ID
-	STA.Y	PROC_STATE
-	JMP	PROC_UNPAUSE
-
+	LDA.I	0			; load 0 for nul char value
+	LDY.Z	VR5			; load length of buffer in Y
+	DEY				; set index to very last position in buffer
+	STA.ZPY	VR0			; store nul char
+	LDA.I	PROC_STATE_READY	; load ready state
+	LDY	PROC_ACTIVE_ID		; load proc id
+	STA.Y	PROC_STATE		; update proc state
+	JMP	PROC_UNPAUSE		; return to proc
 >_SERVICE_IO_READ_FAIL
-	JMP	SERVICE_CYCLE_BEGIN
+	JMP	SERVICE_CYCLE_BEGIN	; start new cycle

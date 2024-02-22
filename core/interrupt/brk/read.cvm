@@ -1,5 +1,5 @@
 ; starts a new reading operation for the proc
-; pointer to the reading buffer supplied in VR0 and then buffer length in VR5/1
+; pointer to the reading buffer supplied in VR0 and then buffer length in VR4/1
 
 >BRK_READ
 	LDA	IO_READ_STATUS		; load reading status

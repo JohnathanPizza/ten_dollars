@@ -1,7 +1,7 @@
-; frees the data page from the id in A
+; frees the data page from the id in VR4/1
 
 >BRK_DATA_RELEASE
-	LDA	PROC_PAUSE_A		; get data page id
+	LDA.Z	VR4			; get data page id
 	JSR	PAGE_TABLE_GET_DATA	; try to find in map
 	CMP.I	PAGE_COUNT_TOTAL	; test if found
 	BEQ	_BRK_DATA_RELEASE_FAIL	; return if not a real page
@@ -13,7 +13,7 @@
 	TAY				; move map idx to Y
 	LDA.I	0XFF			; load map null value
 	STA.Y	PAGE_MAP		; store in map idx
-	LDA	PROC_PAUSE_A		; load data page id that was released
+	LDA.Z	VR4			; load data page id that was released
 	LDY	PROC_ACTIVE_ID		; load proc id
 	CMP.Y	PROC_ACTIVE_DAP_ID	; compare current DAP id to released id
 	BNE	_BRK_DATA_RELEASE_FAIL	; skip if not the same id

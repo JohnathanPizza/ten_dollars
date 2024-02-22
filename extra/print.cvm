@@ -15,15 +15,12 @@
 
 >PRINTS
 	PHA			; store A
-	LDA.Z	VR4		; copy out VR4/1
-	PHA
 	LDA.Z	VR0		; copy out VR0
 	PHA
 	LDA.Z	VR0 1
 	PHA
-	LDA.I	BC_WRITES	; load write string BRK code
-	STA.Z	VR4		; store in VR4
 >_PRINTS_LOOP
+	LDA.I	BC_WRITES
 	BRK			; call WRITES
 	LDA.Z	VR0		; add the number of chars written to pointer S
 	CLC
@@ -38,8 +35,6 @@
 	STA.Z	VR0 1
 	PLA
 	STA.Z	VR0
-	PLA
-	STA.Z	VR4		; copy back VR4/1
 	PLA			; restore A
 	RTS			; return
 
@@ -50,20 +45,17 @@
 ; writes character C to the print buffer
 
 >PRINTC
-	STA.Z	VR8		; store C in VR8/1
-	LDA.Z	VR4		; load VR4/1
-	PHA			; push
-	LDA.I	BC_WRITEC	; load WRITEC brk code
-	STA.Z	VR4		; store in VR4/1
+	PHX			; store X
+	LDX.Z	VR4		; store VR4/1 in X
+	STA.Z	VR4		; store C in VR4/1
 >_PRINTC_LOOP
-	LDA.Z	VR8		; load C back from VR8/1
+	LDA.I	BC_WRITEC	; load WRITEC brk code
 	BRK			; call WRITEC
-	STA.Z	VR8		; store C back to VR8/1
 	LDA.Z	VR11		; load return value
 	BEQ	_PRINTC_LOOP	; if returned false try again
-	PLA			; pull VR4/1
-	STA.Z	VR4		; store back
-	LDA.Z	VR8		; restore C in A
+	LDA.Z	VR4		; load C
+	STX.Z	VR4		; restore VR4/1 from X
+	PLX			; restore X
 	RTS			; return
 
 ;==================================================

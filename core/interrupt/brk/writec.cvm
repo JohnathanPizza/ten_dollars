@@ -1,4 +1,4 @@
-; writes the character in A to the print buffer and returns a success boolean in VR11/1
+; writes the character in VR4/1 to the print buffer and returns a success boolean in VR11/1
 
 >BRK_WRITEC
 	LDA	IO_WRITE_CLAIM		; load write claim value to check permission
@@ -20,7 +20,7 @@
 	BEQ	_BRK_WRITEC_FAIL	; if equal then no room in buffer, fail
 	DEC				; dec buffer head
 	TAY				; move head value to Y
-	LDA	PROC_PAUSE_A		; load charater to write from A
+	LDA.Z	VR4			; load charater to write from A
 	STA.Y	IO_WRITE_BUFFER		; store in write buffer
 	INC	IO_WRITE_BUFFER_HEAD	; inc buffer head value
 	LDA.I	TRUE			; load success value

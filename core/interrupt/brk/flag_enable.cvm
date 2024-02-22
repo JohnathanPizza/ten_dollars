@@ -1,7 +1,7 @@
-; sets flags for the current process using the flag bitmask in A 
+; sets flags for the current process using the flag bitmask in VR4/1
 
 >BRK_FLAG_ENABLE
-	LDA	PROC_PAUSE_A	; load flag mask
+	LDA.Z	VR4		; load flag mask
 	LDY	PROC_ACTIVE_ID	; load proc id
 	ORA.Y	PROC_FLAGS	; OR with proc flags to set
 	STA.Y	PROC_FLAGS	; store back

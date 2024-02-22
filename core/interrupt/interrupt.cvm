@@ -58,7 +58,7 @@
 	SBC.I	0		; sub 0 + C
 	STA	PROC_PAUSE_PCH	; store back
 	; calculate a jump address based on the code in VR4
-	LDA.Z	VR4		; load the BRK code given
+	LDA	PROC_PAUSE_A	; load the BRK code given
 	CMP.I	BRK_COUNT	; compare it to the total number of BRK codes usable
 	BCS	_INTERRUPT_EXIT	; if code >= count, the code is not valid so just return
 	ASL			; shift left once to multiply by 2 and give a pointer offset into the BRK array

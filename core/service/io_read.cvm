@@ -1,5 +1,5 @@
 ; tries to start a reading operation for the current process
-; buffer pointer is in VR0 and buffer length is in VR5/1
+; buffer pointer is in VR0 and buffer length is in VR4/1
 
 >SERVICE_IO_READ
 	; check if this proc has focus
@@ -25,7 +25,7 @@
 	BNE	_SERVICE_IO_READ_LOOP	; if space left keep looping
 >_SERVICE_IO_READ_LOOP_END
 	LDA.I	0			; load 0 for nul char value
-	LDY.Z	VR5			; load length of buffer in Y
+	LDY.Z	VR4			; load length of buffer in Y
 	DEY				; set index to very last position in buffer
 	STA.ZPY	VR0			; store nul char
 	LDA.I	PROC_STATE_READY	; load ready state

@@ -155,7 +155,7 @@
 	LDA.Z	VR0		; copy A to VR8
 	STA.Z	VR8
 	LDA.Z	VR0 1
-	LDA.Z	VR8 1
+	STA.Z	VR8 1
 	LDA.Z	VR1		; copy B to VR9
 	STA.Z	VR9
 	LDA.Z	VR1 1
@@ -189,7 +189,7 @@
 	LDA.Z	VR0		; copy A to VR8
 	STA.Z	VR8
 	LDA.Z	VR0 1
-	LDA.Z	VR8 1
+	STA.Z	VR8 1
 	LDA.Z	VR1		; copy B to VR9
 	STA.Z	VR9
 	LDA.Z	VR1 1

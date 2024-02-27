@@ -10,8 +10,8 @@
 	BEQ	_SERVICE_IO_READ_FAIL	; if valid status = 0 then no data, keep suspended
 	DEC	IO_READ_STATUS		; good to read, decrement read status semaphore
 	STZ	IO_READ_VALID		; clear valid status since it is being consumed
-	JSR	PROC_LOAD		; load in all process resources to get access to VR0 and VR5/1
-	LDX.Z	VR5			; load length of buffer into X
+	JSR	PROC_LOAD		; load in all process resources to get access to VR0 and VR4/1
+	LDX.Z	VR4			; load length of buffer into X
 	LDY.I	0			; set buffer index to 0
 	BRA	_SERVICE_IO_READ_LOOP	; enter loop
 >_SERVICE_IO_READ_LOOP

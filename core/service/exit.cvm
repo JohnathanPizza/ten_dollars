@@ -1,0 +1,35 @@
+; cleans up all process resources and returns the proc id to an open state
+
+>SERVICE_EXIT
+	LDY.I	0			; set page table index to 0
+>_SERVICE_EXIT_LOOP
+	TYA				; move index to A
+	JSR	PAGE_TABLE_TEST		; test page
+	CMP.I	0XFF			; test if page belongs to proc
+	BEQ	_SERVICE_EXIT_SKIP	; skip this page if it doesnt belong to proc
+	TYA				; move index to A
+	JSR	PAGE_MAP_FIND		; find map idx
+	TAX				; move map idx to X
+	LDA.I	0XFF			; load map null value
+	STA.X	PAGE_MAP		; store in map
+	STA.Y	PAGE_TABLE_PROCID	; store null value in page table procid
+>_SERVICE_EXIT_SKIP
+	INY				; inc index
+	CPY.I	PAGE_COUNT_TOTAL	; test if last index
+	BNE	_SERVICE_EXIT_LOOP	; loop if not done
+	LDY	PROC_ACTIVE_ID		; load proc id
+	LDA.I	PROC_STATE_NULL		; load null state value
+	STA.Y	PROC_STATE		; update proc state
+
+	; free resources
+	CPY	IO_WRITE_CLAIM		; compare proc id to write claim id
+	BNE	_SERVICE_EXIT_CLAIM	; if not equal then skip
+	LDA.I	0XFF			; load null proc id
+	STA	IO_WRITE_CLAIM		; reset write claim
+>_SERVICE_EXIT_CLAIM
+	CPY	IO_READ_FOCUS		; compare proc id to read focus id
+	BNE	_SERVICE_EXIT_FOCUS	; if not equal then skip
+	LDA.I	0			; load proc 0 id
+	STA	IO_READ_FOCUS		; update focus
+>_SERVICE_EXIT_FOCUS
+	JMP	SERVICE_CYCLE_BEGIN	; start next cycle

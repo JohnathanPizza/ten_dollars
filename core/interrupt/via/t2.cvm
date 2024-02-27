@@ -1,2 +1,3 @@
 >INTERRUPT_T2
-	RTS
+	STA	HW_ENABLE_ADDR HW_RAM1	; turn off VIA
+	JMP	PROC_UNPAUSE		; resume process

@@ -1,0 +1,105 @@
+; BIT.CVM
+; ===
+; BITARRAY_GET
+; BITARRAY_SET
+; BITARRAY_CLEAR
+; BYTE_MULTIPLEX
+
+;==================================================
+
+; BITARRAY_GET
+; P --- VR0: array pointer A
+;	VR4/1: bit index I
+; R --- A: bit value V
+; returns the value of bit I from bit array A in V
+; V is the result of the mask, so check for either 0 or not 0
+; compare with 0 and use BEQ/BNE
+
+>BITARRAY_GET
+	PHY			; store Y
+	LDA.Z	VR4		; load I
+	LSR			; I / 2
+	LSR			; I / 4
+	LSR			; I / 8 to get byte index in the array
+	TAY			; move byte index to Y
+	LDA.Z	VR4		; load I again
+	JSR	BYTE_MULTIPLEX	; A has bit mask
+	AND.ZPY	VR0		; mask at byte offset to get bit value
+	PLY			; restore Y
+	RTS			; return
+
+;==================================================
+
+; BITARRAY_SET
+; P --- VR0: array pointer A
+;	VR4/1: bit index I
+; sets the value of the bit at index I in bit array A to 1
+
+>BITARRAY_SET
+	PHY			; store Y
+	LDA.Z	VR4		; load I
+	LSR			; I / 2
+	LSR			; I / 4
+	LSR			; I / 8 to get byte index in the array
+	TAY			; move byte index to Y
+	LDA.Z	VR4		; load I again
+	JSR	BYTE_MULTIPLEX	; A has bit mask
+	ORA.ZPY	VR0		; OR mask with index byte to set bit
+	STA.ZPY	VR0		; store back
+	PLY			; restore Y
+	RTS			; return
+
+;==================================================
+
+; BITARRAY_CLEAR
+; P --- VR0: array pointer A
+;	VR4/1: bit index I
+; sets the value of the bit at index I in bit array A to 0
+
+>BITARRAY_CLEAR
+	PHY			; store Y
+	LDA.Z	VR4		; load I
+	LSR			; I / 2
+	LSR			; I / 4
+	LSR			; I / 8 to get byte index in the array
+	TAY			; move byte index to Y
+	LDA.Z	VR4		; load I again
+	JSR	BYTE_MULTIPLEX	; A has bit mask
+	EOR.I	0XFF		; invert mask for clear
+	AND.ZPY	VR0		; AND mask with index byte to clear bit
+	STA.ZPY	VR0		; store back
+	PLY			; restore Y
+	RTS			; return
+
+;==================================================
+
+; BYTE_MULTIPLEX
+; P --- A: 3 bit value V
+; R --- A: multiplexed value M
+; returns the value of the multiplex map using V
+; only considers the low 3 bits of A when multiplexing
+; always multiplexes with a 1 value
+; map:
+; 000 -> 00000001
+; 001 -> 00000010
+; 010 -> 00000100
+; 011 -> 00001000
+; 100 -> 00010000
+; 101 -> 00100000
+; 110 -> 01000000
+; 111 -> 10000000
+
+>BYTE_MULTIPLEX
+	PHX			; store X
+	AND.I	0B111		; mask low 3 bits
+	TAX			; shift count to X
+	LDA.I	1		; load 1 for initial V value
+	BRA	_BYTE_MULTIPLEX_LOOP_CHECK	; enter loop
+>_BYTE_MULTIPLEX_LOOP
+	ASL			; shift left
+	DEX			; dec shift count
+>_BYTE_MULTIPLEX_LOOP_CHECK
+	CPX.I	0		; test if shift count is 0
+	BNE	_BYTE_MULTIPLEX_LOOP	; loop if not
+	PLX			; restore X
+	RTS			; return

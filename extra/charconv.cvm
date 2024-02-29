@@ -1,42 +1,9 @@
-; CHARACTER.CVM
+; CHARCONV.CVM
 ; ===
-; ISUPPER
-; ISLOWER
 ; TOUPPER
 ; TOLOWER
 ; TOHEX
-
-;==================================================
-
-; ISUPPER
-; P --- A: character C
-; R --- A: result B
-; returns a TRUE boolean B if C is an uppercase letter
-; otherwise B is FLASE
-
->ISUPPER
-	CLC			; clc for adc
-	ADC.I	255 - ASCII_Z	; move A-Z range to 230-255
-	CMP.I	230		; see if C is in the range
-	ROL			; move carry bit / previous comparison result into bit 0
-	AND.I	1		; mask it
-	RTS			; return
-
-;==================================================
-
-; ISLOWER
-; P --- A: character C
-; R --- A: result B
-; returns a TRUE boolean B if C is a lowercase letter
-; otherwise B is FALSE
-
->ISLOWER
-	CLC			; clc for adc
-	ADC.I	255 - ASCII_ZL	; move a-z range to 230-255
-	CMP.I	230		; see if C is in the range
-	ROL			; move carry bit / previous comparison result into bit 0
-	AND.I	1		; mask it
-	RTS			; return
+; FROMHEX
 
 ;==================================================
 
@@ -59,7 +26,7 @@
 	RTS			; return
 
 ;==================================================
-	
+
 ; TOLOWER
 ; P --- A: character C
 ; R --- A: lowercase character L
@@ -83,16 +50,49 @@
 ; TOHEX
 ; P --- A: byte B
 ; R --- A: hex character C
-; converts the LOW NYBBLE of B into its hex character equivalent
+; converts the LOW NYBBLE of B into its uppercase hex character equivalent
 
 >TOHEX
 	AND.I	0XF		; mask low nybble
 	CMP.I	10		; test if >= 10
-	BCS	_TOHEX_ALPHA	; if so then do alphabetical computation
+	BGE	_TOHEX_ALPHA	; if so then do alphabetical computation
 	CLC			; clc for adc
 	ADC.I	ASCII_0		; add ASCII_0 to convert 0-9 value to ASCII number
 	RTS			; return
 >_TOHEX_ALPHA
 	CLC			; clc for adc
 	ADC.I	ASCII_A - 10	; subtract 10 then add ASCII_A to convert to alphabetical hex
+	RTS			; return
+
+;==================================================
+
+; FROMHEX
+; P --- A: hex character C
+; R --- A: value V
+; converts hex char C into a number value 0-15 in V
+; if C isnt hex then V = 0xFF
+
+>FROMHEX
+	PHA			; store C
+	JSR	ISHEX		; test if C is a hex char
+	CMP.I	FALSE		; if not hex
+	BEQ	_FROMHEX_FALSE	; then return the bad value
+	PLA			; get C
+	JSR	TOUPPER		; if the hex char is a letter just make it uppercase
+	PHA			; store it
+	JSR	ISNUM		; test if the hex char is numerical
+	CMP.I	TRUE		; if numerical
+	BEQ	_FROMHEX_NUM	; then go to number code
+	PLA			; not number, get char
+	CLC			; clc for adc
+	ADC.I	10 - ASCII_A	; convert letter to number value
+	RTS			; return
+>_FROMHEX_NUM
+	PLA			; get char
+	SEC			; sec for sbc
+	SBC.I	ASCII_0		; convert digit to number value
+	RTS			; return
+>_FROMHEX_FALSE
+	PLA			; pull A
+	LDA.I	0XFF		; load bad value
 	RTS			; return

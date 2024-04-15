@@ -9,23 +9,40 @@
 
 ;==================================================
 
-; ISUPPER & ISLOWER
+; ISUPPER
 ; P --- A: character C
 ; R --- A: result boolean B
-; B is true if C is uppercase/lowercase
+; B is true if C is uppercase
 ; otherwise B if false
 
 >ISUPPER
-	CLC			; clc for adc
-	ADC.I	255 - ASCII_Z	; move A-Z range to 230-255
-	BRA	_ISUPPERLOWER	; go to rest of function
+	CMP.I	ASCII_Z 1	; compare to ASCII_Z
+	BGE	_ISUPPER_FALSE	; fail if above
+	CMP.I	ASCII_A		; compare to ASCII_A
+	BLS	_ISUPPER_FALSE	; fail if below
+	LDA.I	TRUE		; load true value
+	RTS			; return
+>_ISUPPER_FALSE
+	LDA.I	FALSE		; load false value
+	RTS			; return
+
+;==================================================
+
+; ISLOWER
+; P --- A: character C
+; R --- A: result boolean B
+; B is true if C is lowercase
+; otherwise B if false
+
 >ISLOWER
-	CLC			; clc for adc
-	ADC.I	255 - ASCII_ZL	; move a-z range to 230-255
->_ISUPPERLOWER
-	CMP.I	230		; see if C is in the range
-	ROL			; move carry bit / previous comparison result into bit 0
-	AND.I	1		; mask it
+	CMP.I	ASCII_ZL 1	; compare to ASCII_ZL
+	BGE	_ISLOWER_FALSE	; fail if above
+	CMP.I	ASCII_AL	; compare to ASCII_AL
+	BLS	_ISLOWER_FALSE	; fail if below
+	LDA.I	TRUE		; load true value
+	RTS			; return
+>_ISLOWER_FALSE
+	LDA.I	FALSE		; load false value
 	RTS			; return
 
 ;==================================================
@@ -37,11 +54,14 @@
 ; otherwise B is false
 
 >ISNUM
-	CLC			; clc for adc
-	ADC.I	255 - ASCII_0	; move 0-9 range to 246-255
-	CMP.I	246		; see if C is in the range
-	ROL			; move carry bit / previous comparison result into bit 0
-	AND.I	1		; mask it
+	CMP.I	ASCII_9 1	; compare to ASCII_9
+	BGE	_ISNUM_FALSE	; fail if above
+	CMP.I	ASCII_0		; compare to ASCII_0
+	BLS	_ISNUM_FALSE	; fail if below
+	LDA.I	TRUE		; load true value
+	RTS			; return
+>_ISNUM_FALSE
+	LDA.I	FALSE		; load false value
 	RTS			; return
 
 ;==================================================
@@ -76,6 +96,7 @@
 ; otherwise B is false
 
 >ISHEX
+	JSR	TOUPPER		; make uppercase to reduce tests
 	CMP.I	ASCII_A		; test on A
 	BEQ	_ISHEX_TRUE	; if equal return true
 	CMP.I	ASCII_B		; test on B
@@ -87,18 +108,6 @@
 	CMP.I	ASCII_E		; test on E
 	BEQ	_ISHEX_TRUE	; if equal return true
 	CMP.I	ASCII_F		; test on F
-	BEQ	_ISHEX_TRUE	; if equal return true
-	CMP.I	ASCII_AL	; test on a
-	BEQ	_ISHEX_TRUE	; if equal return true
-	CMP.I	ASCII_BL	; test on b
-	BEQ	_ISHEX_TRUE	; if equal return true
-	CMP.I	ASCII_CL	; test on c
-	BEQ	_ISHEX_TRUE	; if equal return true
-	CMP.I	ASCII_DL	; test on d
-	BEQ	_ISHEX_TRUE	; if equal return true
-	CMP.I	ASCII_EL	; test on e
-	BEQ	_ISHEX_TRUE	; if equal return true
-	CMP.I	ASCII_FL	; test on f
 	BEQ	_ISHEX_TRUE	; if equal return true
 	JSR	ISNUM
 	CMP.I	TRUE

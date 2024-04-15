@@ -10,6 +10,7 @@
 ; STRRCHR
 ; STRCAT
 ; STRNCAT
+; STRTONUM
 
 ; string functions operate under the assumption that no string will have a length of more than 254
 
@@ -356,4 +357,179 @@
 	BNE	_STRNCAT_LOOP2	; if not 0 loop
 >_STRNCAT_END
 	PLA			; restore A
+	RTS			; return
+
+;==================================================
+
+; STRTONUM
+; P --- VR0: pointer to string S
+; R --- VR11: 16-bit number N
+;	A: success value V
+; converts the numbers in S to a 16-bit integer N
+; if whitespace at the beggining of S is skipped
+; if the first non-whitespace character of S is '-' then N is converted into a signed negative number
+; the number in S can be in binary, hexadecimal, or decimal format
+; V = TRUE when S was successfully turned into a number
+; V = FALSE when an error occurred
+
+>STRTONUM
+	STZ.Z	VR9		; set negative var to 0
+	STZ.Z	VR11		; set N to 0
+	STZ.Z	VR11 1
+	LDA.Z	VR0		; move S to VR4
+	STA.Z	VR4
+	LDA.Z	VR0 1
+	STA.Z	VR4 1
+>_STRTONUM_WS
+	LDA.ZP	VR4		; load character from S
+	JSR	ISSPACE		; test if character is whitespace
+	CMP.I	FALSE		; test if not whitespace
+	BEQ	_STRTONUM_CHAR	; exit loop if not
+	JSR	INC4		; increment S pointer
+	BRA	_STRTONUM_WS	; loop if character was whitespace
+>_STRTONUM_CHAR
+	LDA.ZP	VR4
+	CMP.I	ASCII_HYPHEN	; test if number begins with hyphen
+	BNE	_STRTONUM_POS	; skip if not hyphen
+	INC.Z	VR9		; increment negative var to 1
+	JSR	INC4		; increment S pointer
+	LDA.ZP	VR4		; load next character
+>_STRTONUM_POS
+	JSR	TOUPPER		; make char uppercase
+	CMP.I	ASCII_X		; test if X for hex base
+	BEQ	_STRTONUM_HEX	; go to hex code if hex
+	CMP.I	ASCII_B		; test if B for binary base
+	BNE	_STRTONUM_DEC	; go to decimal code if not binary
+	JMP	_STRTONUM_BIN	; else go to binary code
+>_STRTONUM_DEC
+	LDA.ZP	VR4		; load character
+	BNE	_STRTONUM_DEC_NOTNUL	; if not nul char then continue
+	JMP	_STRTONUM_FINISH	; else finish
+>_STRTONUM_DEC_NOTNUL
+	JSR	ISSPACE		; test if space
+	CMP.I	TRUE		; if is space char
+	BNE	_STRTONUM_DEC_NOTSPACE	; if not space then continue
+	JMP	_STRTONUM_FINISH	; else finish
+>_STRTONUM_DEC_NOTSPACE
+	LDA.ZP	VR4		; load char again
+	JSR	ISNUM		; test if number char
+	CMP.I	TRUE		; if number char
+	BEQ	_STRTONUM_DEC_NOTFAIL	; then continue
+	JMP	_STRTONUM_FAIL	; else fail
+>_STRTONUM_DEC_NOTFAIL
+	ASL.Z	VR11		; N = N * 2
+	ROL.Z	VR11 1
+	LDA.Z	VR11		; copy N * 2 to VR10
+	STA.Z	VR10
+	LDA.Z	VR11 1
+	STA.Z	VR10 1
+	PHX			; store X
+	PHY			; store Y
+	LDX.I	VRI_11		; load VR11 index
+	LDY.I	VRI_10		; load VR10 index
+	JSR	ADD16		; N = N * 2 + N * 2 = N * 4
+	JSR	ADD16		; N = N * 2 + N * 2 + N * 2 = N * 6
+	JSR	ADD16		; N = N * 2 + N * 2 + N * 2 + N * 2 = N * 8
+	JSR	ADD16		; N = N * 2 + N * 2 + N * 2 + N * 2 + N * 2 = N * 10
+	PLY			; restore Y
+	PLX			; restore X
+	LDA.ZP	VR4		; load char again
+	SEC			; sec for sbc
+	SBC.I	ASCII_0		; convert ascii value to number value
+	CLC			; clc for adc
+	ADC.Z	VR11		; add number value to N
+	STA.Z	VR11
+	LDA.Z	VR11 1
+	ADC.I	0
+	STA.Z	VR11 1
+	JSR	INC4		; increment S pointer
+	BRA	_STRTONUM_DEC	; loop
+>_STRTONUM_HEX
+	JSR	INC4		; increment S pointer
+	LDA.ZP	VR4		; load character
+	BEQ	_STRTONUM_FINISH	; if nul char then finish
+	JSR	ISSPACE		; test if space
+	CMP.I	TRUE		; if is space char
+	BEQ	_STRTONUM_FINISH	; then finish
+	LDA.ZP	VR4		; load char again
+	JSR	ISHEX		; test if hex char
+	CMP.I	TRUE		; if  hex char
+	BEQ	_STRTONUM_HEX_NOTFAIL	; then continue
+	JMP	_STRTONUM_FAIL	; else fail
+>_STRTONUM_HEX_NOTFAIL
+	LDA.ZP	VR4		; load char again
+	JSR	ISNUM		; test if number char
+	CMP.I	TRUE		; if number char
+	BEQ	_STRTONUM_HEX_DIGIT	; go to decimal handling
+	LDA.ZP	VR4		; load char again
+	JSR	TOUPPER		; make uppercase
+	SEC			; sec for sbc
+	SBC.I	ASCII_A		; convert ascii value to number value - 10
+	CLC			; clc for adc
+	ADC.I	10		; add 10 to make correct number value
+	ASL.Z	VR11		; N = N * 16
+	ROL.Z	VR11 1
+	ASL.Z	VR11
+	ROL.Z	VR11 1
+	ASL.Z	VR11
+	ROL.Z	VR11 1
+	ASL.Z	VR11
+	ROL.Z	VR11 1
+	ORA.Z	VR11		; add number to N
+	STA.Z	VR11
+	BRA	_STRTONUM_HEX	; loop
+>_STRTONUM_HEX_DIGIT
+	LDA.ZP	VR4		; load char
+	SEC			; sec for sbc
+	SBC.I	ASCII_0		; convert ascii value to number value
+	ASL.Z	VR11		; N = N * 16
+	ROL.Z	VR11 1
+	ASL.Z	VR11
+	ROL.Z	VR11 1
+	ASL.Z	VR11
+	ROL.Z	VR11 1
+	ASL.Z	VR11
+	ROL.Z	VR11 1
+	ORA.Z	VR11		; add number value to N
+	STA.Z	VR11
+	BRA	_STRTONUM_HEX	; loop
+>_STRTONUM_BIN
+	JSR	INC4		; increment S pointer
+	LDA.ZP	VR4		; load character
+	BEQ	_STRTONUM_FINISH	; if nul char then finish
+	JSR	ISSPACE		; test if space
+	CMP.I	TRUE		; if is space char
+	BEQ	_STRTONUM_FINISH	; then finish
+	LDA.ZP	VR4		; load char again
+	CMP.I	ASCII_0		; test if 0
+	BEQ	_STRTONUM_BIN_0	; go to 0 code if so
+	CMP.I	ASCII_1		; test if 1
+	BEQ	_STRTONUM_BIN_1	; go to 1 code if so
+	BRA	_STRTONUM_FAIL	; otherwise fail
+>_STRTONUM_BIN_0
+	ASL.Z	VR11		; N = N * 2
+	ROL.Z	VR11 1
+	BRA	_STRTONUM_BIN	; loop
+>_STRTONUM_BIN_1
+	SEC			; N = N * 2 + 1
+	ROL.Z	VR11
+	ROL.Z	VR11 1
+	BRA	_STRTONUM_BIN	; loop
+>_STRTONUM_FINISH
+	LDA.Z	VR9		; load negative var
+	BEQ	_STRTONUM_FINFIN	; skip negative conversion if not set
+	CLC			; clc for adc
+	LDA.Z	VR11		; load low byte
+	EOR.I	0XFF		; invert
+	ADC.I	1		; add 1
+	STA.Z	VR11		; store back
+	LDA.Z	VR11 1		; load high byte
+	EOR.I	0XFF		; invert
+	ADC.I	0		; add 0 + C
+	STA.Z	VR11 1		; store back
+>_STRTONUM_FINFIN
+	LDA.I	TRUE		; load success value
+	RTS			; return
+>_STRTONUM_FAIL
+	LDA.I	FALSE		; load fail value
 	RTS			; return

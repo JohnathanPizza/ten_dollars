@@ -1,738 +1,814 @@
-; 01234567
-; 1D1D1D1D
+; FLOPPY.CVM
+; ===
+; FLOPPY_ENTER
+; FLOPPY_EXIT
+; FLOPPY_STEP
+; FLOPPY_STEP_DOWN
+; FLOPPY_STEP_UP
+; FLOPPY_SIDE_A
+; FLOPPY_SIDE_B
+; FLOPPY_CALIBRATE_TRACK
+; FLOPPY_SET_TRACK
+; FLOPPY_INDEX
+; FLOPPY_DISK_CHECK
+; FLOPPY_WRITE_SECTOR
+; FLOPPY_FORMAT
+; FLOPPY_READ
+; FLOPPY_WRITE
 
-; data to encoded:
-; 01234567
-; ABCDEFGH
-; >
-; 0123456701234567
-; 1A1C1E1G1B1D1F1H
+=FLOPPY_STEP_TIME 10	; miliseconds
 
-; low A
-;ASL
-;ORA.I	0B01010101
-; high A
-;ORA.I	0B01010101
-; decode
-;LDA	LOW
-;SEC
-;ROR
-;AND	HIGH
+=FLOPPY_ERROR_NODISK	1
+=FLOPPY_ERROR_NOFORMAT	2
+
+;==================================================
+
+; FLOPPY_ENTER
+; configures the VIA and interrupts to be in floppy mode
+; overwrites A
 
 >FLOPPY_ENTER
-	SEI				; interrupts must be off for WAI abuse
+	SEI					; interrupts must be off for WAI abuse
+						; SEI used without PHP since floppy operations will be called in an interrupt enabled environemnt (during context switching) 
 	STA	HW_ENABLE_ADDR HW_RAM1 HW_VIA	; enable VIA
 
-	LDA	VIA_IER			; load existing values from IER
-	STA.Z	VR7			; save to safe place
-	LDA.I	0B01111111		; load value to turn off all of them
-	STA	VIA_IER			; turn off all IER
+	LDA	VIA_IER				; load existing values from IER
+	STA	FLOPPY_IER_SAVE			; save to safe place
+	LDA.I	0B01111111			; load value to turn off all interrupts
+	STA	VIA_IER				; turn off all IER
 	LDA.I	VIA_IER_ENABLE VIA_IB_CA2	; load value to turn on floppy interrupt
-	STA	VIA_IER			; turn on
+	STA	VIA_IER				; turn on
 
-	LDA.I	0B00001111		; load initial values for control port
-	STA	VIA_FLOPPY_CONTROL_PORT	; store
-	LDA.I	0B10011111		; load IO direction values for control port
-	STA	VIA_FLOPPY_CONTROL_DIR	; store
+	LDA.I	0B00001111			; load initial values for control port
+	STA	VIA_FLOPPY_CONTROL_PORT		; store
+	LDA.I	0B10011111			; load IO direction values for control port
+	STA	VIA_FLOPPY_CONTROL_DIR		; store
 	; data port wont matter since it is already coming from an all input state
 
-	LDA	VIA_PCR			; load PCR to toggle the floppy enable line
-	ORA.I	0B00100000		; turn on enable line
-	STA	VIA_PCR			; store back
+	LDA	VIA_PCR				; load PCR to toggle the floppy enable line
+	ORA.I	0B00100000			; turn on enable line
+	STA	VIA_PCR				; store back
 	
-	RTS				; return
+	RTS					; return
+
+;==================================================
+
+; FLOPPY_EXIT
+; configures the VIA and interrupts to be in normal mode
+; overwrites A
 
 >FLOPPY_EXIT
-	LDA	VIA_PCR			; load PCR to turn off floppy enable line
-	AND.I	0B11011111		; turn off
-	STA	VIA_PCR			; store back
+	LDA	VIA_PCR				; load PCR to turn off floppy enable line
+	AND.I	0B11011111			; turn off
+	STA	VIA_PCR				; store back
 	
-	STZ	VIA_READ_PORT_DIR	; store zero to keyboard port so it is all input
-	STZ	VIA_WRITE_PORT		; set printer port output to zero
-	LDA.I	0XFF			; load value to set printer port to all output
-	STA	VIA_WRITE_PORT_DIR	; store
+	STZ	VIA_READ_PORT_DIR		; store zero to keyboard port so it is all input
+	STZ	VIA_WRITE_PORT			; set printer port output to zero
+	LDA.I	0XFF				; load value to set printer port to all output
+	STA	VIA_WRITE_PORT_DIR		; store
 	
 	LDA.I	VIA_IER_DISABLE VIA_IB_CA2	; load value to turn off floppy interrupt
-	STA	VIA_IER			; turn off
-	LDA.Z	VR7			; pull old IER
-	STA	VIA_IER			; can just store back since bit 7 will be 1 which enables
+	STA	VIA_IER				; turn off
+	LDA	FLOPPY_IER_SAVE			; pull old IER
+	STA	VIA_IER				; can just store back since bit 7 will be 1 which enables
 
-	STA	HW_ENABLE_ADDR HW_RAM1	; turn off VIA now
-	CLI				; turn interrupts back on
+	STA	HW_ENABLE_ADDR HW_RAM1		; turn off VIA now
+	CLI					; turn interrupts back on
 
+	RTS					; return
+
+;==================================================
+
+; FLOPPY_STEP
+; moves the drive head to the next track depending on which direction was previously set
+; overwrites A
+
+>FLOPPY_STEP
+	LDA.I	FLOPPY_STEP_TIME	; load wait time to wait for any previous operations
+	JSR	WAIT_MILIS		; wait
+	LDA	VIA_FLOPPY_CONTROL_PORT	; load control port values to toggle step line
+	AND.I	0B11111101		; set step line
+	STA	VIA_FLOPPY_CONTROL_PORT	; store back to initiate
+	LDA.I	FLOPPY_STEP_TIME	; load wait time to let the step line notice the change and move head
+	JSR	WAIT_MILIS		; wait
+	LDA	VIA_FLOPPY_CONTROL_PORT	; load control port values to untoggle step line
+	ORA.I	0B00000010		; clear step line
+	STA	VIA_FLOPPY_CONTROL_PORT	; store back to finalize step
+	LDA.I	FLOPPY_STEP_TIME	; load wait time to let drive finalize the motor movement
+	JSR	WAIT_MILIS		; wait
 	RTS				; return
 
-=FLOPPY_STEP_TIME 10
+;==================================================
+
+; FLOPPY_STEP_DOWN
+; moves the drive head closer to track 0
 
 >FLOPPY_STEP_DOWN
-	PHA
-	LDA	VIA_FLOPPY_CONTROL_PORT
-	ORA.I	0B00000001
-	STA	VIA_FLOPPY_CONTROL_PORT
-	LDA.I	FLOPPY_STEP_TIME
-	JSR	WAIT_MILIS
-	LDA	VIA_FLOPPY_CONTROL_PORT ; < bruh didnt have this
-	AND.I	0B11111101
-	STA	VIA_FLOPPY_CONTROL_PORT
-	LDA.I	FLOPPY_STEP_TIME
-	JSR	WAIT_MILIS
-	LDA	VIA_FLOPPY_CONTROL_PORT
-	ORA.I	0B00000010
-	STA	VIA_FLOPPY_CONTROL_PORT
-	LDA.I	FLOPPY_STEP_TIME
-	JSR	WAIT_MILIS
-	PLA
-	RTS
+	PHA				; store A
+	LDA	VIA_FLOPPY_CONTROL_PORT	; load control port to set direction
+	ORA.I	0B00000001		; set direction towards track 0
+	STA	VIA_FLOPPY_CONTROL_PORT	; store back to set direction
+	JSR	FLOPPY_STEP		; step once towards track 0
+	PLA				; restore A
+	RTS				; return
+
+;==================================================
+
+; FLOPPY_STEP_UP
+; moves the drive head farther from track 0
 
 >FLOPPY_STEP_UP
-	PHA
-	LDA	VIA_FLOPPY_CONTROL_PORT
-	AND.I	0B11111110
-	STA	VIA_FLOPPY_CONTROL_PORT
-	LDA.I	FLOPPY_STEP_TIME
-	JSR	WAIT_MILIS
-	LDA	VIA_FLOPPY_CONTROL_PORT ; < bruh
-	AND.I	0B11111101
-	STA	VIA_FLOPPY_CONTROL_PORT
-	LDA.I	FLOPPY_STEP_TIME
-	JSR	WAIT_MILIS
-	LDA	VIA_FLOPPY_CONTROL_PORT
-	ORA.I	0B00000010
-	STA	VIA_FLOPPY_CONTROL_PORT
-	LDA.I	FLOPPY_STEP_TIME
-	JSR	WAIT_MILIS
-	PLA
-	RTS
+	PHA				; store A
+	LDA	VIA_FLOPPY_CONTROL_PORT	; load control port to set direction
+	AND.I	0B11111110		; set direction away from track 0
+	STA	VIA_FLOPPY_CONTROL_PORT	; store back to set direction
+	JSR	FLOPPY_STEP		; step once towards track 0
+	PLA				; restore A
+	RTS				; return
 
->FLOPPY_CALIBRATE_TRACK
-	PHA
->_FLOPPY_CALIBRATE_LOOP
-	LDA	VIA_FLOPPY_CONTROL_PORT
-	AND.I	0B00100000
-	BEQ	_FLOPPY_CALIBRATE_END
-	JSR	FLOPPY_STEP_DOWN
-	BRA	_FLOPPY_CALIBRATE_LOOP
->_FLOPPY_CALIBRATE_END
-	STZ	FLOPPY_TRACK
-	JSR	FLOPPY_SIDE_A
-	PLA
-	RTS
+;==================================================
 
-;A
->FLOPPY_SET_TRACK
-	PHA
-	PHX
-	TAX
-	CPX	FLOPPY_TRACK
-	BEQ	_FLOPPY_SET_TRACK_END
-	BLS	_FLOPPY_SET_TRACK_LOOP_DOWN
->_FLOPPY_SET_TRACK_LOOP_UP
-	JSR	FLOPPY_STEP_UP
-	INC	FLOPPY_TRACK
-	CPX	FLOPPY_TRACK
-	BNE	_FLOPPY_SET_TRACK_LOOP_UP
-	BRA	_FLOPPY_SET_TRACK_END
->_FLOPPY_SET_TRACK_LOOP_DOWN
-	JSR	FLOPPY_STEP_DOWN
-	DEC	FLOPPY_TRACK
-	CPX	FLOPPY_TRACK
-	BNE	_FLOPPY_SET_TRACK_LOOP_DOWN
->_FLOPPY_SET_TRACK_END
-	PLX
-	PLA
-	RTS
+; FLOPPY_SIDE_A
+; sets the track head to operate on side A
 
 >FLOPPY_SIDE_A
-	PHA
-	LDA	VIA_FLOPPY_CONTROL_PORT
-	ORA.I	0B00000100
-	STA	VIA_FLOPPY_CONTROL_PORT
-	STZ	FLOPPY_SIDE
-	PLA
-	RTS
+	PHA				; store A
+	LDA	VIA_FLOPPY_CONTROL_PORT	; load control port to set side bit
+	ORA.I	0B00000100		; set side bit for side A
+	STA	VIA_FLOPPY_CONTROL_PORT	; store back
+	STZ	FLOPPY_SIDE		; set side variable to 0 for side A
+	PLA				; restore A
+	RTS				; return
+
+;==================================================
+
+; FLOPPY_SIDE_B
+; sets the track head to operate on side B
 
 >FLOPPY_SIDE_B
-	PHA
-	LDA	VIA_FLOPPY_CONTROL_PORT
-	AND.I	0B11111011
-	STA	VIA_FLOPPY_CONTROL_PORT
-	LDA.I	1
-	STA	FLOPPY_SIDE
-	PLA
-	RTS
+	PHA				; store A
+	LDA	VIA_FLOPPY_CONTROL_PORT	; load control port to set side bit
+	AND.I	0B11111011		; set side bit for side B
+	STA	VIA_FLOPPY_CONTROL_PORT	; store back
+	LDA.I	1			; load 1 for side B
+	STA	FLOPPY_SIDE		; set side variable to 1
+	PLA				; restore A
+	RTS				; return
 
->FLOPPY_SIDE_SWITCH
-	PHA
-	LDA	FLOPPY_SIDE
-	BEQ	_FLOPPY_SIDE_SWITCH_B
-	JSR	FLOPPY_SIDE_A
-	BRA	_FLOPPY_SIDE_SWITCH_END
->_FLOPPY_SIDE_SWITCH_B
-	JSR	FLOPPY_SIDE_B
->_FLOPPY_SIDE_SWITCH_END
-	PLA
-	RTS
+;==================================================
+
+; FLOPPY_CALIBRATE_TRACK
+; moves the drive head to track 0 on side A and resets tracking variables
+
+>FLOPPY_CALIBRATE_TRACK
+	PHA				; store A
+>_FLOPPY_CALIBRATE_LOOP
+	LDA	VIA_FLOPPY_CONTROL_PORT	; load control port to test track 0 bit
+	AND.I	0B00100000		; test
+	BEQ	_FLOPPY_CALIBRATE_END	; exit stepping loop if on track 0
+	JSR	FLOPPY_STEP_DOWN	; step down one if not on track 0 yet
+	BRA	_FLOPPY_CALIBRATE_LOOP	; loop
+>_FLOPPY_CALIBRATE_END
+	STZ	FLOPPY_TRACK		; set track variable to 0
+	JSR	FLOPPY_SIDE_A		; set side A
+	PLA				; restore A
+	RTS				; return
+
+;==================================================
+
+; FLOPPY_SET_TRACK
+; P --- A: track number T
+; moves the track head to track T
+; valid range for T is 0-39
+
+>FLOPPY_SET_TRACK
+	PHA					; store A
+	PHX					; store X
+	CMP.I	40				; compare T to 40
+	BGE	_FLOPPY_SET_TRACK_END		; if T >= 40 just end and do nothing
+	TAX					; set X to T
+	CPX	FLOPPY_TRACK			; compare T to the current track
+	BEQ	_FLOPPY_SET_TRACK_END		; if T = current track then go to end
+	BLS	_FLOPPY_SET_TRACK_LOOP_DOWN	; if T < current track then go to move down loop
+>_FLOPPY_SET_TRACK_LOOP_UP
+	JSR	FLOPPY_STEP_UP			; step up a track
+	INC	FLOPPY_TRACK			; adjust track variable
+	CPX	FLOPPY_TRACK			; compare T to current track
+	BNE	_FLOPPY_SET_TRACK_LOOP_UP	; if not equal keep stepping up
+	BRA	_FLOPPY_SET_TRACK_END		; go to end
+>_FLOPPY_SET_TRACK_LOOP_DOWN
+	JSR	FLOPPY_STEP_DOWN		; step down a track
+	DEC	FLOPPY_TRACK			; adjust track variable
+	CPX	FLOPPY_TRACK			; compare T to current track
+	BNE	_FLOPPY_SET_TRACK_LOOP_DOWN	; if not equal keep stepping down
+>_FLOPPY_SET_TRACK_END
+	PLX					; restore X
+	PLA					; restore A
+	RTS					; return
+
+;==================================================
+
+; FLOPPY_INDEX
+; returns whenever the start of the index section is detected
 
 >FLOPPY_INDEX
-	PHA				; push A
+	PHA				; store A
 >_FLOPPY_INDEX_LEAVE
 	LDA	VIA_FLOPPY_CONTROL_PORT	; load control port to test index
-	AND.I	0B01000000		; mask index bit
+	AND.I	0B01000000		; test index bit
 	BEQ	_FLOPPY_INDEX_LEAVE	; if set, keep looping until index region is left
 >_FLOPPY_INDEX_LOOP
 	LDA	VIA_FLOPPY_CONTROL_PORT	; load control port to test index
-	AND.I	0B01000000		; mask index bit
+	AND.I	0B01000000		; test index bit
 	BNE	_FLOPPY_INDEX_LOOP	; if not set, keep looping until index found
 	PLA				; restore A
 	RTS				; return
-;;;
-; called immediately on the byte before write section
-; 32 cycles till start good luck
+
+;==================================================
+
+; FLOPPY_DISK_CHECK
+; R --- A: disk present boolean P
+; verifies that a disk is actually insertedand spinning with the motor, formatted or not
+; looks for a 1 to 0 to 1 transition on the index line
+; outside index to inside to outside indicates region was entered and left so a disk must be spinning
+; must read a 1 then read a 0 then read a 1
+; P = FALSE when no disk is inserted
+; P = TRUE when a disk is inserted
+
+>FLOPPY_DISK_CHECK
+	STZ.Z	VR8			; zero the timout counter
+	STZ.Z	VR8 1
+>_FLOPPY_DISK_CHECK1
+	NOP				; 10 NOPs to extend counter value from at least 32 milis to 320 milis
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	CLC				; add 1 to timeout counter
+	LDA.Z	VR8
+	ADC.I	1
+	STA.Z	VR8
+	LDA.Z	VR8 1
+	ADC.I	0
+	STA.Z	VR8 1
+	BCS	_FLOPPY_DISK_CHECK_FAIL	; fail the disk check if timeout counter expired
+	LDA	VIA_FLOPPY_CONTROL_PORT	; load control port to test index bit
+	AND.I	0B01000000		; test index bit
+	BEQ	_FLOPPY_DISK_CHECK1	; loop if the index bit is not 1
+>_FLOPPY_DISK_CHECK2
+	; fell through the previous loop so a 1 was detected, waiting for a 0 now
+	NOP				; 10 NOPs to extend counter value from at least 32 milis to 320 milis
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	CLC				; add 1 to timeout counter
+	LDA.Z	VR8
+	ADC.I	1
+	STA.Z	VR8
+	LDA.Z	VR8 1
+	ADC.I	0
+	STA.Z	VR8 1
+	BCS	_FLOPPY_DISK_CHECK_FAIL	; fail the disk check if timeout counter expired
+	LDA	VIA_FLOPPY_CONTROL_PORT	; load control port to test index bit
+	AND.I	0B01000000		; test index bit
+	BNE	_FLOPPY_DISK_CHECK2	; loop if the index bit is not 0
+>_FLOPPY_DISK_CHECK3
+	; fell through the previous loop so a 0 was detected, waiting for a 1 now
+	NOP				; 10 NOPs to extend counter value from at least 32 milis to 320 milis
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	CLC				; add 1 to timeout counter
+	LDA.Z	VR8
+	ADC.I	1
+	STA.Z	VR8
+	LDA.I	VR8 1
+	ADC.I	0
+	STA.Z	VR8 1
+	BCS	_FLOPPY_DISK_CHECK_FAIL	; fail the disk check if timeout counter expired
+	LDA	VIA_FLOPPY_CONTROL_PORT	; load control port to test index bit
+	AND.I	0B01000000		; test index bit
+	BEQ	_FLOPPY_DISK_CHECK3	; loop if the bit is not 1
+	; fell through so a 1 was detected, probably safe to assume a disk is inserted
+	LDA.I	TRUE			; load TRUE return value
+	RTS				; return
+>_FLOPPY_DISK_CHECK_FAIL
+	LDA.I	FALSE			; load FALSE return value
+	RTS				; return
+
+;==================================================
+
+; FLOPPY_WRITE_SECTOR
+; writes a sector using the floppy variables at the current disk position
+; should be called immediately on the byte before the sector
+; the next byte position will be written as the sector start cap
+; overwrites A and X
+
 >FLOPPY_WRITE_SECTOR
-	; 6
-	LDA	VIA_FLOPPY_CONTROL_PORT ; 4 10
-	ORA.I	0B00010000 ; 2 12
-	STA	VIA_FLOPPY_CONTROL_PORT ; 4 16
-	LDA.I	0XFF ; 2 18
-	STA	VIA_FLOPPY_DATA_PORT ; 4 22
-	STA	VIA_FLOPPY_DATA_DIR ; 4 26
-	; writing now with 0xff starting
-	WAI
-	LDX.I	30
-	LDA.I	0B00111111
-	STA	VIA_FLOPPY_DATA_PORT
+	; only have 32 cycles to get the setup done
+	; 6 cycles gone coming in
+	LDA	VIA_FLOPPY_CONTROL_PORT	; load control port to set write bit 10
+	ORA.I	0B00010000		; turn on write bit 12
+	STA	VIA_FLOPPY_CONTROL_PORT ; store back 16
+	LDA.I	0XFF			; load start cap value for the first write value 18
+	STA	VIA_FLOPPY_DATA_PORT	; store to data port, also reset interrupt for fast WAI 22
+	STA	VIA_FLOPPY_DATA_DIR	; also set data port direction to all output with same value 26
+	WAI				; wait until next byte boundary so writing starts
+	LDX.I	30			; writing start cap now, load counter for alignment bytes to write
+	LDA.I	0B00111111		; load alignment byte value
 >_FLOPPY_WRITE_SECTOR_HEADER
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	DEX
-	BNE	_FLOPPY_WRITE_SECTOR_HEADER
+	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
+	WAI				; wait until alignment byte starts writing
+	DEX				; dec write counter
+	BNE	_FLOPPY_WRITE_SECTOR_HEADER	; loop if not done writing 30
 
 	; ver code
-	LDA.I	ASCII_C
-	ASL
-	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
-	LDA.I	ASCII_C
-	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
-	LDA.I	ASCII_B
-	ASL
-	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
-	LDA.I	ASCII_B
-	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
+	LDA.I	0B11010111		; load first byte of verify code
+	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
+	WAI				; wait for it to write
+	LDA.I	0B01010111		; load second byte of verify code
+	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
+	WAI				; wait for it to write
+	LDA.I	0B11010101		; load third byte of verify code
+	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
+	WAI				; wait for it to write
+	LDA.I	0B01010111		; load fourth byte of verify code
+	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
+	WAI				; wait for it to write
 
 	; sector id
-	LDA	FLOPPY_SEC_ID
-	ASL
+	LDA	FLOPPY_SEC_ID		; load sector ID
+	ASL				; first encoded value
 	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
-	LDA	FLOPPY_SEC_ID
-	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
+	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
+	WAI				; wait for it to write
+	LDA	FLOPPY_SEC_ID		; load sector ID
+	ORA.I	0B01010101		; second encoded value
+	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
+	WAI				; wait for it to write
 
 	; pointer
-	LDA	FLOPPY_SEC_PTR
-	ASL
+	LDA	FLOPPY_SEC_PTR		; load sector pointer track
+	ASL				; first encoded value
 	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
-	LDA	FLOPPY_SEC_PTR
+	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
+	WAI				; wait for it to write
+	LDA	FLOPPY_SEC_PTR		; load sector pointer track
+	ORA.I	0B01010101		; second encoded value
+	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
+	WAI				; wait for it to write
+	LDA	FLOPPY_SEC_PTR 1	; load sector pointer sector
+	ASL				; first encoded value
 	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
-	LDA	FLOPPY_SEC_PTR 1
-	ASL
-	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
-	LDA	FLOPPY_SEC_PTR 1
-	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
+	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
+	WAI				; wait for it to write
+	LDA	FLOPPY_SEC_PTR 1	; load sector pointer sector
+	ORA.I	0B01010101		; second encoded value
+	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
+	WAI				; wait for it to write
 
 	; length
-	LDA	FLOPPY_SEC_LEN
-	ASL
+	LDA	FLOPPY_SEC_LEN		; load sector length
+	ASL				; first encoded value
 	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
-	LDA	FLOPPY_SEC_LEN
-	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
+	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
+	WAI				; wait for it to write
+	LDA	FLOPPY_SEC_LEN		; load sector length
+	ORA.I	0B01010101		; second encoded value
+	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
+	WAI				; wait for it to write
 
 	; data
-	LDX.I	0
+	LDX.I	0			; set page byte idx to 0
 >_FLOPPY_WRITE_SECTOR_DATA
-	LDA.X	FLOPPY_PAGE
-	ASL
+	LDA.X	FLOPPY_PAGE		; load byte from page
+	ASL				; first encoded value
 	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
-	LDA.X	FLOPPY_PAGE
-	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
-	INX
-	BNE	_FLOPPY_WRITE_SECTOR_DATA
+	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
+	WAI				; wait for it to write
+	LDA.X	FLOPPY_PAGE		; load byte from page
+	ORA.I	0B01010101		; second encoded value
+	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
+	WAI				; wait for it to write
+	INX				; increment byte idx
+	BNE	_FLOPPY_WRITE_SECTOR_DATA	; loop if not done with whole page
 
 	; end cap
-	; stop write
-	LDA.I	0XFF
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	STZ	VIA_FLOPPY_DATA_DIR
-	LDA	VIA_FLOPPY_CONTROL_PORT
-	AND.I	0B11101111
-	STA	VIA_FLOPPY_CONTROL_PORT
-	WAI
-	RTS
+	LDA.I	0XFF			; load cap value
+	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
+	WAI				; wait for it to start writing
+	LDA	VIA_FLOPPY_DATA_PORT	; data port load to reset WAI
+	STZ	VIA_FLOPPY_DATA_DIR	; zero the data direction so it becomes a read port again
+	LDA	VIA_FLOPPY_CONTROL_PORT	; load control port to turn off write bit
+	AND.I	0B11101111		; turn off write bit
+	STA	VIA_FLOPPY_CONTROL_PORT	; store back
+	WAI				; wait for the cap to be done writing, return on the first section of the byte after cap
+	RTS				; return
 
->FLOPPY_WRITE_ANCHOR
-	; 6
-	LDA	VIA_FLOPPY_CONTROL_PORT ; 4 10
-	ORA.I	0B00010000 ; 2 12
-	STA	VIA_FLOPPY_CONTROL_PORT ; 4 16
-	LDA.I	0XFF ; 2 18
-	STA	VIA_FLOPPY_DATA_PORT ; 4 22
-	STA	VIA_FLOPPY_DATA_DIR ; 4 26
-	; writing now with 0xff starting
-	WAI
-	LDX.I	30
-	LDA.I	0B00111111
-	STA	VIA_FLOPPY_DATA_PORT
->_FLOPPY_WRITE_ANCHOR_HEADER
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	DEX
-	BNE	_FLOPPY_WRITE_ANCHOR_HEADER
+;==================================================
 
-	; ver code
-	LDA.I	ASCII_C
-	ASL
-	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
-	LDA.I	ASCII_C
-	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
-	LDA.I	ASCII_B
-	ASL
-	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
-	LDA.I	ASCII_B
-	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
+; FLOPPY_FORMAT
+; R --- A: success value S
+; formats the entire disk to have blank sectors
+; S = 0 when the function succeeds
+; S = FLOPPY_ERROR_NODISK when no disk was found
 
-	; 0 sector id
-	LDA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
-	WAI
-
-	; end cap
-	; stop write
-	LDA.I	0XFF
-	STA	VIA_FLOPPY_DATA_PORT
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	STZ	VIA_FLOPPY_DATA_DIR
-	LDA	VIA_FLOPPY_CONTROL_PORT
-	AND.I	0B11101111
-	STA	VIA_FLOPPY_CONTROL_PORT
-	WAI
-	RTS
-
-; utility functions for being called by os
-
-; formats the entire disk be careful
 >FLOPPY_FORMAT
-	PHA
-	PHX
-	PHY
+	PHX				; store X
+	PHY				; store Y
 
-	JSR	FLOPPY_ENTER
+	JSR	FLOPPY_ENTER		; enter floppy mode
+	JSR	FLOPPY_DISK_CHECK	; test for disk
+	CMP.I	TRUE			; test if disk was found
+	BNE	_FLOPPY_FORMAT_FAIL	; fail formatting if no disk found
+
+	; no need to initialize sector length, pointer, or data because sectors are invalid until part of a file stored in track 0
+
+	JSR	FLOPPY_CALIBRATE_TRACK	; calibrate so that at track 0 on side A
+	STZ.Z	VR8			; initialize track counter to 0
+>_FLOPPY_FORMAT_TRACK_LOOP
+	LDA.Z	VR8			; load track id
+	JSR	FLOPPY_SET_TRACK	; go to next track
+	JSR	FLOPPY_SIDE_A		; go to side A
+>_FLOPPY_FORMAT_SIDE_LOOP
+	; track wiping
+	LDA	VIA_FLOPPY_CONTROL_PORT ; load floppy control port to set write bit
+	ORA.I	0B00010000		; turn on write bit
+	STA	VIA_FLOPPY_CONTROL_PORT ; store back
+	LDA.I	0XFF			; load wipe value
+	STA	VIA_FLOPPY_DATA_PORT	; store to data port to reset WAI
+	STA	VIA_FLOPPY_DATA_DIR	; make data port all output
+	JSR	FLOPPY_INDEX		; first index
+	JSR	FLOPPY_INDEX		; second index to guarantee fully coated track
+	STZ	VIA_FLOPPY_DATA_DIR	; turn data port to all input
+	LDA	VIA_FLOPPY_CONTROL_PORT	; load control port to turn off write bit
+	AND.I	0B11101111		; turn off write bit
+	STA	VIA_FLOPPY_CONTROL_PORT	; store back
+
+	STZ	FLOPPY_SEC_ID		; zero the sector id
+>_FLOPPY_FORMAT_SECTOR_LOOP
+	; using a 5 byte spacing between sector caps
+	LDA	VIA_FLOPPY_DATA_PORT	; load data port to clear WAI
+	WAI				; byte 1 of gap
+	LDA	VIA_FLOPPY_DATA_PORT	; load data port to clear WAI
+	WAI				; byte 2 of gap
+	LDA	VIA_FLOPPY_DATA_PORT	; load data port to clear WAI
+	WAI				; byte 3 of gap
+	LDA	VIA_FLOPPY_DATA_PORT	; load data port to clear WAI
+	WAI				; byte 4 of gap
+	JSR	FLOPPY_WRITE_SECTOR	; on the 5th byte of gap, write sector
+	INC	FLOPPY_SEC_ID		; inc floppy sector id
+	LDA.I	20			; load 20 to compare last sector id
+	CMP	FLOPPY_SEC_ID		; compare
+	BNE	_FLOPPY_FORMAT_SECTOR_LOOP	; loop to write the next sector if 20 have not been written yet
+
+	LDA	FLOPPY_SIDE		; load current side to test if the side loop should be run again
+	JSR	FLOPPY_SIDE_B		; change to side B by default
+	CMP.I	0			; test recent side with side A
+	BEQ	_FLOPPY_FORMAT_SIDE_LOOP	; if just did side A, do the side loop again but on side B
 	
-	LDA.I	0
-	STA.Z	VR5
-	LDA.I	FLOPPY_PAGE > 8
-	STA.Z	VR0 1
-	JSR	PAGESET
+	INC.Z	VR8			; increment track counter
+	LDA.Z	VR8			; load value of next track
+	CMP.I	40			; load 40 to compare to last track id
+	BNE	_FLOPPY_FORMAT_TRACK_LOOP	; loop if not done with the 40 tracks
 
-	LDA.I	0
-	STA	FLOPPY_SEC_LEN
+	JSR	FLOPPY_EXIT		; done with it all, can exit floppy mode
+	LDA.I	0			; load successful return value
+	PLY				; restore Y
+	PLX				; restore X
+	RTS				; return
+>_FLOPPY_FORMAT_FAIL
+	JSR	FLOPPY_EXIT		; exit floppy mode
+	LDA.I	FLOPPY_ERROR_NODISK	; load no disk error value
+	PLY				; restore Y
+	PLX				; restore X
+	RTS				; return
 
-	LDA.I	0
-	STA	FLOPPY_SEC_PTR
-	STA	FLOPPY_SEC_PTR 1
+;==================================================
 
-	JSR	FLOPPY_CALIBRATE_TRACK
-	; t0sA
-	LDA.Z	VR8
-	PHA
-	LDA.I	0
-	STA.Z	VR8 ; vr8 is track number
->_FLOPPY_FORMAT_TRACK_LOOP1
-	; FLOPPY_WRITE_SECTOR OVERWRITES X!
-	LDY.I	1 ; Y is sector number
-	LDA.Z	VR8
-	JSR	FLOPPY_SET_TRACK
-	JSR	FLOPPY_INDEX
-	JSR	FLOPPY_WRITE_ANCHOR	; anchor written at very start of index
-	; very precise: anchor and sector writes return during the FIRST BYTE AFTER THE END CAP
-	; right now like in the first quarter of the after cap byte
-	; lets give a 10 byte spacing that seems pretty safe
-	; count 9 then write sector
->_FLOPPY_FORMAT_SECTOR_LOOP1
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI	; 1
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI	; 2
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI	; 3
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI	; 4
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI	; 5
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI	; 6
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI	; 7
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI	; 8
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	STY	FLOPPY_SEC_ID
-	WAI	; 9
-	JSR	FLOPPY_WRITE_SECTOR
-	INY
-	CPY.I	21
-	BNE	_FLOPPY_FORMAT_SECTOR_LOOP1
+; FLOPPY_READ
+; P --- VR4/1: track value T
+;	VR4/2: sector value S
+; R --- A: success value R
+; finds and reads all data from sector S of track T
+; valid ranges for T are 0-79 and valid range for S is 1-19
+; T values >= 40 are on side B, all else are on side A
+; R = 0 if the read was successful
+; R = FLOPPY_ERROR_NODISK if a disk was not detected
+; R = FLOPPY_ERROR_NOFORMAT if the sector was not found on the track
 
-	; wrote 20 sectors lets go to the next track
-	INC.Z	VR8
-	LDA.Z	VR8
-	CMP.I	40
-	BNE	_FLOPPY_FORMAT_TRACK_LOOP1
-
-	JSR	FLOPPY_CALIBRATE_TRACK
-	; t0sA
-	JSR	FLOPPY_SIDE_B
-	; t0sB
-	LDA.I	0
-	STA.Z	VR8
->_FLOPPY_FORMAT_TRACK_LOOP2
-	LDY.I	1
-	LDA.Z	VR8
-	JSR	FLOPPY_SET_TRACK
-	JSR	FLOPPY_INDEX
-	JSR	FLOPPY_WRITE_ANCHOR	; anchor written at very start of index
-	; very precise: anchor and sector writes return during the FIRST BYTE AFTER THE END CAP
-	; right now like in the first quarter of the after cap byte
-	; lets give a 10 byte spacing that seems pretty safe
-	; count 9 then write sector
->_FLOPPY_FORMAT_SECTOR_LOOP2
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI	; 1
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI	; 2
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI	; 3
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI	; 4
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI	; 5
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI	; 6
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI	; 7
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI	; 8
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	STY	FLOPPY_SEC_ID
-	WAI	; 9
-	JSR	FLOPPY_WRITE_SECTOR
-	INY
-	CPY.I	21
-	BNE	_FLOPPY_FORMAT_SECTOR_LOOP2
-
-	; wrote 20 sectors lets go to the next track
-	INC.Z	VR8
-	LDA.Z	VR8
-	CMP.I	40
-	BNE	_FLOPPY_FORMAT_TRACK_LOOP2
-
-	PLA
-	STA.Z	VR8
-
-	JSR	FLOPPY_EXIT
-
-	PLY
-	PLX
-	PLA
-	RTS
-
-; need side track and sector
-; track byte VR4/1
-; sector byte VR4/2
-; 0 - 39 side A
-; 0x80 + 0 - 39 side B
 >FLOPPY_READ
-	PHA
-	PHX
-	JSR	FLOPPY_ENTER
-	JSR	FLOPPY_CALIBRATE_TRACK
-	LDA.Z	VR4
-	CMP.I	0X80
-	BLS	_FLOPPY_READ_SIDE
-	JSR	FLOPPY_SIDE_B
+	PHX				; store X
+
+	JSR	FLOPPY_ENTER		; enter floppy mode
+	JSR	FLOPPY_DISK_CHECK	; test for disk
+	CMP.I	TRUE			; test if disk was found
+	BEQ	_FLOPPY_READ_DISK	; continue if disk found
+
+	JSR	FLOPPY_EXIT		; exit floppy mode
+	LDA.I	FLOPPY_ERROR_NODISK	; load error value for no disk
+	PLX				; restore X
+	RTS				; return
+>_FLOPPY_READ_DISK
+	LDA.Z	VR4 1			; load S
+	BEQ	_FLOPPY_READ_BAD_VALUES	; just exit if S = 0
+	CMP.I	20			; compare with 20 to test range
+	BGE	_FLOPPY_READ_BAD_VALUES	; just exit if S >= 20
+
+	JSR	FLOPPY_CALIBRATE_TRACK	; calibrate so that at track 0 on side A
+	LDA.Z	VR4			; load T
+	CMP.I	80			; compare with 80 to test range
+	BLS	_FLOPPY_READ_GOOD_VALUES	; if T < 80 keep going
+>_FLOPPY_READ_BAD_VALUES
+	JSR	FLOPPY_EXIT		; exit floppy mode
+	LDA.I	0			; load success value
+	PLX				; restore X
+	RTS				; return
+>_FLOPPY_READ_GOOD_VALUES
+	CMP.I	40			; compare with 40 to test side
+	BLS	_FLOPPY_READ_SIDE	; if less than 40 dont change side
+	JSR	FLOPPY_SIDE_B		; change to side B
+	SEC				; sec for sbc
+	SBC.I	40			; subtract 40 from T to get correct track number
 >_FLOPPY_READ_SIDE
-	AND.I	0X7F
-	JSR	FLOPPY_SET_TRACK
-	; on correct track and side
+	JSR	FLOPPY_SET_TRACK	; go to track T
+	STZ.Z	VR8			; reset timeout counter
+	STZ.Z	VR8 1
+	LDA	VIA_FLOPPY_DATA_PORT	; read to reset WAI
 >_FLOPPY_READ_ALIGN
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	CMP.I	0B00111111
-	BEQ	_FLOPPY_READ_LOCKED
-	LDA	VIA_FLOPPY_CONTROL_PORT
-	AND.I	0B11110111
-	STA	VIA_FLOPPY_CONTROL_PORT
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	LDA	VIA_FLOPPY_CONTROL_PORT
-	ORA.I	0B00001000
-	STA	VIA_FLOPPY_CONTROL_PORT
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	BRA	_FLOPPY_READ_ALIGN
->_FLOPPY_READ_LOCKED
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	CMP.I	0B00111111
-	BEQ	_FLOPPY_READ_LOCKED
-	; check verif bytes
-	; CB ->
-	; 67 66
-	; 0b01000011 0b01000010
-	;
-	; 0b11010111
-	; 0b01010111
-	; 0b11010101
-	; 0b01010111
-	CMP.I	0B11010111
-	BNE	_FLOPPY_READ_ALIGN
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	CMP.I	0B01010111
-	BNE	_FLOPPY_READ_ALIGN
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	CMP.I	0B11010101
-	BNE	_FLOPPY_READ_ALIGN
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	CMP.I	0B01010111
-	BNE	_FLOPPY_READ_ALIGN
-
-	; good get sector id
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	SEC
-	ROR
-	WAI
-	AND	VIA_FLOPPY_DATA_PORT
-	CMP.Z	VR4 1
-	BNE	_FLOPPY_READ_ALIGN	; skip this sector if not target
-	STA	FLOPPY_SEC_ID
-	; get pointer
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	SEC
-	ROR
-	WAI
-	AND	VIA_FLOPPY_DATA_PORT
-	STA	FLOPPY_SEC_PTR
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	SEC
-	ROR
-	WAI
-	AND	VIA_FLOPPY_DATA_PORT
-	STA	FLOPPY_SEC_PTR 1
-	; get len
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	SEC
-	ROR
-	WAI
-	AND	VIA_FLOPPY_DATA_PORT
-	STA	FLOPPY_SEC_LEN
-	; get data
-	LDX.I	0
->_FLOPPY_READ_DATA
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	SEC
-	ROR
-	WAI
-	AND	VIA_FLOPPY_DATA_PORT
-	STA.X	FLOPPY_PAGE
-	INX
-	BNE	_FLOPPY_READ_DATA
-	; done
-
-	JSR	FLOPPY_EXIT
-
-	PLX
-	PLA
-	RTS
-
-; vr4/1 side track
-; vr4/2 sec
-; use data in floppy sec vars
->FLOPPY_WRITE
-	PHA
-	PHX
-	JSR	FLOPPY_ENTER
-	JSR	FLOPPY_CALIBRATE_TRACK
-	LDA.Z	VR4
-	CMP.I	0X80
-	BLS	_FLOPPY_WRITE_SIDE
-	JSR	FLOPPY_SIDE_B
->_FLOPPY_WRITE_SIDE
-	AND.I	0X7F
-	JSR	FLOPPY_SET_TRACK
 	; on correct track and side
->_FLOPPY_WRITE_ALIGN
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	CMP.I	0B00111111
-	BEQ	_FLOPPY_WRITE_LOCKED
-	LDA	VIA_FLOPPY_CONTROL_PORT
-	AND.I	0B11110111
-	STA	VIA_FLOPPY_CONTROL_PORT
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	LDA	VIA_FLOPPY_CONTROL_PORT
-	ORA.I	0B00001000
-	STA	VIA_FLOPPY_CONTROL_PORT
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	BRA	_FLOPPY_WRITE_ALIGN
->_FLOPPY_WRITE_LOCKED
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	CMP.I	0B00111111
-	BEQ	_FLOPPY_WRITE_LOCKED
-	; check verif bytes
-	; CB ->
-	; 67 66
+	WAI				; wait for next comparing byte to come in
+	LDA	VIA_FLOPPY_DATA_PORT	; load most recent byte
+	CMP.I	0B00111111		; compare to alignment pattern
+	BEQ	_FLOPPY_READ_LOCKED	; if equal then exit loop
+	LDA	VIA_FLOPPY_CONTROL_PORT	; load control port to set 7 bit frame
+	AND.I	0B11110111		; set 7 bit
+	STA	VIA_FLOPPY_CONTROL_PORT ; store back
+	WAI				; wait until 7 bit frame starts reading
+	LDA	VIA_FLOPPY_DATA_PORT	; load data port to reset WAI
+	LDA	VIA_FLOPPY_CONTROL_PORT	; load control port to reset 7 bit frame
+	ORA.I	0B00001000		; reset 7 bit
+	STA	VIA_FLOPPY_CONTROL_PORT	; store back
+	WAI				; wait until 7 bit frame was read and new 8 bit starts reading
+	LDA	VIA_FLOPPY_DATA_PORT	; reset WAI
+	CLC				; increment timeout counter
+	LDA.Z	VR8
+	ADC.I	1
+	STA.Z	VR8
+	LDA.Z	VR8 1
+	ADC.I	0
+	STA.Z	VR8 1
+	BCC	_FLOPPY_READ_ALIGN	; loop if timeout counter is still valid
+	JSR	FLOPPY_EXIT		; exit floppy mode
+	LDA.I	FLOPPY_ERROR_NOFORMAT	; load error value for no format
+	PLX				; restore X
+	RTS				; return
+>_FLOPPY_READ_LOCKED
+	WAI				; wait for next byte to come
+	LDA	VIA_FLOPPY_DATA_PORT	; load it
+	CMP.I	0B00111111		; test if alignment byte
+	BEQ	_FLOPPY_READ_LOCKED	; keep looping on the alignment byte
+	; not an alignment byte, time to check verification bytes
+	; C B
 	; 0b01000011 0b01000010
-	;
 	; 0b11010111
 	; 0b01010111
 	; 0b11010101
 	; 0b01010111
-	CMP.I	0B11010111
-	BNE	_FLOPPY_WRITE_ALIGN
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	CMP.I	0B01010111
-	BNE	_FLOPPY_WRITE_ALIGN
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	CMP.I	0B11010101
-	BNE	_FLOPPY_WRITE_ALIGN
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	CMP.I	0B01010111
-	BNE	_FLOPPY_WRITE_ALIGN
-
-	; good get sector id
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	SEC
-	ROR
-	WAI
-	AND	VIA_FLOPPY_DATA_PORT
-	INC				; want to find sector before so add 1 to be target
-	CMP.Z	VR4 1
-	BNE	_FLOPPY_WRITE_ALIGN	; skip this sector if not target
-	CMP.I	1
-	BEQ	_FLOPPY_WRITE_COUNT
+	CMP.I	0B11010111		; test first byte
+	BNE	_FLOPPY_READ_ALIGN	; if not equal go back to alignment
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load byte
+	CMP.I	0B01010111		; test second byte
+	BNE	_FLOPPY_READ_ALIGN	; if not equal go back to alignment
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load byte
+	CMP.I	0B11010101		; test third byte
+	BNE	_FLOPPY_READ_ALIGN	; if not equal go back to alignment
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load byte
+	CMP.I	0B01010111		; test fourth byte
+	BNE	_FLOPPY_READ_ALIGN	; if not equal go back to alignment
+	; aligned and validated, collect sector data
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of sector id
+	SEC				; sec for ror
+	ROR				; shift right so odd bits are data and even are 1
+	WAI				; wait for next byte
+	AND	VIA_FLOPPY_DATA_PORT	; AND second encoded value to get decoded sector id
+	CMP.Z	VR4 1			; compare sector id to S
+	BNE	_FLOPPY_READ_ALIGN	; skip this sector if not S
+	STA	FLOPPY_SEC_ID		; otherwise update sector id
 	; get pointer
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	SEC
-	ROR
-	WAI
-	AND	VIA_FLOPPY_DATA_PORT
-	STA	FLOPPY_SEC_PTR
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	SEC
-	ROR
-	WAI
-	AND	VIA_FLOPPY_DATA_PORT
-	; get len
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	SEC
-	ROR
-	WAI
-	AND	VIA_FLOPPY_DATA_PORT
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of pointer to track
+	SEC				; sec for ror
+	ROR				; shift right so odd bits are data and even are 1
+	WAI				; wait for next byte
+	AND	VIA_FLOPPY_DATA_PORT	; AND second encoded value to get decoded pointer to track
+	STA	FLOPPY_SEC_PTR		; store
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of pointer to sector
+	SEC				; sec for ror
+	ROR				; shift right so odd bits are data and even are 1
+	WAI				; wait for next byte
+	AND	VIA_FLOPPY_DATA_PORT	; AND second encoded value to get decoded pointer to sector
+	STA	FLOPPY_SEC_PTR 1	; store
+	; get length
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of length
+	SEC				; sec for ror
+	ROR				; shift right so odd bits are data and even are 1
+	WAI				; wait for next byte
+	AND	VIA_FLOPPY_DATA_PORT	; AND second encoded value to get decoded length
+	STA	FLOPPY_SEC_LEN		; store
 	; get data
-	LDX.I	0
->_FLOPPY_WRITE_DATA
-	WAI
-	LDA	VIA_FLOPPY_DATA_PORT
-	SEC
-	ROR
-	WAI
-	AND	VIA_FLOPPY_DATA_PORT
-	INX
-	BNE	_FLOPPY_WRITE_DATA
+	LDX.I	0			; set byte counter to 0
+>_FLOPPY_READ_DATA
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of data
+	SEC				; sec for ror
+	ROR				; shift right so odd bits are data and even are 1
+	WAI				; wait for next byte
+	AND	VIA_FLOPPY_DATA_PORT	; AND second encoded value to get decoded data
+	STA.X	FLOPPY_PAGE		; store in the floppy data page at correct position
+	INX				; increment byte counter
+	BNE	_FLOPPY_READ_DATA	; loop if not done reading data
+	JSR	FLOPPY_EXIT		; exit floppy mode
+	LDA.I	0			; load success value
+	PLX				; restore X
+	RTS				; return
 
+;==================================================
+
+; FLOPPY_WRITE
+; P --- VR4/1: track value T
+;	VR4/2: sector value S
+; R --- A: success value R
+; writes a new sector with data in the floppy variables at sector S on track T
+; valid ranges for T are 0-79 and valid range for S is 1-19
+; T values >= 40 are on side B, all else are on side A
+; R = 0 if the read was successful
+; R = FLOPPY_ERROR_NODISK if a disk was not detected
+; R = FLOPPY_ERROR_NOFORMAT if the sector was not found on the track
+
+>FLOPPY_WRITE
+	PHX				; store X
+
+	JSR	FLOPPY_ENTER		; enter floppy mode
+	JSR	FLOPPY_DISK_CHECK	; test for disk
+	CMP.I	TRUE			; test if disk was found
+	BEQ	_FLOPPY_WRITE_DISK	; continue if disk found
+	
+	JSR	FLOPPY_EXIT		; exit floppy mode
+	LDA.I	FLOPPY_ERROR_NODISK	; load no disk error value
+	PLX				; restore X
+	RTS				; return
+>_FLOPPY_WRITE_DISK
+	LDA.Z	VR4 1			; load S
+	BEQ	_FLOPPY_WRITE_BAD_VALUES	; just exit if S = 0
+	CMP.I	20				; compare with 20 to test range
+	BGE	_FLOPPY_WRITE_BAD_VALUES	; just exit if S >= 20
+	
+	JSR	FLOPPY_CALIBRATE_TRACK	; calibrate so that at track 0 on side A
+	LDA.Z	VR4			; load T
+	CMP.I	80			; compare with 80 to test range
+	BLS	_FLOPPY_WRITE_GOOD_VALUES	; if T < 80 continue
+>_FLOPPY_WRITE_BAD_VALUES
+	JSR	FLOPPY_EXIT		; exit floppy mode
+	LDA.I	0			; load success value
+	PLX				; restore X
+	RTS				; return
+>_FLOPPY_WRITE_GOOD_VALUES
+	CMP.I	40			; compare with 40 to test side
+	BLS	_FLOPPY_WRITE_SIDE	; if less than 40 dont change side
+	JSR	FLOPPY_SIDE_B		; change to side B
+	SEC				; sec for sbc
+	SBC.I	40			; subtract 40 from T to get correct track number
+>_FLOPPY_WRITE_SIDE
+	JSR	FLOPPY_SET_TRACK	; go to track T
+	STZ.Z	VR8			; reset timeout counter
+	STZ.Z	VR8 1
+	LDA	VIA_FLOPPY_DATA_PORT	; read to reset WAI
+>_FLOPPY_WRITE_ALIGN
+	; on correct track and side
+	WAI				; wait for next comparing byte to come in
+	LDA	VIA_FLOPPY_DATA_PORT	; load most recent byte
+	CMP.I	0B00111111		; compare to alignment pattern
+	BEQ	_FLOPPY_WRITE_LOCKED	; if equal then exit loop
+	LDA	VIA_FLOPPY_CONTROL_PORT	; load control port to set 7 bit frame
+	AND.I	0B11110111		; set 7 bit
+	STA	VIA_FLOPPY_CONTROL_PORT ; store back
+	WAI				; wait until 7 bit frame starts reading
+	LDA	VIA_FLOPPY_DATA_PORT	; load data port to reset WAI
+	LDA	VIA_FLOPPY_CONTROL_PORT	; load control port to reset 7 bit frame
+	ORA.I	0B00001000		; reset 7 bit
+	STA	VIA_FLOPPY_CONTROL_PORT	; store back
+	WAI				; wait until 7 bit frame was read and new 8 bit starts reading
+	LDA	VIA_FLOPPY_DATA_PORT	; reset WAI
+	CLC				; increment timeout counter
+	LDA.Z	VR8
+	ADC.I	1
+	STA.Z	VR8
+	LDA.Z	VR8 1
+	ADC.I	0
+	STA.Z	VR8 1
+	BCC	_FLOPPY_WRITE_ALIGN	; loop if timeout counter still valid
+	JSR	FLOPPY_EXIT		; exit floppy mode
+	LDA.I	FLOPPY_ERROR_NOFORMAT	; load no format error value
+	PLX				; restore X
+	RTS				; return
+>_FLOPPY_WRITE_LOCKED
+	WAI				; wait for next byte to come
+	LDA	VIA_FLOPPY_DATA_PORT	; load it
+	CMP.I	0B00111111		; test if alignment byte
+	BEQ	_FLOPPY_WRITE_LOCKED	; keep looping on the alignment byte
+	; not an alignment byte, time to check verification bytes
+	; C B
+	; 0b01000011 0b01000010
+	; 0b11010111
+	; 0b01010111
+	; 0b11010101
+	; 0b01010111
+	CMP.I	0B11010111		; test first byte
+	BNE	_FLOPPY_WRITE_ALIGN	; if not equal go back to alignment
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load byte
+	CMP.I	0B01010111		; test second byte
+	BNE	_FLOPPY_WRITE_ALIGN	; if not equal go back to alignment
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load byte
+	CMP.I	0B11010101		; test third byte
+	BNE	_FLOPPY_WRITE_ALIGN	; if not equal go back to alignment
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load byte
+	CMP.I	0B01010111		; test fourth byte
+	BNE	_FLOPPY_WRITE_ALIGN	; if not equal go back to alignment
+	; aligned and validated, collect sector data
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of sector id
+	SEC				; sec for ror
+	ROR				; shift right so odd bits are data and even are 1
+	WAI				; wait for next byte
+	AND	VIA_FLOPPY_DATA_PORT	; AND second encoded value to get decoded sector id
+	INC				; increment value by 1 because we want to find S - 1
+	CMP.Z	VR4 1			; compare sector id to S
+	BNE	_FLOPPY_WRITE_ALIGN	; skip this sector if not S
+	; get pointer
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of pointer to track
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load second encoded value of pointer to track
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of pointer to sector
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load second encoded value of pointer to sector
+	; get length
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of length
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load second encoded value of length
+	; get data
+	LDX.I	0			; set byte counter to 0
+>_FLOPPY_WRITE_READ_LOOP
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of data
+	WAI				; wait for next byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load second encoded value of data
+	INX				; increment byte counter
+	BNE	_FLOPPY_WRITE_READ_LOOP	; loop if not done reading data
 >_FLOPPY_WRITE_COUNT
 	; currently on end cap byte
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI ; cap
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI ; 1
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI ; 2
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI ; 3
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI ; 4
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI ; 5
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI ; 6
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI ; 7
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	WAI ; 8
-	LDA	VIA_FLOPPY_DATA_PORT ; clear wai
-	LDA.Z	VR4 1
-	STA	FLOPPY_SEC_ID
-	WAI ; 9
-	JSR	FLOPPY_WRITE_SECTOR
-
-	JSR	FLOPPY_EXIT
-
-	PLX
-	PLA
-	RTS
+	WAI				; cap byte
+	LDA	VIA_FLOPPY_DATA_PORT	; load data port to clear WAI
+	WAI				; byte 1 of gap
+	LDA	VIA_FLOPPY_DATA_PORT	; load data port to clear WAI
+	WAI				; byte 2 of gap
+	LDA	VIA_FLOPPY_DATA_PORT	; load data port to clear WAI
+	WAI				; byte 3 of gap
+	LDA	VIA_FLOPPY_DATA_PORT	; load data port to clear WAI
+	LDA.Z	VR4 1			; load S
+	STA	FLOPPY_SEC_ID		; store to sector ID for writing function
+	WAI				; byte 4 of gap
+	JSR	FLOPPY_WRITE_SECTOR	; write sector on byte 5
+	JSR	FLOPPY_EXIT		; exit floppy mode
+	LDA.I	0			; load successful return value
+	PLX				; restore X
+	RTS				; return

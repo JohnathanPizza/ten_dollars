@@ -364,37 +364,6 @@
 	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
 	WAI				; wait for it to write
 
-	; pointer
-	LDA	FLOPPY_SEC_PTR		; load sector pointer track
-	ASL				; first encoded value
-	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
-	WAI				; wait for it to write
-	LDA	FLOPPY_SEC_PTR		; load sector pointer track
-	ORA.I	0B01010101		; second encoded value
-	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
-	WAI				; wait for it to write
-	LDA	FLOPPY_SEC_PTR 1	; load sector pointer sector
-	ASL				; first encoded value
-	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
-	WAI				; wait for it to write
-	LDA	FLOPPY_SEC_PTR 1	; load sector pointer sector
-	ORA.I	0B01010101		; second encoded value
-	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
-	WAI				; wait for it to write
-
-	; length
-	LDA	FLOPPY_SEC_LEN		; load sector length
-	ASL				; first encoded value
-	ORA.I	0B01010101
-	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
-	WAI				; wait for it to write
-	LDA	FLOPPY_SEC_LEN		; load sector length
-	ORA.I	0B01010101		; second encoded value
-	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
-	WAI				; wait for it to write
-
 	; data
 	LDX.I	0			; set page byte idx to 0
 >_FLOPPY_WRITE_SECTOR_DATA
@@ -439,7 +408,10 @@
 	CMP.I	TRUE			; test if disk was found
 	BNE	_FLOPPY_FORMAT_FAIL	; fail formatting if no disk found
 
-	; no need to initialize sector length, pointer, or data because sectors are invalid until part of a file stored in track 0
+	LDA.I	FLOPPY_PAGE > 8		; load floppy page number
+	STA.Z	VR0 1			; store
+	STZ.Z	VR5			; set pageset value to 0
+	JSR	PAGESET			; fill
 
 	JSR	FLOPPY_CALIBRATE_TRACK	; calibrate so that at track 0 on side A
 	STZ.Z	VR8			; initialize track counter to 0
@@ -606,6 +578,7 @@
 	LDA	VIA_FLOPPY_DATA_PORT	; load byte
 	CMP.I	0B01010111		; test fourth byte
 	BNE	_FLOPPY_READ_ALIGN	; if not equal go back to alignment
+	
 	; aligned and validated, collect sector data
 	WAI				; wait for next byte
 	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of sector id
@@ -616,29 +589,7 @@
 	CMP.Z	VR4 1			; compare sector id to S
 	BNE	_FLOPPY_READ_ALIGN	; skip this sector if not S
 	STA	FLOPPY_SEC_ID		; otherwise update sector id
-	; get pointer
-	WAI				; wait for next byte
-	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of pointer to track
-	SEC				; sec for ror
-	ROR				; shift right so odd bits are data and even are 1
-	WAI				; wait for next byte
-	AND	VIA_FLOPPY_DATA_PORT	; AND second encoded value to get decoded pointer to track
-	STA	FLOPPY_SEC_PTR		; store
-	WAI				; wait for next byte
-	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of pointer to sector
-	SEC				; sec for ror
-	ROR				; shift right so odd bits are data and even are 1
-	WAI				; wait for next byte
-	AND	VIA_FLOPPY_DATA_PORT	; AND second encoded value to get decoded pointer to sector
-	STA	FLOPPY_SEC_PTR 1	; store
-	; get length
-	WAI				; wait for next byte
-	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of length
-	SEC				; sec for ror
-	ROR				; shift right so odd bits are data and even are 1
-	WAI				; wait for next byte
-	AND	VIA_FLOPPY_DATA_PORT	; AND second encoded value to get decoded length
-	STA	FLOPPY_SEC_LEN		; store
+	
 	; get data
 	LDX.I	0			; set byte counter to 0
 >_FLOPPY_READ_DATA
@@ -761,6 +712,7 @@
 	LDA	VIA_FLOPPY_DATA_PORT	; load byte
 	CMP.I	0B01010111		; test fourth byte
 	BNE	_FLOPPY_WRITE_ALIGN	; if not equal go back to alignment
+	
 	; aligned and validated, collect sector data
 	WAI				; wait for next byte
 	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of sector id
@@ -771,20 +723,7 @@
 	INC				; increment value by 1 because we want to find S - 1
 	CMP.Z	VR4 1			; compare sector id to S
 	BNE	_FLOPPY_WRITE_ALIGN	; skip this sector if not S
-	; get pointer
-	WAI				; wait for next byte
-	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of pointer to track
-	WAI				; wait for next byte
-	LDA	VIA_FLOPPY_DATA_PORT	; load second encoded value of pointer to track
-	WAI				; wait for next byte
-	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of pointer to sector
-	WAI				; wait for next byte
-	LDA	VIA_FLOPPY_DATA_PORT	; load second encoded value of pointer to sector
-	; get length
-	WAI				; wait for next byte
-	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of length
-	WAI				; wait for next byte
-	LDA	VIA_FLOPPY_DATA_PORT	; load second encoded value of length
+	
 	; get data
 	LDX.I	0			; set byte counter to 0
 >_FLOPPY_WRITE_READ_LOOP

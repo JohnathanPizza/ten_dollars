@@ -59,97 +59,467 @@
 	LDA.I	0XFF
 	STA	PROC_ACTIVE_ID		; no proc active id at first
 	STA	IO_WRITE_CLAIM		; clear write claim
-	LDA.I	0
-	STA	IO_READ_FOCUS		; start with proc 0 focused
+	STA	IO_FILE_CLAIM		; clear file claim
 
 	; init finished
 
 	CLI				; interrupts on
-
-	LDA.I	ASCII_ESC		; print ESC and @ to initialize printer
-	JSR	PRINTC
-	LDA.I	ASCII_AT
-	JSR	PRINTC
-	LDA.I	ASCII_EXCLAIMATION	; print !!\n to let user know code started running
-	JSR	PRINTC
-	JSR	PRINTC
-	JSR	PRINTL
-
-	JSR	FLOPPY_FORMAT
-	LDA.I	0
-	STA.Z	VR4
-	LDA.I	1
-	STA.Z	VR4 1
-	LDA.I	ASCII_H
-	STA	FLOPPY_PAGE
-	LDA.I	ASCII_EL
-	STA	FLOPPY_PAGE 1
-	LDA.I	ASCII_LL
-	STA	FLOPPY_PAGE 2
-	LDA.I	ASCII_LL
-	STA	FLOPPY_PAGE 3
-	LDA.I	ASCII_OL
-	STA	FLOPPY_PAGE 4
-	LDA.I	0
-	STA	FLOPPY_PAGE 5
-	JSR	FLOPPY_WRITE
-	LDA.I	ASCII_WL
-	STA	FLOPPY_PAGE
-	LDA.I	ASCII_OL
-	STA	FLOPPY_PAGE 1
-	LDA.I	ASCII_RL
-	STA	FLOPPY_PAGE 2
-	LDA.I	ASCII_LL
-	STA	FLOPPY_PAGE 3
-	LDA.I	ASCII_DL
-	STA	FLOPPY_PAGE 4
-	LDA.I	0
-	STA	FLOPPY_PAGE 5
-	LDA.I	1
-	STA	VR4
-	LDA.I	5
-	STA	VR4 1
-	JSR	FLOPPY_WRITE
-
-	LDA.I	0
-	STA	VR4
-	LDA.I	1
-	STA	VR4 1
-	JSR	FLOPPY_READ
 	
-	LDA	FLOPPY_PAGE 0
-	JSR	PRINTB
-	LDA	FLOPPY_PAGE 1
-	JSR	PRINTB
-	LDA	FLOPPY_PAGE 2
-	JSR	PRINTB
-	LDA	FLOPPY_PAGE 3
-	JSR	PRINTB
-	LDA	FLOPPY_PAGE 4
-	JSR	PRINTB
-	JSR	PRINTL
-
-	LDA.I	1
-	STA.Z	VR4
-	LDA.I	5
-	STA.Z	VR4 1
-	JSR	FLOPPY_READ
+	LDA.I	ASCII_ESC
+	JSR	PRINTC
+	LDA.I	ASCII_E
+	JSR	PRINTC
 	
-	LDA	FLOPPY_PAGE 0
-	JSR	PRINTB
-	LDA	FLOPPY_PAGE 1
-	JSR	PRINTB
-	LDA	FLOPPY_PAGE 2
-	JSR	PRINTB
-	LDA	FLOPPY_PAGE 3
-	JSR	PRINTB
-	LDA	FLOPPY_PAGE 4
-	JSR	PRINTB
-	JSR	PRINTL
-	
+	LDA.I	FMTSTR
+	STA.Z	VR0
+	LDA.I	FMTSTR > 8
+	STA.Z	VR0 1
+	JSR	PRINTS
 	JSR	PRINTWAIT
+	JSR	FLOPPY_FORMAT
+	JSR	PRINTB
+	JSR	PRINTL
+	JSR	PRINTWAIT
+
+	jmp hang2
+
+	lda.i	enable_str
+	sta	vr0
+	lda.i	enable_str > 8
+	sta	vr0 1
+	jsr	prints
+	jsr	printwait
+	lda.i	0
+	sta	vr4
+	lda.i	1
+	sta	vr4 1
+	jsr	print_sec
+	lda.i	1
+	jsr	file_enable
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	lda.i	2
+	jsr	file_enable
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	lda.i	3
+	jsr	file_enable
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	lda.i	4
+	jsr	file_enable
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	jsr	print_sec
+	
+	lda.i	disable_str
+	sta	vr0
+	lda.i	disable_str > 8
+	sta	vr0 1
+	jsr	prints
+	jsr	printwait
+	lda.i	0
+	sta	vr4
+	lda.i	1
+	sta	vr4 1
+	jsr	print_sec
+	lda.i	4
+	jsr	file_disable
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	lda.i	3
+	jsr	file_disable
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	jsr	print_sec
+
+	lda.i	name_str
+	sta	vr0
+	lda.i	name_str > 8
+	sta	vr0 1
+	jsr	prints
+	jsr	printwait
+	lda.i	0
+	sta	vr4
+	lda.i	2
+	sta	vr4 1
+	jsr	print_sec
+	lda.i	fname
+	sta	vr0
+	lda.i	fname > 8
+	sta	vr0 1
+	lda.i	2
+	jsr	file_set_name
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	jsr	print_sec
+	
+	lda.i	disk_str
+	sta	vr0
+	lda.i	disk_str > 8
+	sta	vr0 1
+	jsr	prints
+	jsr	printwait
+	lda.i	0
+	sta	vr4
+	lda.i	7
+	sta	vr4 1
+	jsr	print_sec
+	lda.i	fname
+	sta	vr0
+	lda.i	fname > 8
+	sta	vr0 1
+	jsr	disk_set_name
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	jsr	print_sec
+
+	lda.i	space_str
+	sta	vr0
+	lda.i	space_str > 8
+	sta	vr0 1
+	jsr	prints
+	jsr	printwait
+	jsr	file_space
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+
+	lda.i	find_str
+	sta	vr0
+	lda.i	find_str > 8
+	sta	vr0 1
+	jsr	prints
+	jsr	printwait
+	lda.i	fname
+	sta	vr0
+	lda.i	fname > 8
+	sta	vr0 1
+	jsr	file_find
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	stz	vr0
+	stz	vr0 1
+	jsr	file_find
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+>hang
+
+	lda.i	create_str
+	sta	vr0
+	lda.i	create_str > 8
+	sta	vr0 1
+	jsr	prints
+	jsr	printwait
+	lda.i	0
+	sta	vr4
+	lda.i	1
+	sta	vr4 1
+	jsr	print_sec
+	lda.i	2
+	sta	vr4 1
+	jsr	print_sec
+	lda.i	fname2
+	sta	vr0
+	lda.i	fname2 > 8
+	sta	vr0 1
+	jsr	file_create
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	jsr	file_create
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	lda.i	0
+	sta	vr4
+	lda.i	1
+	sta	vr4 1
+	jsr	print_sec
+	lda.i	2
+	sta	vr4 1
+	jsr	print_sec
+
+	lda.i	open_str
+	sta	vr0
+	lda.i	open_str > 8
+	sta	vr0 1
+	jsr	prints
+	jsr	printwait
+	lda	io_file_a_id
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	lda.i	fname2
+	sta	vr0
+	lda.i	fname2 > 8
+	sta	vr0 1
+	jsr	file_open_a
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	lda	io_file_a_id
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+
+	lda.i	flush_str
+	sta	vr0
+	lda.i	flush_str > 8
+	sta	vr0 1
+	jsr	prints
+	jsr	printwait
+	lda.i	1
+	sta	io_file_a_dirty
+	lda	io_file_a_id
+	sta	vr4
+	lda.i	1
+	sta	vr4 1
+	jsr	print_sec
+	lda.i	0x80
+	sta	file_a_page
+	lda.i	0x81
+	sta	file_a_page 1
+	lda.i	0x82
+	sta	file_a_page 2
+	lda.i	0x83
+	sta	file_a_page 3
+	jsr	file_flush_a
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	lda.i	io_file_a_id
+	sta	vr4
+	lda.i	1
+	sta	vr4 1
+	jsr	print_sec
+
+	lda.i	load_str
+	sta	vr0
+	lda.i	load_str > 8
+	sta	vr0 1
+	jsr	prints
+	stz	file_a_page 0
+	stz	file_a_page 1
+	stz	file_a_page 2
+	stz	file_a_page 3
+	jsr	file_load_a
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	lda	file_a_page
+	jsr	printb
+	lda	file_a_page 1
+	jsr	printb
+	lda	file_a_page 2
+	jsr	printb
+	lda	file_a_page 3
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+
+	lda.i	close_str
+	sta	vr0
+	lda.i	close_str > 8
+	sta	vr0 1
+	jsr	prints
+	lda	io_file_a_id
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	jsr	file_close_a
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	lda	io_file_a_id
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+
+>hang2
+
+	lda.i	create_str
+	sta	vr0
+	lda.i	create_str > 8
+	sta	vr0 1
+	jsr	prints
+	jsr	printwait
+	lda.i	0
+	sta	vr4
+	lda.i	1
+	sta	vr4 1
+	jsr	print_sec
+	lda.i	2
+	sta	vr4 1
+	jsr	print_sec
+	lda.i	fname
+	sta	vr0
+	lda.i	fname > 8
+	sta	vr0 1
+	jsr	file_create
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	lda.i	0
+	sta	vr4
+	lda.i	1
+	sta	vr4 1
+	jsr	print_sec
+	lda.i	2
+	sta	vr4 1
+	jsr	print_sec
+	
+	lda.i	open_str
+	sta	vr0
+	lda.i	open_str > 8
+	sta	vr0 1
+	jsr	prints
+	jsr	printwait
+	lda	io_file_a_id
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	lda.i	fname
+	sta	vr0
+	lda.i	fname > 8
+	sta	vr0 1
+	jsr	file_open_a
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	lda	io_file_a_id
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+
+	lda.i	rename_str
+	sta	vr0
+	lda.i	rename_str > 8
+	sta	vr0 1
+	jsr	prints
+	jsr	printwait
+	lda.i	0
+	sta	vr4
+	lda.i	2
+	sta	vr4 1
+	jsr	print_sec
+	lda.i	fname2
+	sta	vr0
+	lda.i	fname2 > 8
+	sta	vr0 1
+	jsr	file_rename_a
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	lda.i	0
+	sta	vr4
+	lda.i	2
+	sta	vr4 1
+	jsr	print_sec
+
+	lda.i	destroy_str
+	sta	vr0
+	lda.i	destroy_str > 8
+	sta	vr0 1
+	jsr	prints
+	jsr	printwait
+	lda.i	0
+	sta	vr4
+	lda.i	1
+	sta	vr4 1
+	jsr	print_sec
+	lda.i	2
+	sta	vr4 1
+	jsr	print_sec
+	jsr	file_destroy_a
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	lda.i	0
+	sta	vr4
+	lda.i	1
+	sta	vr4 1
+	jsr	print_sec
+	lda.i	2
+	sta	vr4 1
+	jsr	print_sec
 
 	;LDA.I	0			; load shell program code
 	;JSR	LOADROM			; start a shell program in proc 0
 	
 	JMP	SERVICE_CYCLE_BEGIN	; start the very first service cycle
+
+>FMTSTR
+"format test 0=good\n\0
+
+>ENABLE_STR
+"enable test 1=good\n\0
+
+>DISABLE_STR
+"disable test 1=good\n\0
+
+>NAME_STR
+"set name test 1=good\n\0
+
+>DISK_STR
+"disk name test 1=good\n\0
+
+>SPACE_STR
+"space test 1-79=good\n\0
+
+>FIND_STR
+"find test 1-79=good\n\0
+
+>CREATE_STR
+"create test 0=good\n\0
+
+>OPEN_STR
+"open a test 0=good\n\0
+
+>FLUSH_STR
+"flush a test 0=good\n\0
+
+>LOAD_STR
+"load a test 0=good\n\0
+
+>CLOSE_STR
+"close a test 0=good\n\0
+
+>RENAME_STR
+"rename a test 0=good\n\0
+
+>DESTROY_STR
+"destroy a test 0=good\n\0
+
+>FNAME
+"epicfile\0
+
+>FNAME2
+"buttcheeks\0
+
+;vr4 track
+;vr4 1 sec
+>PRINT_SEC
+	jsr	retry_floppy_read
+	jsr	printb
+	jsr	printl
+	jsr	printwait
+	ldx.i	0
+>print_sec_loop
+	lda.x	floppy_page
+	jsr	printb
+	inx
+	bne	print_sec_loop
+	jsr	printl
+	jsr	printwait
+	rts

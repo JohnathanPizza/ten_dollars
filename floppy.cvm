@@ -228,7 +228,7 @@
 
 ; FLOPPY_DISK_CHECK
 ; R --- A: disk present boolean P
-; verifies that a disk is actually insertedand spinning with the motor, formatted or not
+; verifies that a disk is actually inserted and spinning with the motor, formatted or not
 ; looks for a 1 to 0 to 1 transition on the index line
 ; outside index to inside to outside indicates region was entered and left so a disk must be spinning
 ; must read a 1 then read a 0 then read a 1
@@ -319,7 +319,7 @@
 ; writes a sector using the floppy variables at the current disk position
 ; should be called immediately on the byte before the sector
 ; the next byte position will be written as the sector start cap
-; overwrites A and X
+; !!! overwrites A and X
 
 >FLOPPY_WRITE_SECTOR
 	; only have 32 cycles to get the setup done

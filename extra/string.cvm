@@ -19,6 +19,7 @@
 ; STRLEN
 ; P --- VR0: string pointer S
 ; R --- A: string length L
+; calculates the length of the string at S which is delimited by the null character
 ; if L = 255, then 255 bytes were read that were not the nul character, actual string length is unknown
 
 >STRLEN

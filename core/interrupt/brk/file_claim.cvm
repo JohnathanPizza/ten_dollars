@@ -1,0 +1,18 @@
+; attmepts to claim file control for the current process
+
+>BRK_FILE_CLAIM
+	LDA	IO_FILE_CLAIM		; load value of file claim
+	CMP	PROC_ACTIVE_ID		; test if proc already claimed
+	BEQ	_BRK_FILE_CLAIM_SKIP	; return if already claimed
+	CMP.I	0XFF			; test if null
+	BNE	_BRK_FILE_CLAIM_FAIL	; if not null then proc has to wait
+	LDA	PROC_ACTIVE_ID		; else it is ok to claim, load current proc id
+	STA	IO_FILE_CLAIM		; store in file claim
+>_BRK_FILE_CLAIM_SKIP
+	JSR	PROC_UNPAUSE		; return to process
+>_BRK_FILE_CLAIM_FAIL
+	JSR	PROC_LEAVE		; save proc
+	LDY	PROC_ACTIVE_ID		; load proc id
+	LDA.I	PROC_STATE_IO_FILE	; load new state value
+	STA.Y	PROC_STATE		; update state
+	JMP	SERVICE_CYCLE_BEGIN	; start new cycle

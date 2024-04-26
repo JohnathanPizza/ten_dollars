@@ -85,9 +85,9 @@
 	LDA.X	PROC_A			; get rom program id from A like earlier
 	ASL				; id * 2 for offset again
 	TAX				; move offset to X
-	LDA.X	ROM_PROGRAM_ARRAY	; load pointer to program code in VR0
+	LDA.X	ROM_PROGRAM_START	; load pointer to program code in VR0
 	STA.Z	VR0
-	LDA.X	ROM_PROGRAM_ARRAY 1
+	LDA.X	ROM_PROGRAM_START 1
 	STA.Z	VR0 1
 	LDA.X	ROM_PROGRAM_LENGTH	; load length of program code in VR4
 	STA.Z	VR4

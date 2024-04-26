@@ -27,6 +27,7 @@ core/interrupt/brk/flag_enable.cvm
 core/interrupt/brk/priority.cvm
 core/interrupt/brk/ptroff.cvm
 core/interrupt/brk/read.cvm
+core/interrupt/brk/spawn_rom.cvm
 core/interrupt/brk/suspend.cvm
 core/interrupt/brk/writec.cvm
 core/interrupt/brk/write_claim.cvm
@@ -58,7 +59,6 @@ extra/print.cvm
 extra/string.cvm
 extra/wait.cvm
 
-romprograms.cvm
-shell.cvm
 floppy.cvm
 file.cvm
+rom_programs.cvm

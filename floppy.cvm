@@ -56,6 +56,8 @@
 ; FLOPPY_EXIT
 ; configures the VIA and interrupts to be in normal mode
 ; overwrites A
+; FLOPPY_ENTER turns interrupts off, but FLOPPY_EXIT does NOT TURN THEM BACK ON
+; remember to enble interrupts with CLI again after this function if needed
 
 >FLOPPY_EXIT
 	LDA	VIA_PCR				; load PCR to turn off floppy enable line
@@ -73,7 +75,6 @@
 	STA	VIA_IER				; can just store back since bit 7 will be 1 which enables
 
 	STA	HW_ENABLE_ADDR HW_RAM1		; turn off VIA now
-	CLI					; turn interrupts back on
 
 	RTS					; return
 

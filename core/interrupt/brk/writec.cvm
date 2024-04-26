@@ -2,8 +2,6 @@
 
 >BRK_WRITEC
 	LDA	IO_WRITE_CLAIM		; load write claim value to check permission
-	CMP.I	0XFF			; compare to null
-	BEQ	_BRK_WRITEC_CONT	; continue if no process claimed
 	CMP	PROC_ACTIVE_ID		; compare to current proc id
 	BEQ	_BRK_WRITEC_CONT	; continue if this proc has write claimed
 	BRA	_BRK_WRITEC_FAIL	; else fail

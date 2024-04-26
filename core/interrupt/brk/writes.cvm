@@ -3,8 +3,6 @@
 
 >BRK_WRITES
 	LDA	IO_WRITE_CLAIM		; load write claim value
-	CMP.I	0XFF			; compare to null value
-	BEQ	_BRK_WRITES_CONT	; continue if no write claim
 	CMP	PROC_ACTIVE_ID		; compare to proc id
 	BEQ	_BRK_WRITES_CONT	; continue if this proc owns the write claim
 	LDY.I	0			; load 0 for no characters written to buffer

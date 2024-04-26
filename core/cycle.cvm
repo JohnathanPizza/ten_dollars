@@ -2,7 +2,11 @@
 ; picks a process to serve and then jumps to appropriate function based on process state
 
 >SERVICE_CYCLE_BEGIN
-	CLI				; clear ints in case they were turned off before, can do this here since in non critical code
+	CLI				; enable interrupts for a little to let hardware ints go off
+	NOP
+	NOP
+	NOP
+	SEI				; disable again
 	JSR	SCHEDULER_INCREMENT	; increment all the process schedule values based on priority
 	JSR	SCHEDULER_SELECT	; get the next process id to serve
 	LDA.Z	VR11			; load proc id

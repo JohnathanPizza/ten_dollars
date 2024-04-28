@@ -23,13 +23,20 @@
 
 	; free resources
 	CPY	IO_WRITE_CLAIM		; compare proc id to write claim id
-	BNE	_SERVICE_EXIT_CLAIM	; if not equal then skip
+	BNE	_SERVICE_EXIT_FILE_CLAIM	; if not equal then skip
 	LDA.I	0XFF			; load null proc id
 	STA	IO_WRITE_CLAIM		; reset write claim
->_SERVICE_EXIT_CLAIM
-	CPY	IO_READ_FOCUS		; compare proc id to read focus id
+>_SERVICE_EXIT_FILE_CLAIM
+	CPY	IO_FILE_CLAIM		; compare proc id to file claim id
 	BNE	_SERVICE_EXIT_FOCUS	; if not equal then skip
+	LDA.I	0XFF			; load null proc id
+	STA	IO_FILE_CLAIM		; reset file claim
+	STZ	IO_FILE_A_ID		; reset file A id
+	STZ	IO_FILE_B_ID		; reset file B id
+>_SERVICE_EXIT_FOCUS
+	CPY	IO_READ_FOCUS		; compare proc id to read focus id
+	BNE	_SERVICE_EXIT_END	; if not equal then skip
 	LDA.I	0			; load proc 0 id
 	STA	IO_READ_FOCUS		; update focus
->_SERVICE_EXIT_FOCUS
+>_SERVICE_EXIT_END
 	JMP	SERVICE_CYCLE_BEGIN	; start next cycle

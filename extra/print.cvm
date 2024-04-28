@@ -2,9 +2,10 @@
 ; ===
 ; PRINTS
 ; PRINTC
-; PRINTB
 ; PRINTL
-; PRINTWAIT
+; PRINTH
+; PRINTB
+; PRINT_WAIT
 
 ;==================================================
 
@@ -60,20 +61,54 @@
 
 ;==================================================
 
-; PRINTB
+; PRINTL
+; P --- VR0: string pointer S
+; calls the write BRK function to write out S over IO and adds a newline character to the end
+; must be nul character delimited
+
+>PRINTL
+	PHA			; store A
+	LDA.Z	VR0		; copy out VR0
+	PHA
+	LDA.Z	VR0 1
+	PHA
+>_PRINTL_LOOP
+	LDA.I	BC_WRITES
+	BRK			; call WRITES
+	LDA.Z	VR0		; add the number of chars written to pointer S
+	CLC
+	ADC.Z	VR11
+	STA.Z	VR0
+	LDA.Z	VR0 1
+	ADC.I	0
+	STA.Z	VR0 1
+	LDA.ZP	VR0		; load character from the new pointer
+	BNE	_PRINTS_LOOP	; if not the nul char, not at string end, print again
+	LDA.I	ASCII_LF	; load newline char
+	JSR	PRINTC		; print
+	PLA			; copy back VR0
+	STA.Z	VR0 1
+	PLA
+	STA.Z	VR0
+	PLA			; restore A
+	RTS			; return
+
+;==================================================
+
+; PRINTH
 ; P --- A: byte B
 ; writes the hexadecimal representation of B to the print buffer
 
->PRINTB
-	PHA			; store A
+>PRINTH
+	PHA			; store B
 	ROR			; shift high nybble into low nybble
 	ROR
 	ROR
 	ROR
 	JSR	TOHEX		; get hex character for high nybble
 	JSR	PRINTC		; print it
-	PLA			; reload A
-	PHA			; store A
+	PLA			; reload B
+	PHA			; store B
 	JSR	TOHEX		; get hex character for low nybble
 	JSR	PRINTC		; print it
 	PLA			; restore B
@@ -81,22 +116,43 @@
 
 ;==================================================
 
-; PRINTL
-; writes the newline character to the print buffer
+; PRINTB
+; P --- A: byte B
+; writes the binary representation of B to the print buffer
 
->PRINTL
-	PHA			; store A
-	LDA.I	ASCII_LF	; load newline
-	JSR	PRINTC		; print newline
-	PLA			; restore A
+>PRINTB
+	PHA			; store B
+	PHX			; store X
+	LDX.Z	VR7		; load VR7/1
+	PHX			; store VR7/1
+	STA.Z	VR7		; store B to VR7/1
+	LDX.I	8		; load counter as 8
+>_PRINTB_LOOP
+	LDA.Z	VR7		; load B for next bit
+	ASL			; shift next bit
+	STA.Z	VR7		; save updated value
+	BCC	_PRINTB_LOOP_0	; test if bit was 0
+	LDA.I	ASCII_1		; load 1 value
+	JSR	PRINTC		; print
+	BRA	_PRINTB_LOOP_END	; go to test code
+>_PRINTB_LOOP_0
+	LDA.I	ASCII_0		; load 0 value
+	JSR	PRINTC		; print
+>_PRINTB_LOOP_END
+	DEX			; decrement counter
+	BNE	_PRINTB_LOOP	; if counter not 0 loop
+	PLX			; restore VR7/1
+	STX.Z	VR7
+	PLX			; restore X
+	PLA			; restore B
 	RTS			; return
 
 ;==================================================
 
-; PRINTWAIT
+; PRINT_WAIT
 ; returns when the print buffer is clear
 
->PRINTWAIT
+>PRINT_WAIT
 	LDA	IO_WRITE_STATUS	; load write status
-	BNE	PRINTWAIT	; if not 0 then loop
+	BNE	PRINT_WAIT	; if not 0 then loop
 	RTS			; return

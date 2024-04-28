@@ -11,6 +11,8 @@ core/map.cvm
 core/start.cvm
 
 core/cycle.cvm
+core/file.cvm
+core/floppy.cvm
 core/page.cvm
 core/process.cvm
 core/schedule.cvm
@@ -63,6 +65,4 @@ extra/print.cvm
 extra/string.cvm
 extra/wait.cvm
 
-floppy.cvm
-file.cvm
 rom_programs.cvm

@@ -1,10 +1,13 @@
-; tries to spawn a new rom process with given code in vr4
+; tries to spawn a new rom process with given code in vr4/1
 ; returns proc id in vr11/1
 ; if 0xff then no proc spawned
 
 >BRK_SPAWN_ROM
 	LDA.I	0XFF			; load error return value
 	STA.Z	VR11			; store in VR11/1
+	LDA.Z	VR4			; load rom proc number
+	CMP.I	ROM_PROGRAM_CT		; test if not valid
+	BGE	_BRK_SPAWN_ROM_END	; end if not valid
 	JSR	PROC_GET		; get open process id
 	CMP.I	PROC_COUNT		; test if failed
 	BEQ	_BRK_SPAWN_ROM_END	; just return if no process open

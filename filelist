@@ -1,5 +1,6 @@
 const/ascii.cvm
 const/bool.cvm
+const/fileop.cvm
 const/hardware.cvm
 const/procflag.cvm
 const/procstate.cvm
@@ -23,6 +24,7 @@ core/interrupt/brk/data_load.cvm
 core/interrupt/brk/data_release.cvm
 core/interrupt/brk/exit.cvm
 core/interrupt/brk/file_claim.cvm
+core/interrupt/brk/file_op.cvm
 core/interrupt/brk/file_release.cvm
 core/interrupt/brk/flag_disable.cvm
 core/interrupt/brk/flag_enable.cvm

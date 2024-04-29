@@ -271,7 +271,7 @@
 	STY.Z	VR9 1			; store idx B in VR9/2
 	CPY.Z	VR8 1			; compare idx B to idx A
 	BNE	_PAGE_MAP_SWAP_NOEXIT	; if indicies arent equal then keep going
-	JMP	_PAGE_MAP_SWAP_EXIT	; early exit if they are the same idx
+	JMP	_PAGE_MAP_SWAP_EXIT_EARLY	; early exit if they are the same idx
 >_PAGE_MAP_SWAP_NOEXIT
 	BGE	_PAGE_MAP_SWAP_ARRANGED	; if B > A then arranged well already
 	STY.Z	VR8 1			; store idx B in VR8/2
@@ -289,7 +289,7 @@
 	BNE	_PAGE_MAP_SWAP_CONT	; if not keep going
 	CMP.Z	VR11 1			; test if second page is null
 	BNE	_PAGE_MAP_SWAP_CONT	; if not keep going
-	JMP	_PAGE_MAP_SWAP_EXIT	; both pages are null, no need to swap anything, end
+	JMP	_PAGE_MAP_SWAP_EXIT_EARLY	; both pages are null, no need to swap anything, end
 >_PAGE_MAP_SWAP_CONT
 	; swap map idx
 	LDA.X	PAGE_MAP		; load value at idx A
@@ -336,6 +336,8 @@
 >_PAGE_MAP_SWAP_START
 	LDX.Z	VR10			; load hardware toggle
 	LDY.I	0			; set page idx to 0
+	PHP				; push current I flag
+	SEI				; SEI to potentially access RAM2
 	; pointers are made in VR8 and VR9, test if either are null pages to optimize
 	LDA.I	0XFF			; load null value
 	CMP.Z	VR11			; test if first page value is null
@@ -344,42 +346,37 @@
 	BEQ	_PAGE_MAP_SWAP_LOOP_B	; if null then go to loop B to move data from A to B
 	; move data between A and B at the same time (standard swap)
 >_PAGE_MAP_SWAP_LOOP
-	PHP				; push current I flag
-	SEI				; SEI to potentially access RAM2
-	STA.X	HW_ENABLE_ADDR		; turn on appropriate hardware
 	LDA.ZPY	VR8			; load value from first page
 	PHA				; push
+	STA.X	HW_ENABLE_ADDR		; turn on appropriate hardware
 	LDA.ZPY	VR9			; load value from second page
+	STA	HW_ENABLE_ADDR HW_RAM1	; turn off all except RAM1
 	STA.ZPY	VR8			; store into first page
 	PLA				; pull value from first page
+	STA.X	HW_ENABLE_ADDR		; turn on appropriate hardware
 	STA.ZPY	VR9			; store into second page
 	STA	HW_ENABLE_ADDR HW_RAM1	; turn off all except RAM1
-	PLP				; restore I flag
 	INY				; increment page idx
 	BNE	_PAGE_MAP_SWAP_LOOP	; loop if not done
 	BRA	_PAGE_MAP_SWAP_EXIT	; exit
 >_PAGE_MAP_SWAP_LOOP_A
-	PHP				; push current I flag
-	SEI				; SEI to potentially access RAM2
 	STA.X	HW_ENABLE_ADDR		; turn on appropriate hardware
 	LDA.ZPY	VR9			; load value from second page
-	STA.ZPY	VR8			; store into first page
 	STA	HW_ENABLE_ADDR HW_RAM1	; turn off all except RAM1
-	PLP				; restore I flag
+	STA.ZPY	VR8			; store into first page
 	INY				; increment page idx
 	BNE	_PAGE_MAP_SWAP_LOOP_A	; loop if not done
 	BRA	_PAGE_MAP_SWAP_EXIT	; exit
 >_PAGE_MAP_SWAP_LOOP_B
-	PHP				; push current I flag
-	SEI				; SEI to potentially access RAM2
-	STA.X	HW_ENABLE_ADDR		; turn on appropriate hardware
 	LDA.ZPY	VR8			; load value from first page
+	STA.X	HW_ENABLE_ADDR		; turn on appropriate hardware
 	STA.ZPY	VR9			; store into second page
 	STA	HW_ENABLE_ADDR HW_RAM1	; turn off all except RAM1
-	PLP				; restore I flag
 	INY				; increment page idx
 	BNE	_PAGE_MAP_SWAP_LOOP_B	; loop if not done
 >_PAGE_MAP_SWAP_EXIT
+	PLP				; restore I flag
+>_PAGE_MAP_SWAP_EXIT_EARLY
 	PLY				; restore Y
 	PLX				; restore X
 	PLA				; restore A
@@ -445,16 +442,16 @@
 >_PAGE_LOAD_DAP_START
 	LDX.Z	VR10			; load hardware toggle
 	LDY.I	0			; set page idx to 0
->_PAGE_LOAD_DAP_LOOP
 	PHP				; push current I flag
 	SEI				; SEI to potentially access RAM2
 	STA.X	HW_ENABLE_ADDR		; turn on appropriate hardware
+>_PAGE_LOAD_DAP_LOOP
 	LDA.ZPY	VR8			; load value from page
 	STA.Y	DYNAMIC_ACCESS_PAGE	; store into DAP
-	STA	HW_ENABLE_ADDR HW_RAM1	; turn off all except RAM1
-	PLP				; restore I flag
 	INY				; increment page idx
 	BNE	_PAGE_LOAD_DAP_LOOP	; loop if not done
+	STA	HW_ENABLE_ADDR HW_RAM1	; turn off all except RAM1
+	PLP				; restore I flag
 	PLY				; restore Y
 	PLX				; restore X
 	PLA				; restore A
@@ -498,16 +495,16 @@
 >_PAGE_STORE_DAP_START
 	LDX.Z	VR10			; load hardware toggle
 	LDY.I	0			; set page idx to 0
->_PAGE_STORE_DAP_LOOP
 	PHP				; push current I flag
 	SEI				; SEI to potentially access RAM2
 	STA.X	HW_ENABLE_ADDR		; turn on appropriate hardware
+>_PAGE_STORE_DAP_LOOP
 	LDA.Y	DYNAMIC_ACCESS_PAGE	; load value from DAP
 	STA.ZPY	VR8			; store into page
-	STA	HW_ENABLE_ADDR HW_RAM1	; turn off all except RAM1
-	PLP				; restore I flag
 	INY				; increment page idx
 	BNE	_PAGE_STORE_DAP_LOOP	; loop if not done
+	STA	HW_ENABLE_ADDR HW_RAM1	; turn off all except RAM1
+	PLP				; restore I flag
 	PLY				; restore Y
 	PLX				; restore X
 	PLA				; restore A

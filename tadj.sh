@@ -23,6 +23,6 @@ read -r -a args <<< "$list"
 
 crab -xa -b0x8000 -s0x8000 "${args[@]}"
 
-adjstr=$(xxd -p -c 2 out.adj | tr '[:lower:]' '[:upper:]' | sed "s/^/\$0X/g")
+adjstr=$(xxd -p -c 2 out.adj | tr '[:lower:]' '[:upper:]' | sed "s/\(..\)\(..\)/\2\1/g" | sed "s/^/\$0X/g")
 
 echo "$adjstr"

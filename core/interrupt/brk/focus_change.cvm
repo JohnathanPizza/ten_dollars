@@ -1,0 +1,17 @@
+; transfer process focus to a different process given in VR4/1
+
+>BRK_FOCUS_CHANGE
+	LDA	IO_READ_FOCUS		; load current focus
+	CMP	PROC_ACTIVE_ID		; test if this proc has it
+	BNE	_BRK_FOCUS_CHANGE_FAIL	; if this proc doesnt have it, fail
+	LDA.Z	VR4			; else load the new process id
+	CMP.I	PROC_COUNT		; test if in range
+	BGE	_BRK_FOCUS_CHANGE_FAIL	; fail if out of range
+	STA	IO_READ_FOCUS		; else change read focus
+	LDA.I	TRUE			; load true
+	STA.Z	VR11			; store
+	JMP	PROC_UNPAUSE		; return to process
+>_BRK_FOCUS_CHANGE_FAIL
+	LDA.I	FALSE			; load false
+	STA.Z	VR11			; store
+	JMP	PROC_UNPAUSE		; return to process

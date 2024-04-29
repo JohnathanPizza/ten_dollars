@@ -68,4 +68,7 @@
 	LDA.I	BC_SPAWN_ROM
 	BRK
 
+	LDA.Z	VR11
+	STA	IO_READ_FOCUS
+
 	JMP	SERVICE_CYCLE_BEGIN	; start the very first service cycle

@@ -17,6 +17,7 @@
 	LDA	IO_FILE_CLAIM		; load file claim to check permission
 	CMP	PROC_ACTIVE_ID		; compare to current proc id
 	BNE	_BRK_FILE_OP_NOPERM	; if not equal then fail
+	JSR	PRINT_WAIT		; flush write so that nothing looks weird
 	LDA.Z	VR6			; load file op code
 	ASL				; *2 for pointer offset
 	TAX				; move pointer offset to X

@@ -153,6 +153,9 @@
 ; returns when the print buffer is clear
 
 >PRINT_WAIT
+	PHA			; store A
+>_PRINT_WAIT_LOOP
 	LDA	IO_WRITE_STATUS	; load write status
-	BNE	PRINT_WAIT	; if not 0 then loop
+	BNE	_PRINT_WAIT_LOOP	; if not 0 then loop
+	PLA			; restore A
 	RTS			; return

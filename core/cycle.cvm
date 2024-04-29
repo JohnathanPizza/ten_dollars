@@ -2,6 +2,8 @@
 ; picks a process to serve and then jumps to appropriate function based on process state
 
 >SERVICE_CYCLE_BEGIN
+	LDA.I	0XFF			; load null proc value
+	STA	PROC_ACTIVE_ID		; store to indicate no process is running right now
 	CLI				; enable interrupts for a little to let hardware ints go off
 	NOP
 	NOP

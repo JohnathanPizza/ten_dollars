@@ -1,3 +1,10 @@
 >INTERRUPT_T2
+	LDA	VIA_T2L			; clear interrupt status first
 	STA	HW_ENABLE_ADDR HW_RAM1	; turn off VIA
+	LDA	PROC_ACTIVE_ID		; load current proc id
+	CMP.I	0XFF			; test if a process was interrupted by the timer
+	BEQ	_INTERRUPT_T2_FALSE	; return if no process was actually interrupted
+	JSR	PROC_LEAVE		; otherwise save the current process, keep ready state
+	JMP	SERVICE_CYCLE_BEGIN	; start new cycle
+>_INTERRUPT_T2_FALSE
 	JMP	PROC_UNPAUSE		; resume process

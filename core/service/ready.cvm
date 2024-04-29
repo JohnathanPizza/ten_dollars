@@ -2,4 +2,7 @@
 
 >SERVICE_READY
 	JSR	PROC_LOAD		; load all related proc resources into memory
+	LDA.I	0XFF			; load max value for T2
+	STA	VIA_T2L			; load T2 low latches
+	STA	VIA_T2HC		; load T2 high counter, starting the countdown
 	JMP	PROC_UNPAUSE		; enter proc

@@ -65,4 +65,7 @@ extra/print.cvm
 extra/string.cvm
 extra/wait.cvm
 
-rom_programs.cvm
+romprogs/array.cvm
+
+romprogs/shell/adj.cvm
+romprogs/shell/shell.cvm

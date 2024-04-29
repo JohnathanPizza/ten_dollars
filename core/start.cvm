@@ -63,4 +63,9 @@
 
 	; init finished
 
+	LDA.I	0
+	STA.Z	VR4
+	LDA.I	BC_SPAWN_ROM
+	BRK
+
 	JMP	SERVICE_CYCLE_BEGIN	; start the very first service cycle

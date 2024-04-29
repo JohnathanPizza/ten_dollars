@@ -63,7 +63,7 @@
 
 	; init finished
 
-	LDA.I	0
+	LDA.I	ROM_SHELL_ID
 	STA.Z	VR4
 	LDA.I	BC_SPAWN_ROM
 	BRK

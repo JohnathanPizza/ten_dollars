@@ -15,6 +15,8 @@ $SHELL_NAME
 
 =ROM_PROGRAM_CT		1
 
+=ROM_SHELL_ID	0
+
 ; vr0 name
 ; a number
 >ROM_PROGRAM_GET

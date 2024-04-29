@@ -28,7 +28,7 @@
 	LDA.I	0X80			; load home value for ZP
 	STA.Y	PAGE_TABLE_HOME		; store in page row
 	PHY				; save page id
-	JSR	PAGE_MAP_GET		; get empty map idx
+	JSR	PAGE_MAP_GET_BACK	; get empty map idx from back
 	TAY				; move to Y
 	PLA				; pull page id
 	STA.Y	PAGE_MAP		; store page id in map at idx
@@ -40,7 +40,7 @@
 	LDA.I	0X81			; load home value for stack
 	STA.Y	PAGE_TABLE_HOME		; store in page row
 	PHY				; save page id
-	JSR	PAGE_MAP_GET		; get empty map idx
+	JSR	PAGE_MAP_GET_BACK	; get empty map idx from back
 	TAY				; move to Y
 	PLA				; pull page id
 	STA.Y	PAGE_MAP		; store page id in map at idx

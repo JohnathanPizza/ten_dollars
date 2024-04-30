@@ -13,7 +13,6 @@
 	JSR	PROC_LOAD		; load in all process resources to get access to VR0 and VR4/1
 	LDX.Z	VR4			; load length of buffer into X
 	LDY.I	0			; set buffer index to 0
-	BRA	_SERVICE_IO_READ_LOOP	; enter loop
 >_SERVICE_IO_READ_LOOP
 	LDA.Y	IO_READ_BUFFER		; load next character from read buffer
 	STA.ZPY	VR0			; store into process buffer at index Y
@@ -28,9 +27,9 @@
 	LDY.Z	VR4			; load length of buffer in Y
 	DEY				; set index to very last position in buffer
 	STA.ZPY	VR0			; store nul char
+	JSR	PROC_LEAVE		; save process
 	LDA.I	PROC_STATE_READY	; load ready state
 	LDY	PROC_ACTIVE_ID		; load proc id
 	STA.Y	PROC_STATE		; update proc state
-	JMP	PROC_UNPAUSE		; return to proc
 >_SERVICE_IO_READ_FAIL
 	JMP	SERVICE_CYCLE_BEGIN	; start new cycle

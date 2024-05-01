@@ -3,7 +3,6 @@ const/bool.cvm
 const/fileop.cvm
 const/hardware.cvm
 const/procflag.cvm
-const/procstate.cvm
 const/via.cvm
 const/vridx.cvm
 

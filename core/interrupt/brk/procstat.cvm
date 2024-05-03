@@ -6,6 +6,7 @@
 ; arr[3] = state
 ; arr[4] = num code pages
 ; arr[5] = num data pages
+; if proc id was 0xff then vr11/1 holds proc id of calling process
 
 >BRK_PROCSTAT
 	LDX.Z	VR4			; load given proc id
@@ -16,6 +17,7 @@
 	BRA	_BRK_PROCSTAT_CONT	; keep going with current id
 >_BRK_PROCSTAT_ACTIVE
 	LDX	PROC_ACTIVE_ID		; load active id
+	STX.Z	VR11			; store in return value for proc to access
 >_BRK_PROCSTAT_CONT
 	TXA				; move id to A
 	ASL				; id * 2 for PC offset

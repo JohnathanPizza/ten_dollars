@@ -70,3 +70,6 @@ romprogs/array.cvm
 
 romprogs/shell/adj.cvm
 romprogs/shell/shell.cvm
+
+romprogs/procview/adj.cvm
+romprogs/procview/procview.cvm

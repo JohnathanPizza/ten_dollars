@@ -36,7 +36,7 @@
 >_SERVICE_EXIT_FOCUS
 	CPY	IO_READ_FOCUS		; compare proc id to read focus id
 	BNE	_SERVICE_EXIT_END	; if not equal then skip
-	LDA.I	0			; load proc 0 id
+	LDA.Y	PROC_PARENT		; load parent proc id
 	STA	IO_READ_FOCUS		; update focus
 >_SERVICE_EXIT_END
 	JMP	SERVICE_CYCLE_BEGIN	; start next cycle

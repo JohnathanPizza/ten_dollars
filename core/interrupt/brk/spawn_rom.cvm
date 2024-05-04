@@ -15,6 +15,8 @@
 	TAY				; move good proc id to Y
 	LDA.Z	VR4			; load program id
 	STA.Y	PROC_A			; store in process A register
+	LDA	PROC_ACTIVE_ID		; load parent process id
+	STA.Y	PROC_PARENT		; store parent
 	LDA.I	PROC_STATE_INIT_ROM	; load init rom state
 	STA.Y	PROC_STATE		; store in proc state
 	LDA.I	1			; load 1 for low priority

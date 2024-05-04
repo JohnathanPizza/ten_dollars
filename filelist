@@ -30,6 +30,7 @@ core/interrupt/brk/file_release.cvm
 core/interrupt/brk/flag_disable.cvm
 core/interrupt/brk/flag_enable.cvm
 core/interrupt/brk/focus_change.cvm
+core/interrupt/brk/parent.cvm
 core/interrupt/brk/priority.cvm
 core/interrupt/brk/procstat.cvm
 core/interrupt/brk/ptroff.cvm

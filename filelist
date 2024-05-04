@@ -73,3 +73,12 @@ romprogs/shell/shell.cvm
 
 romprogs/procview/adj.cvm
 romprogs/procview/procview.cvm
+
+romprogs/diskview/adj.cvm
+romprogs/diskview/diskview.cvm
+
+romprogs/df/adj.cvm
+romprogs/df/df.cvm
+
+romprogs/fcreate/adj.cvm
+romprogs/fcreate/fcreate.cvm

@@ -6,6 +6,7 @@
 ; arr[3] = state
 ; arr[4] = num code pages
 ; arr[5] = num data pages
+; arr[6] = parent proc id
 ; if proc id was 0xff then vr11/1 holds proc id of calling process
 
 >BRK_PROCSTAT
@@ -61,5 +62,9 @@
 	LDA.Z	VR8 1			; load data page count
 	INY				; set Y to 5
 	STA.ZPY	VR3			; set arr[5] to data page count
+	LDX.Z	VR4			; load given proc id
+	LDA.X	PROC_PARENT		; load parent proc id
+	INY				; set Y to 6
+	STA.ZPY	VR3			; set arr[6] to parent id
 >_BRK_PROCSTAT_END
 	JMP	PROC_UNPAUSE

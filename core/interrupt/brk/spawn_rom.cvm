@@ -6,7 +6,7 @@
 	LDA.I	0XFF			; load error return value
 	STA.Z	VR11			; store in VR11/1
 	LDA.Z	VR4			; load rom proc number
-	CMP.I	ROM_PROGRAM_CT		; test if not valid
+	CMP.I	ROM_PROGRAM_COUNT	; test if not valid
 	BGE	_BRK_SPAWN_ROM_END	; end if not valid
 	JSR	PROC_GET		; get open process id
 	CMP.I	PROC_COUNT		; test if failed

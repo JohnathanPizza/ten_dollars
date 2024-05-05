@@ -35,6 +35,7 @@ core/interrupt/brk/priority.cvm
 core/interrupt/brk/procstat.cvm
 core/interrupt/brk/ptroff.cvm
 core/interrupt/brk/read.cvm
+core/interrupt/brk/spawn_disk.cvm
 core/interrupt/brk/spawn_rom.cvm
 core/interrupt/brk/suspend.cvm
 core/interrupt/brk/wait.cvm

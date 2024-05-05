@@ -11,7 +11,7 @@
 	JSR	PROC_GET		; get open process id
 	CMP.I	PROC_COUNT		; test if failed
 	BEQ	_BRK_SPAWN_ROM_END	; just return if no process open
-	STA	VR11			; store proc id in return
+	STA.Z	VR11			; store proc id in return
 	TAY				; move good proc id to Y
 	LDA.Z	VR4			; load program id
 	STA.Y	PROC_A			; store in process A register

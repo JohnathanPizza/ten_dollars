@@ -1,0 +1,31 @@
+; spawner proc should open the file first as file A
+; this is an easy guarantee that the file exists beforehand
+; STEP 1 check file a id is non zero
+; STEP 2 store file a id in A like spawn rom
+; STEP 3 do whatever spawn rom does to init a proc
+; success code in VR11/1
+; 0xff fail
+; other is new proc id
+
+>BRK_SPAWN_DISK
+	LDA.I	0XFF			; load error value
+	STA.Z	VR11			; store in VR11/1
+	LDA	IO_FILE_A_ID		; load file A id
+	BEQ	_BRK_SPAWN_DISK_END	; if none open, just return
+	JSR	PROC_GET		; get an open process id
+	CMP.I	PROC_COUNT		; test if failed
+	BEQ	_BRK_SPAWN_DISK_END	; just return if no process open
+	STA.Z	VR11			; store proc id in return val
+	TAY				; move new proc id to Y
+	LDA	IO_FILE_A_ID		; load open file id
+	STA.Y	PROC_A			; store in A of new proc
+	LDA	PROC_ACTIVE_ID		; load current proc
+	STA.Y	PROC_PARENT		; set as parent proc
+	LDA.I	PROC_STATE_INIT_DISK	; load init disk state
+	STA.Y	PROC_STATE		; set as proc state
+	LDA.I	1			; load 1 for low priority
+	STA.Y	PROC_SCHEDULE_PRIORITY	; store in process priority
+	LDA.I	0			; load 0 to reset schedule counter
+	STA.Y	PROC_SCHEDULE_COUNT	; reset counter
+>_BRK_SPAWN_DISK_END
+	JMP	PROC_UNPAUSE		; return to proc

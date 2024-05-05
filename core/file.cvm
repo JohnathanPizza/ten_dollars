@@ -36,6 +36,8 @@
 =FILE_ERROR_INUSE	6
 =FILE_EOF		7
 
+=FILE_POS_END		256 * 19 - 1
+
 ;==================================================
 
 ; RETRY_FLOPPY_READ

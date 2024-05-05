@@ -138,8 +138,5 @@
 	STA.Y	PROC_STATE		; update state
 	LDA.I	0X80			; load initial value for no DAP
 	STA.Y	PROC_ACTIVE_DAP_ID	; store in DAP
-	;STY	IO_READ_FOCUS		; set the read focus to this process now
-	JMP	SERVICE_CYCLE_BEGIN	; start new cycle
 >_SERVICE_INIT_ROM_PAGES
-	; give some kind of error here maybe
 	JMP	SERVICE_CYCLE_BEGIN	; start new cycle

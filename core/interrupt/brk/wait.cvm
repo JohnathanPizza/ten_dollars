@@ -1,0 +1,10 @@
+; suspends a process until the proc with id given in VR4/1 becomes the null state / has ended
+
+>BRK_WAIT
+	LDA.Z	VR4		; load target proc id
+	STA	PROC_PAUSE_A	; store in A reg for easy access later
+	JSR	PROC_LEAVE	; save proc
+	LDY	PROC_ACTIVE_ID	; load current proc id
+	LDA.I	PROC_STATE_WAIT	; load wait state value
+	STA.Y	PROC_STATE	; update process state
+	JMP	SERVICE_CYCLE_BEGIN	; start new cycle

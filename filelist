@@ -37,6 +37,7 @@ core/interrupt/brk/ptroff.cvm
 core/interrupt/brk/read.cvm
 core/interrupt/brk/spawn_rom.cvm
 core/interrupt/brk/suspend.cvm
+core/interrupt/brk/wait.cvm
 core/interrupt/brk/writec.cvm
 core/interrupt/brk/write_claim.cvm
 core/interrupt/brk/write_release.cvm
@@ -57,6 +58,7 @@ core/service/io_read.cvm
 core/service/io_write.cvm
 core/service/null.cvm
 core/service/ready.cvm
+core/service/wait.cvm
 
 extra/bit.cvm
 extra/charconv.cvm

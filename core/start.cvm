@@ -59,7 +59,6 @@
 
 	LDA.I	0XFF
 	STA	PROC_ACTIVE_ID		; no proc active id at first
-	STA	IO_WRITE_CLAIM		; clear write claim
 	STA	IO_FILE_CLAIM		; clear file claim
 
 	; init finished

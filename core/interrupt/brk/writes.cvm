@@ -2,12 +2,6 @@
 ; returns the number of characters written to the buffer in VR11/1
 
 >BRK_WRITES
-	LDA	IO_WRITE_CLAIM		; load write claim value
-	CMP	PROC_ACTIVE_ID		; compare to proc id
-	BEQ	_BRK_WRITES_CONT	; continue if this proc owns the write claim
-	LDY.I	0			; load 0 for no characters written to buffer
-	BRA	_BRK_WRITES_LOOP_END	; return
->_BRK_WRITES_CONT
 	STA	HW_ENABLE_ADDR HW_RAM1 HW_VIA	; turn on VIA
 	LDA.I	VIA_IER_ENABLE VIA_IB_CB1	; load code to enable write interrupt
 	STA	VIA_IER			; enable

@@ -22,11 +22,6 @@
 	STA.Y	PROC_STATE		; update proc state
 
 	; free resources
-	CPY	IO_WRITE_CLAIM		; compare proc id to write claim id
-	BNE	_SERVICE_EXIT_FILE_CLAIM	; if not equal then skip
-	LDA.I	0XFF			; load null proc id
-	STA	IO_WRITE_CLAIM		; reset write claim
->_SERVICE_EXIT_FILE_CLAIM
 	CPY	IO_FILE_CLAIM		; compare proc id to file claim id
 	BNE	_SERVICE_EXIT_FOCUS	; if not equal then skip
 	LDA.I	0XFF			; load null proc id

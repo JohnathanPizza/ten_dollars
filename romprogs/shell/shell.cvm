@@ -16,28 +16,20 @@
 
 >_SHELL_MAIN_LOOP
 
-	LDA.I	BC_WRITE_CLAIM			; get a write claim for printing the shell ready message
-	BRK
 	LDA	SHELL_PTRS SHELL_STR_READY_PID 0	; load string pointer
 	STA.Z	VR0
 	LDA	SHELL_PTRS SHELL_STR_READY_PID 1
 	STA.Z	VR0 1
 	JSR	PRINTL				; print
-	LDA.I	BC_WRITE_RELEASE		; release write claim while getting input
-	BRK
 
 	JSR	SHELL_GET_INPUT			; grab some input
 
-	LDA.I	BC_WRITE_CLAIM			; get write claim to print the input
-	BRK
 	LDA.I	ASCII_PERCENT			; print %
 	JSR	PRINTC
 	LDA.I	SHELL_INPUT_BUF			; load input buffer pointer
 	STA.Z	VR0
 	STZ.Z	VR0 1
 	JSR	PRINTL				; print input buffer
-	LDA.I	BC_WRITE_RELEASE		; release write claim
-	BRK
 
 	LDX.I	0				; set index to 0
 >_SHELL_COMMAND_PTR_LOOP
@@ -54,15 +46,11 @@
 	BNE	_SHELL_COMMAND_PTR_LOOP		; loop if not
 
 	; no matching command string, print error message and try again
-	LDA.I	BC_WRITE_CLAIM
-	BRK
 	LDA	SHELL_PTRS SHELL_STR_FAIL_PID 0	; load pointer to fail string
 	STA.Z	VR0
 	LDA	SHELL_PTRS SHELL_STR_FAIL_PID 1
 	STA.Z	VR0 1
 	JSR	PRINTL				; print
-	LDA.I	BC_WRITE_RELEASE
-	BRK
 	JMP	_SHELL_MAIN_LOOP		; loop back up
 
 >_SHELL_COMMAND_PTR_LOOP_FOUND
@@ -156,12 +144,8 @@ $SHELL_COMMAND_RUN
 	LDA.I	SHELL_INPUT_BUF
 	STA.Z	VR0
 	STZ.Z	VR0 1
-	LDA.I	BC_WRITE_CLAIM
-	BRK
 	JSR	PRINTL
 	JSR	PRINT_WAIT
-	LDA.I	BC_WRITE_RELEASE
-	BRK
 	JSR	ROM_PROGRAM_GET
 	CMP.I	0XFF
 	BEQ	_SHELL_COMMAND_RUN_FAIL
@@ -176,15 +160,11 @@ $SHELL_COMMAND_RUN
 	BRK
 	JMP	_SHELL_MAIN_LOOP
 >_SHELL_COMMAND_RUN_FAIL
-	LDA.I	BC_WRITE_CLAIM
-	BRK
 	LDA	SHELL_PTRS SHELL_STR_RUN_FAIL_PID 0
 	STA.Z	VR0
 	LDA	SHELL_PTRS SHELL_STR_RUN_FAIL_PID 1
 	STA.Z	VR0 1
 	JSR	PRINTL
-	LDA.I	BC_WRITE_RELEASE
-	BRK
 	JMP	_SHELL_MAIN_LOOP
 
 >SHELL_END

@@ -40,8 +40,6 @@ core/interrupt/brk/spawn_rom.cvm
 core/interrupt/brk/suspend.cvm
 core/interrupt/brk/wait_focus.cvm
 core/interrupt/brk/writec.cvm
-core/interrupt/brk/write_claim.cvm
-core/interrupt/brk/write_release.cvm
 core/interrupt/brk/writes.cvm
 
 core/interrupt/via/ca1.cvm
@@ -56,7 +54,6 @@ core/service/init_disk.cvm
 core/service/init_rom.cvm
 core/service/io_file.cvm
 core/service/io_read.cvm
-core/service/io_write.cvm
 core/service/null.cvm
 core/service/ready.cvm
 core/service/wait_focus.cvm

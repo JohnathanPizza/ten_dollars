@@ -1,0 +1,8 @@
+; suspends a process until it becomes the process with read focus
+
+>BRK_WAIT_FOCUS
+	JSR	PROC_LEAVE		; save proc
+	LDY	PROC_ACTIVE_ID		; load proc id
+	LDA.I	PROC_STATE_WAIT_FOCUS	; load wait focus value
+	STA.Y	PROC_STATE		; update state
+	JMP	SERVICE_CYCLE_BEGIN	; start new cycle

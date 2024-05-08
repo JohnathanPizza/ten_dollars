@@ -1,6 +1,8 @@
+; waits until the process has read focus
+
 >SERVICE_WAIT_FOCUS
 	LDY	PROC_ACTIVE_ID		; load active id
-	CMP	IO_READ_FOCUS		; compare to focus
+	CPY	IO_READ_FOCUS		; compare to focus
 	BEQ	_SERVICE_WAIT_FOCUS_GOOD	; if equal then unblock
 	JMP	SERVICE_CYCLE_BEGIN	; start next cycle
 >_SERVICE_WAIT_FOCUS_GOOD

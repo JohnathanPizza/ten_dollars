@@ -8,6 +8,7 @@
 ; arr[5] = num data pages
 ; arr[6] = parent proc id
 ; if proc id was 0xff then vr11/1 holds proc id of calling process
+; if vr3 is null pointer 0XFFFF then none of that stuff is written
 
 >BRK_PROCSTAT
 	LDX.Z	VR4			; load given proc id
@@ -20,6 +21,10 @@
 	LDX	PROC_ACTIVE_ID		; load active id
 	STX.Z	VR11			; store in return value for proc to access
 >_BRK_PROCSTAT_CONT
+	LDA.Z	VR3			; test for null pointer in VR3
+	AND.Z	VR3 1
+	INC
+	BEQ	_BRK_PROCSTAT_END	; if null then skip all this stuff
 	TXA				; move id to A
 	ASL				; id * 2 for PC offset
 	TAX				; back to X

@@ -2,6 +2,7 @@ const/ascii.cvm
 const/bool.cvm
 const/fileop.cvm
 const/hardware.cvm
+const/null.cvm
 const/procflag.cvm
 const/via.cvm
 const/vridx.cvm

@@ -6,8 +6,6 @@
 ; PROC_UNPAUSE
 ; PROGRAM_ADJUST
 
-=PROC_COUNT	16
-
 ;==================================================
 
 ; PROC_GET

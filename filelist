@@ -4,6 +4,7 @@ const/fileop.cvm
 const/hardware.cvm
 const/null.cvm
 const/procflag.cvm
+const/system.cvm
 const/via.cvm
 const/vridx.cvm
 

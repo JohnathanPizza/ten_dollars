@@ -16,10 +16,6 @@
 ; PAGE_TABLE_GET_DATA
 ; PAGE_TABLE_NEXT_DATA
 
-=PAGE_MAP_RAM_BASE	0X10
-=PAGE_COUNT_RAM1	0X70
-=PAGE_COUNT_TOTAL	0XF0 ; 0x80 + 0x70
-
 ;==================================================
 
 ; PAGE_TABLE_VACANT

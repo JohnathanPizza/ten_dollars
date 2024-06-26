@@ -7,7 +7,12 @@
 	LDA.Z	VR4			; else load the new process id
 	CMP.I	PROC_COUNT		; test if in range
 	BGE	_BRK_FOCUS_CHANGE_FAIL	; fail if out of range
-	STA	IO_READ_FOCUS		; else change read focus
+	TAY				; move proc id to y
+	LDA.Y	PROC_STATE		; load state of that proc
+	CMP.I	PROC_STATE_NULL		; test if proc even exists
+	BEQ	_BRK_FOCUS_CHANGE_FAIL	; fail if the proc doesnt exist
+	TYA				; move proc id back
+	STA	IO_READ_FOCUS		; change read focus
 	LDA.I	TRUE			; load true
 	STA.Z	VR11			; store
 	JMP	PROC_UNPAUSE		; return to process

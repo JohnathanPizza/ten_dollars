@@ -54,7 +54,6 @@ core/service/array.cvm
 core/service/exit.cvm
 core/service/init_disk.cvm
 core/service/init_rom.cvm
-core/service/io_file.cvm
 core/service/io_read.cvm
 core/service/null.cvm
 core/service/ready.cvm

@@ -24,5 +24,5 @@
 	INY				; inc string idx
 	BNE	_BRK_WRITES_LOOP	; if string idx not over 255 then loop
 >_BRK_WRITES_LOOP_END
-	STY.Z	VR11			; store characters written in VR11/1
+	STY.Z	VR11			; store num characters written in VR11/1
 	JMP	PROC_UNPAUSE		; return to proc

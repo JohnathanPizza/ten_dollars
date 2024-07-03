@@ -27,9 +27,6 @@
 	JMP	PROC_UNPAUSE		; return to proc
 >_BRK_FILE_OP_END
 	JSR	PROC_LEAVE		; save proc
-	LDY	PROC_ACTIVE_ID		; load proc id
-	LDA.I	PROC_STATE_READY	; load new state value
-	STA.Y	PROC_STATE		; update state
 	JMP	SERVICE_CYCLE_BEGIN	; start new cycle
 
 >_BRK_FILE_OP_ARR

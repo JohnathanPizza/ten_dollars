@@ -10,6 +10,9 @@
 >BRK_SPAWN_DISK
 	LDA.I	0XFF			; load error value
 	STA.Z	VR11			; store in VR11/1
+	LDA	PROC_ACTIVE_ID		; load proc id
+	CMP	IO_FILE_CLAIM		; test if this proc has file access
+	BNE	_BRK_SPAWN_DISK_END	; return if not
 	LDA	IO_FILE_A_ID		; load file A id
 	BEQ	_BRK_SPAWN_DISK_END	; if none open, just return
 	JSR	PROC_GET		; get an open process id

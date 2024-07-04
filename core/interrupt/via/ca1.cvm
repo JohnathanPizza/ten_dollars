@@ -22,7 +22,9 @@
 	; can translate the scan code to an ASCII character
 	BIT	IO_KEYBOARD_FLAGS	; BIT the flags var, N flag will have bit 7
 	STZ	IO_KEYBOARD_FLAGS	; flags are consumed, reset
-	BMI	_INTERRUPT_CA1_EXIT	; if N = 0, good to read since no flags, else return
+	BPL	_INTERRUPT_CA1_CONT	; if N = 0, good to read since no flags, else return
+	JMP	_INTERRUPT_CA1_EXIT	; return
+>_INTERRUPT_CA1_CONT
 	ORA	IO_KEYBOARD_SHIFT	; A still has the scan code, add 0x80 if shift is down
 	LDX.I	0X7F			; load highest ASCII value
 >_INTERRUPT_CA1_LOOP
@@ -72,8 +74,21 @@
 	DEC	IO_READ_IDX		; else decrement write index, effectively deleting char
 	BRA	_INTERRUPT_CA1_EXIT	; exit
 >_INTERRUPT_CA1_ESC
-	LDA.I	0			; load 0 to switch focus to proc id 0
-	STA	IO_READ_FOCUS		; set proc id focus
+	JSR	PROC_GET		; get open process id
+	CMP.I	PROC_COUNT		; test if failed
+	BEQ	_INTERRUPT_CA1_EXIT	; just return if no process open
+	TAY				; move good proc id to Y
+	LDA.I	ROM_SHELL_ID		; load program id
+	STA.Y	PROC_A			; store in process A register
+	LDA.I	0XFF			; load base process id
+	STA.Y	PROC_PARENT		; store parent
+	LDA.I	PROC_STATE_INIT_ROM	; load init rom state
+	STA.Y	PROC_STATE		; store in proc state
+	LDA.I	1			; load 1 for low priority
+	STA.Y	PROC_SCHEDULE_PRIORITY	; store in process priority
+	LDA.I	0			; load 0 to reset schedule counter
+	STA.Y	PROC_SCHEDULE_COUNT	; reset counter
+	STY	IO_READ_FOCUS		; set new proc id as focus
 >_INTERRUPT_CA1_EXIT
 	STA	HW_ENABLE_ADDR HW_RAM1	; turn off VIA
 	JMP	PROC_UNPAUSE		; resume process

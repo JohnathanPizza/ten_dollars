@@ -14,6 +14,7 @@
 ;	VRY: summand B
 ; R ---	VRX: sum S=A+B
 ; adds the two 16-bit numbers in registers given by VRIs in X and Y
+; results of operation stored in P after
 
 >ADD16
 	PHA		; store A
@@ -24,7 +25,15 @@
 	LDA.ZX	VRB 1	; load high byte of A
 	ADC.Y	VRB 1	; add with high byte of B
 	STA.ZX	VRB 1	; store into high byte of S
-	PLA		; restore A
+	PHP		; save P results in VR11/1
+	PLA
+	STA.Z	VR11
+	PLA		; save original A in VR11/2 to switch A and P on stack
+	STA.Z	VR11 1
+	LDA.Z	VR11	; load P
+	PHA		; push so it comes off last
+	LDA.Z	VR11 1	; restore A
+	PLP		; pull P to get add results
 	RTS		; return
 
 ;==================================================
@@ -34,6 +43,7 @@
 ;	VRY: subtrahend B
 ; R ---	VRX: difference D=A-B
 ; subtracts the two 16-bit numbers in registers given by VRIs in X and Y
+; results of operation stored in P after
 
 >SUB16
 	PHA		; store A
@@ -44,7 +54,15 @@
 	LDA.ZX	VRB 1	; load high byte of A
 	SBC.Y	VRB 1	; subtract with high byte of B
 	STA.ZX	VRB 1	; store into high byte of D
-	PLA		; restore A
+	PHP		; save P results in VR11/1
+	PLA
+	STA.Z	VR11
+	PLA		; save original A in VR11/2 to switch A and P on stack
+	STA.Z	VR11 1
+	LDA.Z	VR11	; load P
+	PHA		; push so it comes off last
+	LDA.Z	VR11 1	; restore A
+	PLP		; pull P to get sub results
 	RTS		; return
 
 ;==================================================
@@ -212,11 +230,12 @@
 ;==================================================
 
 ; GREU16
-; P --- VRX: number 1 A
-;	VRY: number 2 B
+; P --- VRX: number A
+;	VRY: number B
 ; R --- A: comparison result R
 ; performs an unsigned comparison of A >= B
-; can directly compare flags after function call
+; R = FALSE if A < B
+; R = TRUE if A >= B
 
 >GREU16
 	LDA.ZX	VRB 1		; load high byte of A

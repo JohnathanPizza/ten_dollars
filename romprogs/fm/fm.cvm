@@ -1,0 +1,538 @@
+; fm r name p
+; read byte in "name" at position p
+
+; fm rc name p l
+; read chunk of l bytes in "name" at position p
+
+; fm w name p v
+; write byte in "name" at position p with value v
+
+; map
+; pointer offset
+=_FM_POL	0
+=_FM_POH	1
+=_FM_ARGPTR	2
+=_FM_ARGLEN	4
+=_FM_FILE_COUNT	5
+=_FM_INPUT_BUF		0X10
+=_FM_INPUT_BUF_LEN	0X40
+=_FM_NAME_BUF		0X50
+=_FM_NAME_BUF_LEN	0X10
+
+>FM_START
+
+	STZ.Z	_FM_NAME_BUF _FM_NAME_BUF_LEN - 1
+
+	; get the process pointer offset to adjust strings
+	LDA.I	BC_PTROFF
+	BRK
+	LDA.Z	VR11
+	STA.Z	_FM_POL
+	LDA.Z	VR11 1
+	STA.Z	_FM_POH
+
+	JSR	_FM_ADJUST_PTRS
+
+	; print the starting prompt
+	LDA	_FM_STR_PTR_ARRAY _FM_PROMPT_STR_ID
+	STA.Z	VR0
+	LDA	_FM_STR_PTR_ARRAY _FM_PROMPT_STR_ID 1
+	STA.Z	VR0 1
+	JSR	PRINTL
+
+>_FM_LOOP
+	; get user input
+	LDA.I	ASCII_HASHTAG
+	JSR	PRINTC
+	LDA.I	ASCII_LF
+	JSR	PRINTC
+	JSR	_FM_GET_INPUT
+	JSR	_FM_GET_ARG
+	CMP.I	FALSE
+	BEQ	_FM_LOOP
+
+	; search for given command
+	LDA.Z	_FM_ARGPTR
+	STA.Z	VR1
+	STZ.Z	VR1 1
+	LDA.Z	_FM_ARGLEN
+	STA.Z	VR4
+	LDX.I	0
+>_FM_SEARCH_LOOP
+	LDA.X	_FM_FUNC_STR_PTR_ARRAY
+	STA.Z	VR0
+	LDA.X	_FM_FUNC_STR_PTR_ARRAY 1
+	STA.Z	VR0 1
+	JSR	STRLEN
+	CMP.Z	VR4
+	BNE	_FM_SEARCH_LOOP_SKIP
+	JSR	STRNCMP
+	CMP.I	0
+	BNE	_FM_SEARCH_LOOP_SKIP
+	; found
+	JMP.XP	_FM_FUNC_ARRAY
+>_FM_SEARCH_LOOP_SKIP
+	INX
+	INX
+	CPX.I	_FM_FUNC_STR_PTR_ARRAY_END - _FM_FUNC_STR_PTR_ARRAY
+	BNE	_FM_SEARCH_LOOP
+
+	; none found
+	LDA.I	ASCII_QUOTE
+	JSR	PRINTC
+	LDA.Z	_FM_ARGPTR
+	STA.Z	VR0
+	STZ.Z	VR0 1
+	LDY.Z	_FM_ARGLEN
+	LDA.I	ASCII_NUL
+	STA.ZPY	VR0
+	JSR	PRINTS
+	LDA.I	ASCII_QUOTE
+	JSR	PRINTC
+	LDA	_FM_STR_PTR_ARRAY _FM_COMMAND_ERROR_STR_ID
+	STA.Z	VR0
+	LDA	_FM_STR_PTR_ARRAY _FM_COMMAND_ERROR_STR_ID 1
+	STA.Z	VR0 1
+	JSR	PRINTL
+
+	JMP	_FM_LOOP
+
+>_FM_HELP_STR
+"help\0
+>_FM_DISK_STR
+"disk\0
+>_FM_FORMAT_STR
+"format\0
+>_FM_DNAME_STR
+"dname\0
+>_FM_LIST_STR
+"list\0
+>_FM_FIND_STR
+"find\0
+>_FM_CREATE_STR
+"create\0
+>_FM_DESTROY_STR
+"destroy\0
+>_FM_FNAME_STR
+"fname\0
+>_FM_EXIT_STR
+"exit\0
+
+>_FM_HELP_OUT_STR
+"help - this\n
+"disk - test if a disk is inserted and print disk name\n
+"format - format the inserted disk with a default name\n
+"dname name - rename the inserted disk (15 chars max)\n
+"list - list the names and file ids of all files on the inserted disk\n
+"find name - try to find a file by name on the inserted disk\n
+"create name - try to create a file by name on the inserted disk\n
+"destroy name - try to destroy a file by name on the inserted disk\n
+"fname oldname newname - try to rename file oldname to newname (15 chars max)\n
+"exit - exit File Manager\0
+
+>_FM_PROMPT_STR
+"File Manager - enter command or type "help" to see all commands\0
+
+>_FM_COMMAND_ERROR_STR
+" is not a command\0
+
+>_FM_FILE_CLAIM_ERROR_STR
+"Failed to claim file permission\0
+
+>_FM_DISK_ABSENT_STR
+"No disk detected\0
+
+>_FM_DISK_FORMAT_ERROR_STR
+"Disk access failed because disk is unformatted\0
+
+>_FM_DISK_NAME_STR
+"Disk name: \0
+
+>_FM_FILE_COUNT_STR
+" file(s) found\0
+
+>_FM_MISSING_ARG_STR
+"Missing argument(s)\0
+
+>_FM_DUPLICATE_FILE_STR
+"File with name already exists\0
+
+>_FM_FULL_DISK_STR
+"No space left on disk\0
+
+>_FM_PTR_ARRAY
+>_FM_FUNC_STR_PTR_ARRAY
+
+$_FM_HELP_STR
+$_FM_DISK_STR
+$_FM_FORMAT_STR
+$_FM_DNAME_STR
+$_FM_LIST_STR
+$_FM_FIND_STR
+$_FM_CREATE_STR
+$_FM_DESTROY_STR
+$_FM_FNAME_STR
+$_FM_EXIT_STR
+
+>_FM_FUNC_STR_PTR_ARRAY_END
+
+>_FM_STR_PTR_ARRAY
+
+$_FM_HELP_OUT_STR
+$_FM_PROMPT_STR
+$_FM_COMMAND_ERROR_STR
+$_FM_FILE_CLAIM_ERROR_STR
+$_FM_DISK_ABSENT_STR
+$_FM_DISK_FORMAT_ERROR_STR
+$_FM_DISK_NAME_STR
+$_FM_FILE_COUNT_STR
+$_FM_MISSING_ARG_STR
+$_FM_DUPLICATE_FILE_STR
+$_FM_FULL_DISK_STR
+
+>_FM_PTR_ARRAY_END
+
+=_FM_HELP_STR_ID	0
+=_FM_DISK_STR_ID	2
+=_FM_FORMAT_STR_ID	4
+=_FM_DNAME_STR_ID	6
+=_FM_LIST_STR_ID	8
+=_FM_FIND_STR_ID	10
+=_FM_CREATE_STR_ID	12
+=_FM_DESTROY_OUT_STR_ID	14
+=_FM_FNAME_STR_ID	16
+=_FM_EXIT_STR_ID	18
+
+=_FM_HELP_OUT_STR_ID	0
+=_FM_PROMPT_STR_ID	2
+=_FM_COMMAND_ERROR_STR_ID	4
+=_FM_FILE_CLAIM_ERROR_STR_ID	6
+=_FM_DISK_ABSENT_STR_ID		8
+=_FM_DISK_FORMAT_ERROR_STR_ID	10
+=_FM_DISK_NAME_STR_ID	12
+=_FM_FILE_COUNT_STR_ID	14
+=_FM_MISSING_ARG_STR_ID	16
+=_FM_DUPLICATE_FILE_STR_ID	18
+=_FM_FULL_DISK_STR_ID	20
+
+>_FM_FUNC_ARRAY
+$_FM_HELP_FUNC
+$_FM_DISK_FUNC
+$_FM_FORMAT_FUNC
+$_FM_DNAME_FUNC
+$_FM_LIST_FUNC
+$_FM_FIND_FUNC
+$_FM_CREATE_FUNC
+$_FM_DESTROY_FUNC
+$_FM_FNAME_FUNC
+$_FM_EXIT_FUNC
+
+>_FM_HELP_FUNC
+	LDA	_FM_STR_PTR_ARRAY _FM_HELP_OUT_STR_ID		; load help message string
+	STA.Z	VR0
+	LDA	_FM_STR_PTR_ARRAY _FM_HELP_OUT_STR_ID 1
+	STA.Z	VR0 1
+	JSR	PRINTL						; print
+	JMP	_FM_LOOP					; return to main loop
+
+>_FM_DISK_FUNC
+	JSR	_FM_CLAIM_AND_TEST_DISK				; claim and test
+	LDA.I	_FM_NAME_BUF					; load name buffer address
+	STA.Z	VR1
+	STZ.Z	VR1 1
+	LDA.I	FILE_OP_DISK_NAME				; load disk name file op code
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP					; get disk name
+	BRK
+	LDA.Z	VR11						; test if disk name found
+	CMP.I	0
+	BEQ	_FM_DISK_FUNC_NAME				; continue if name found
+	JSR	_FM_DISK_FORMAT_ERROR				; only error could be unformatted disk, print format error string
+	JMP	_FM_LOOP_CLEAR					; return to main loop
+>_FM_DISK_FUNC_NAME
+	LDA	_FM_STR_PTR_ARRAY _FM_DISK_NAME_STR_ID		; load disk name string
+	STA.Z	VR0
+	LDA	_FM_STR_PTR_ARRAY _FM_DISK_NAME_STR_ID 1
+	STA.Z	VR0 1
+	JSR	PRINTS						; print
+	LDA.I	_FM_NAME_BUF					; load disk name buffer address
+	STA.Z	VR0
+	STZ.Z	VR0 1
+	JSR	PRINTL						; print
+	JMP	_FM_LOOP_CLEAR					; return to main loop
+
+>_FM_FORMAT_FUNC
+	JSR	_FM_CLAIM_AND_TEST_DISK				; claim and test
+	LDA.I	FILE_OP_FORMAT					; load floppy formatting code
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP					; format disk
+	BRK
+	JMP	_FM_LOOP_CLEAR					; return to main loop
+
+;==================================================
+
+>_FM_DNAME_FUNC
+	JSR	_FM_GET_ARG					; try to get new disk name
+	CMP.I	TRUE						; test if given arg
+	BEQ	_FM_DNAME_FUNC_ARG				; continue if arg given
+	JSR	_FM_MISSING_ARG_ERROR				; print missing arg error
+	JMP	_FM_LOOP					; return to main loop
+>_FM_DNAME_FUNC_ARG
+	JSR	_FM_CLAIM_AND_TEST_DISK				; claim and test
+	LDA.Z	_FM_ARGPTR					; load pointer to name arg
+	STA.Z	VR0						; set in VR0 for disk rename interrupt
+	STZ.Z	VR0 1
+	LDA.I	FILE_OP_DISK_RENAME				; load disk rename file op code
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP					; rename disk
+	BRK
+	LDA.Z	VR11						; test if succeeded
+	CMP.I	TRUE
+	BEQ	_FM_DNAME_FUNC_END				; exit if success
+	JSR	_FM_DISK_FORMAT_ERROR				; else print format error
+>_FM_DNAME_FUNC_END
+	JMP	_FM_LOOP_CLEAR					; return to main loop
+
+>_FM_LIST_FUNC
+	JSR	_FM_CLAIM_AND_TEST_DISK				; claim and test
+	; gonna cheese the system here for faster output
+	; FILE_OP_INFO reads a whole sector of file names (16 files exactly)
+	; because this program has file claims, the sector in the floppy page wont change until we read again
+	; can just load file 1, 17, 33 etc and read the other 15 strings from the floppy page to save disk requests and lots of time
+	; can tell that a file exists by a name since names cant be 0 length and destroying files clears names
+	LDA.I	FILE_OP_INFO					; load file info code
+	STA.Z	VR6
+	LDA.I	_FM_NAME_BUF					; load file name buffer pointer for file name (wont be used though)
+	STA.Z	VR1
+	STZ.Z	VR1 1
+	LDX.I	1						; initial file idx
+	STZ.Z	_FM_FILE_COUNT					; reset file count
+	LDA.I	FLOPPY_PAGE > 8					; set up pointer to file names
+	STA.Z	VR0 1
+	STZ.Z	VR0
+>_FM_LIST_FUNC_LOOP1
+	JSR	PRINT_WAIT					; wait for everything to print
+	STX.Z	VR4						; set file idx to load sector
+	LDA.I	BC_FILE_OP					; call file info interrupt to load sector with file names
+	BRK
+	LDA.Z	VR11						; test if succeeded
+	CMP.I	0
+	BEQ	_FM_LIST_FUNC_LOOP2				; continue if succeeded
+	JSR	_FM_DISK_FORMAT_ERROR				; else print error
+	JMP	_FM_LOOP_CLEAR					; return to main loop
+>_FM_LIST_FUNC_LOOP2
+	JSR	STRLEN						; test length of file name
+	CMP.I	0
+	BEQ	_FM_LIST_FUNC_LOOP2_ZERO
+	INC.Z	_FM_FILE_COUNT					; increment file count
+	STZ.Z	VR4 1						; load file id to VR4 to print it
+	STX.Z	VR4
+	JSR	PRINTDU16					; print file id
+	LDA.I	ASCII_COLON					; print colon
+	JSR	PRINTC
+	LDA.I	ASCII_SPACE					; print space
+	JSR	PRINTC
+	JSR	PRINTL						; print file name
+>_FM_LIST_FUNC_LOOP2_ZERO
+	LDA.Z	VR0						; add 16 to pointer for next file name
+	CLC
+	ADC.I	16
+	STA.Z	VR0
+	INX							; increment file id
+	CPX.I	FILE_COUNT_MAX + 1				; test if all files have been tested
+	BEQ	_FM_LIST_FUNC_END
+	LDA.Z	VR0						; test if pointer rolled over
+	BEQ	_FM_LIST_FUNC_LOOP1				; if so then that means new sector should be loaded based on X
+	BRA	_FM_LIST_FUNC_LOOP2				; keep testing file names in the same sector
+>_FM_LIST_FUNC_END
+	LDA.Z	_FM_FILE_COUNT					; load total file count
+	STA.Z	VR4						; print
+	STZ.Z	VR4 1
+	JSR	PRINTDU16
+	LDA	_FM_STR_PTR_ARRAY _FM_FILE_COUNT_STR_ID		; print file count string
+	STA.Z	VR0
+	LDA	_FM_STR_PTR_ARRAY _FM_FILE_COUNT_STR_ID 1
+	STA.Z	VR0 1
+	JSR	PRINTL
+	JMP	_FM_LOOP_CLEAR					; return to main loop
+
+>_FM_FIND_FUNC
+	JMP	_FM_LOOP
+
+>_FM_CREATE_FUNC
+	JSR	_FM_GET_ARG					; try to get new file name
+	CMP.I	TRUE						; test if given arg
+	BEQ	_FM_CREATE_FUNC_ARG				; continue if arg given
+	JSR	_FM_MISSING_ARG_ERROR				; print missing arg error
+	JMP	_FM_LOOP					; return to main loop
+>_FM_CREATE_FUNC_ARG
+	JSR	_FM_CLAIM_AND_TEST_DISK				; claim and test
+	LDA.Z	_FM_ARGPTR					; load pointer to name arg
+	STA.Z	VR0						; set in VR0 for disk rename interrupt
+	STZ.Z	VR0 1
+	LDA.I	FILE_OP_CREATE					; load file create file op code
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP					; create file
+	BRK
+	; SUCCESS TEST!!!!!! create standard file error functions
+	JMP	_FM_LOOP_CLEAR
+
+>_FM_DESTROY_FUNC
+	JMP	_FM_LOOP
+
+>_FM_FNAME_FUNC
+	JMP	_FM_LOOP
+
+>_FM_EXIT_FUNC
+	LDA.I	BC_EXIT						; exit program
+	BRK
+
+>_FM_DISK_FORMAT_ERROR
+	PHA
+	LDA	_FM_STR_PTR_ARRAY _FM_DISK_FORMAT_ERROR_STR_ID
+	STA.Z	VR0
+	LDA	_FM_STR_PTR_ARRAY _FM_DISK_FORMAT_ERROR_STR_ID 1
+	STA.Z	VR0 1
+	JSR	PRINTL
+	PLA
+	RTS
+
+>_FM_MISSING_ARG_ERROR
+	PHA
+	LDA	_FM_STR_PTR_ARRAY _FM_MISSING_ARG_STR_ID
+	STA.Z	VR0
+	LDA	_FM_STR_PTR_ARRAY _FM_MISSING_ARG_STR_ID 1
+	STA.Z	VR0 1
+	JSR	PRINTL
+	PLA
+	RTS
+
+>_FM_ADJUST_PTRS
+	PHA
+	PHX
+	LDX.I	0
+>_FM_ADJUST_PTRS_LOOP
+	CLC
+	LDA.X	_FM_PTR_ARRAY
+	ADC.Z	_FM_POL
+	STA.X	_FM_PTR_ARRAY
+	LDA.X	_FM_PTR_ARRAY 1
+	ADC.Z	_FM_POH
+	STA.X	_FM_PTR_ARRAY 1
+	INX
+	INX
+	CPX.I	_FM_PTR_ARRAY_END - _FM_PTR_ARRAY
+	BNE	_FM_ADJUST_PTRS_LOOP
+	PLX
+	PLA
+	RTS
+
+>_FM_GET_INPUT
+	PHA				; store A
+	LDA.Z	VR0			; save VR0
+	PHA
+	LDA.Z	VR0 1
+	PHA
+	LDA.Z	VR4			; save VR4/1
+	PHA
+	LDA.I	_FM_INPUT_BUF		; load pointer to input buffer
+	STA.Z	_FM_ARGPTR		; reset arg pointer
+	STZ.Z	_FM_ARGPTR 1
+	STZ.Z	_FM_ARGLEN		; reset arg length
+	STA.Z	VR0			; set read buffer to input buffer
+	STZ.Z	VR0 1
+	LDA.I	_FM_INPUT_BUF_LEN	; load input buffer size
+	STA.Z	VR4
+	LDA.I	BC_READ			; load read code
+	BRK				; get input
+	JSR	PRINTL			; reflect input
+	PLA				; restore VR4/1
+	STA.Z	VR4
+	PLA				; restore VR0
+	STA.Z	VR0 1
+	PLA
+	STA.Z	VR0
+	PLA				; return A
+	RTS				; return
+
+; advance argptr to next val
+; a = true if found another arg
+; a = false if none left to read / do not use
+>_FM_GET_ARG
+	LDA.Z	_FM_ARGPTR
+	CLC
+	ADC.Z	_FM_ARGLEN
+	STA.Z	_FM_ARGPTR
+	STZ.Z	_FM_ARGLEN
+>_FM_GET_ARG_TRIM_LOOP
+	LDA.ZP	_FM_ARGPTR
+	BEQ	_FM_GET_ARG_NONE
+	JSR	ISSPACE
+	CMP.I	FALSE
+	BEQ	_FM_GET_ARG_TRIM_DONE
+	INC.Z	SHELL_ARGPTR
+	BRA	_FM_GET_ARG_TRIM_LOOP
+>_FM_GET_ARG_TRIM_DONE
+>_FM_GET_ARG_SPACE_LOOP
+	LDA.ZP	_FM_ARGPTR
+	BEQ	_FM_GET_ARG_SPACE_DONE
+	JSR	ISSPACE
+	CMP.I	TRUE
+	BEQ	_FM_GET_ARG_SPACE_DONE
+	INC.Z	_FM_ARGLEN
+	INC.Z	_FM_ARGPTR
+	BRA	_FM_GET_ARG_SPACE_LOOP
+>_FM_GET_ARG_SPACE_DONE
+	LDA.Z	_FM_ARGPTR
+	SEC
+	SBC.Z	_FM_ARGLEN
+	STA.Z	_FM_ARGPTR
+	LDA.I	TRUE
+	RTS
+>_FM_GET_ARG_NONE
+	LDA.I	FALSE
+	RTS
+
+>_FM_LOOP_CLEAR
+	LDA.I	BC_FILE_RELEASE
+	BRK
+	JMP	_FM_LOOP
+
+; dont saves nothing
+; if succeeds, returns to caller
+; if fails, doesnt return and goes to main loop
+>_FM_CLAIM_AND_TEST_DISK
+	JSR	PRINT_WAIT					; wait here to save code in functions
+	LDA.I	BC_FILE_CLAIM					; try claiming file access
+	BRK
+	LDA.Z	VR11						; test if file access claimed
+	CMP.I	TRUE
+	BEQ	_FM_CLAIM_AND_TEST_DISK_CLAIMED			; continue if claimed
+	LDA	_FM_STR_PTR_ARRAY _FM_FILE_CLAIM_ERROR_STR_ID	; load file claim error string
+	STA.Z	VR0
+	LDA	_FM_STR_PTR_ARRAY _FM_FILE_CLAIM_ERROR_STR_ID 1
+	STA.Z	VR0 1
+	JSR	PRINTL						; print
+	PLA							; clear return address
+	PLA
+	JMP	_FM_LOOP					; return to main loop
+>_FM_CLAIM_AND_TEST_DISK_CLAIMED
+	LDA.I	FILE_OP_DISK_TEST				; load disk test file op code
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP					; test for disk presence
+	BRK
+	LDA.Z	VR11						; test if disk present
+	CMP.I	TRUE
+	BEQ	_FM_CLAIM_AND_TEST_DISK_PRESENT			; continue if disk is present
+	LDA	_FM_STR_PTR_ARRAY _FM_DISK_ABSENT_STR_ID	; load disk absent error string
+	STA.Z	VR0
+	LDA	_FM_STR_PTR_ARRAY _FM_DISK_ABSENT_STR_ID 1
+	STA.Z	VR0 1
+	JSR	PRINTL						; print
+	PLA							; clear return address
+	PLA
+	JMP	_FM_LOOP_CLEAR					; return to main loop
+>_FM_CLAIM_AND_TEST_DISK_PRESENT
+	RTS							; return
+
+>FM_END

@@ -5,6 +5,7 @@
 ; PRINTL
 ; PRINTH
 ; PRINTB
+; PRINTDU16
 ; PRINT_WAIT
 
 ;==================================================
@@ -145,6 +146,124 @@
 	STX.Z	VR7
 	PLX			; restore X
 	PLA			; restore B
+	RTS			; return
+
+;==================================================
+
+; PRINTDU16
+; P --- VR4: unsigned 16 byte number N
+; writes the decimal representation of N to the print buffer
+
+>PRINTDU16
+	PHA			; store A
+	PHX			; store X
+	PHY			; store Y
+	LDA.Z	VR4		; store VR4
+	PHA
+	LDA.Z	VR4 1
+	PHA
+	LDA.Z	VR5		; store VR5/1, will use as digit value
+	PHA
+	LDA.Z	VR5 1		; store VR5/2, will use as leading 0 flag
+	PHA
+	LDA.I	10000		; load 10,000 into VR10
+	STA.Z	VR10
+	LDA.I	10000 > 8
+	STA.Z	VR10 1
+	LDX.I	VRI_4		; set first number to N
+	LDY.I	VRI_10	; set second number to 10K
+	STZ.Z	VR5		; zero current digit
+	LDA.I	1		; set leading 0 flag
+	STA.Z	VR5 1
+>_PRINTDU16_10K
+	JSR	GREU16		; test if N >= 10K, doing unsigned test here is probably wrong
+	CMP.I	FALSE
+	BEQ	_PRINTDU16_10K_END	; go to next digit if so
+	STZ.Z	VR5 1		; clear leading 0
+	INC.Z	VR5		; increment digit
+	JSR	SUB16		; subtract digit value
+	BRA	_PRINTDU16_10K	; loop
+>_PRINTDU16_10K_END
+	JSR	_PRINTDU16_HELPER
+	LDA.I	1000		; load 1,000 into VR10
+	STA.Z	VR10
+	LDA.I	1000 > 8
+	STA.Z	VR10 1
+	STZ.Z	VR5		; zero current digit
+>_PRINTDU16_1K
+	JSR	GREU16		; test if N >= 1K
+	CMP.I	FALSE
+	BEQ	_PRINTDU16_1K_END	; go to next digit if so
+	STZ.Z	VR5 1		; clear leading 0
+	INC.Z	VR5		; increment digit
+	JSR	SUB16		; subtract digit value
+	BRA	_PRINTDU16_1K	; loop
+>_PRINTDU16_1K_END
+	JSR	_PRINTDU16_HELPER
+	LDA.I	100		; load 100 into VR10
+	STA.Z	VR10
+	STZ.Z	VR10 1
+	STZ.Z	VR5		; zero current digit
+>_PRINTDU16_100
+	JSR	GREU16		; test if N >= 100
+	CMP.I	FALSE
+	BEQ	_PRINTDU16_100_END	; go to next digit if so
+	STZ.Z	VR5 1		; clear leading 0
+	INC.Z	VR5		; increment digit
+	JSR	SUB16		; subtract digit value
+	BRA	_PRINTDU16_100	; loop
+>_PRINTDU16_100_END
+	JSR	_PRINTDU16_HELPER
+	LDA.I	10		; load 10 into VR10
+	STA.Z	VR10
+	STZ.Z	VR10 1
+	STZ.Z	VR5		; zero current digit
+>_PRINTDU16_10
+	JSR	GREU16		; test if N >= 10
+	CMP.I	FALSE
+	BEQ	_PRINTDU16_10_END	; go to next digit if so
+	STZ.Z	VR5 1		; clear leading 0
+	INC.Z	VR5		; increment digit
+	JSR	SUB16		; subtract digit value
+	BRA	_PRINTDU16_10	; loop
+>_PRINTDU16_10_END
+	JSR	_PRINTDU16_HELPER
+	LDA.I	1		; load 1 into VR10
+	STA.Z	VR10
+	STZ.Z	VR10 1
+	STZ.Z	VR5		; zero current digit
+	STZ.Z	VR5 1		; clear leading 0 no matter what, first digit must be printed
+>_PRINTDU16_1
+	JSR	GREU16		; test if N >= 1
+	CMP.I	FALSE
+	BEQ	_PRINTDU16_1_END	; go to next digit if so
+	INC.Z	VR5		; increment digit
+	JSR	SUB16		; subtract digit value
+	BRA	_PRINTDU16_1	; loop
+>_PRINTDU16_1_END
+	JSR	_PRINTDU16_HELPER
+	PLA			; restore VR5/2
+	STA.Z	VR5 1
+	PLA			; restore VR5/1
+	STA.Z	VR5
+	PLA			; restore VR4
+	STA.Z	VR4 1
+	PLA
+	STA.Z	VR4
+	PLY			; restore Y
+	PLX			; restore X
+	PLA			; restore A
+	RTS			; return
+>_PRINTDU16_HELPER
+	LDA.Z	VR5 1		; load leading 0 flag
+	BEQ	_PRINTDU16_HELPER_PRINT	; print if not set
+	RTS			; else return since getting leading 0s
+>_PRINTDU16_HELPER_PRINT
+	LDA.Z	VR5		; load digit
+	CLC			; clc for adc
+	ADC.I	ASCII_0		; get ascii value
+	JSR	PRINTC		; print digit
+>_PRINTDU16_HELPER_END
 	RTS			; return
 
 ;==================================================

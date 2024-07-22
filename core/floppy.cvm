@@ -396,7 +396,7 @@
 
 ; FLOPPY_FORMAT
 ; R --- A: success value S
-; formats the entire disk to have blank sectors
+; formats the entire disk to have blank sectors / 0 in every byte of data
 ; S = 0 when the function succeeds
 ; S = FLOPPY_ERROR_NODISK when no disk was found
 

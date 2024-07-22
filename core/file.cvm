@@ -37,6 +37,7 @@
 =FILE_EOF		7
 
 =FILE_POS_END		256 * 19 - 1
+=FILE_COUNT_MAX		79
 
 ;==================================================
 
@@ -101,7 +102,7 @@
 	PHA
 	LDA.Z	VR4 1
 	PHA
-	CPX.I	79			; compare F idx to 79
+	CPX.I	FILE_COUNT_MAX		; compare F idx to max
 	BGE	_FILE_ENABLE_FAIL	; fail if F is out of range
 	STZ.Z	VR4			; set track 0
 	LDA.I	1			; set sector 1
@@ -149,7 +150,7 @@
 	PHA
 	LDA.Z	VR4 1
 	PHA
-	CPX.I	79			; compare F idx to 79
+	CPX.I	FILE_COUNT_MAX		; compare F idx to max
 	BGE	_FILE_DISABLE_FAIL	; fail if F is out of range
 	STZ.Z	VR4			; set track 0
 	LDA.I	1			; set sector 1
@@ -187,6 +188,7 @@
 ; maximum length of N is 15
 ; V = FALSE if the operation failed at any point
 ; V = TRUE if the operation finished
+; does not check if N is too big, truncates if so
 
 >FILE_SET_NAME
 	DEC				; dec F to make it an index
@@ -203,7 +205,7 @@
 	LDA.Z	VR4 1
 	PHA
 	LDA.Z	VR8			; load F idx
-	CPX.I	79			; compare F idx to 79
+	CPX.I	FILE_COUNT_MAX		; compare F idx to max
 	BGE	_FILE_SET_NAME_FAIL	; fail if F is out of range
 	AND.I	0XF			; mask first 4 bits of F idx
 	ASL				; idx *= 16
@@ -227,6 +229,7 @@
 	BNE	_FILE_SET_NAME_FAIL	; fail on error
 	LDA.I	15			; load 15 for STRNCPY value
 	STA.Z	VR4			; store
+	; nul char not added since on format all data is 0 and if byte 16 is never touched then it will always be 0 / nul char
 	JSR	STRNCPY			; copy N to sector
 	STZ.Z	VR4			; set track 0 again
 	JSR	RETRY_FLOPPY_WRITE	; write sector
@@ -259,6 +262,7 @@
 ; maximum length of N is 15
 ; V = FALSE if a failure happened at any point of the renaming
 ; V = TRUE if the operation completed fully
+; does not check if N is too big, truncates if so
 
 >DISK_SET_NAME
 	LDA.Z	VR7			; load VR7/1
@@ -284,6 +288,7 @@
 	LDA.I	FLOPPY_PAGE > 8
 	STA.Z	VR1 1
 	JSR	STRNCPY			; copy N to sector
+	; nul char not added since on format all data is 0 and if byte 16 is never touched then it will always be 0 / nul char
 	STZ.Z	VR4			; set track 0
 	JSR	RETRY_FLOPPY_WRITE	; write sector
 	CMP.I	0			; test if success
@@ -336,7 +341,7 @@
 	LDA.X	FLOPPY_PAGE		; load indicator byte
 	BEQ	_FILE_SPACE_LOOP_END	; exit loop if not occupied
 	INX				; increment idx
-	CPX.I	79			; test if all file IDs gone through
+	CPX.I	FILE_COUNT_MAX		; test if all file IDs gone through
 	BNE	_FILE_SPACE_LOOP	; loop if not done
 	PLX				; restore X
 	BRA	_FILE_SPACE_END		; go to end so F is not updated and is 0

@@ -1,0 +1,7 @@
+; returns status of write buffer in vr11/1
+; while returning true then caller should keep waiting for buffer to empty
+
+>BRK_WRITE_WAIT
+	LDA	IO_WRITE_STATUS
+	STA.Z	VR11
+	JSR	PROC_UNPAUSE

@@ -43,6 +43,7 @@ core/interrupt/brk/suspend.cvm
 core/interrupt/brk/wait_focus.cvm
 core/interrupt/brk/writec.cvm
 core/interrupt/brk/writes.cvm
+core/interrupt/brk/write_wait.cvm
 
 core/interrupt/via/ca1.cvm
 core/interrupt/via/cb1.cvm

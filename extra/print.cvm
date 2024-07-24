@@ -6,6 +6,7 @@
 ; PRINTH
 ; PRINTB
 ; PRINTDU16
+; PRINT_WAIT
 
 ;==================================================
 
@@ -263,4 +264,20 @@
 	ADC.I	ASCII_0		; get ascii value
 	JSR	PRINTC		; print digit
 >_PRINTDU16_HELPER_END
+	RTS			; return
+
+;==================================================
+
+; PRINT_WAIT
+; spins on the write wait interrupt
+; returns when the write buffer is empty
+
+>PRINT_WAIT
+	PHA			; store A
+>_PRINT_WAIT_LOOP
+	LDA.I	BC_WRITE_WAIT	; load write wait code
+	BRK			; get status of writes
+	LDA.Z	VR11		; load return value
+	BNE	_PRINT_WAIT_LOOP	; keep looping if write buffer not empty
+	PLA			; restore A
 	RTS			; return

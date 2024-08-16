@@ -1,0 +1,108 @@
+; STANDARD.CVM
+; ===
+; PROGRAM_GET_ARG
+; PROGRAM_POINTER_ADJUST
+
+;==================================================
+
+; PROGRAM_GET_ARG
+; P --- VR10: argument pointer A
+;	VR11/1: argument length L
+; R --- VR10: new argument pointer NA
+;	VR11/1: new argument length NL
+;	A: success value V
+; sets NA to the beginning of the next argument given in an input string
+; also sets NL to the string length of this next argument within the input string
+; V = FALSE if no other arguments were found in the input string
+; V = TRUE if another agument was found, A and L are valid
+; to start parsing the input string, set L to 0 and A to the beginning of the string input
+; subsequent calls return the next and next arguments in the string
+; do not change A or L if other arguments will be searched for
+
+>PROGRAM_GET_ARG
+	CLC				; add previous L to A to get 1 past end of prev arg
+	LDA.Z	VR10			; load low byte of A
+	ADC.Z	VR11			; add with L
+	STA.Z	VR10			; store in low byte
+	LDA.Z	VR10 1			; load high byte of A
+	ADC.I	0			; add carry
+	STA.Z	VR10 1			; store in high byte
+	STZ.Z	VR11			; set NL to 0
+>_PROGRAM_GET_ARG_TRIM
+	LDA.ZP	VR10			; get possible whitespace character
+	BEQ	_PROGRAM_GET_ARG_NONE	; if nul character then return false
+	JSR	ISSPACE			; test if whitespace
+	CMP.I	FALSE
+	BEQ	_PROGRAM_GET_ARG_WORD	; if not whitespace then this is the start of the next argument
+	JSR	INC10			; increment pointer to next character
+	BRA	_PROGRAM_GET_ARG_TRIM	; loop
+>_PROGRAM_GET_ARG_WORD
+	LDA.ZP	VR10			; get possible character
+	BEQ	_PROGRAM_GET_ARG_DONE	; if nul character then done searching
+	JSR	ISSPACE			; test if this character is a space
+	CMP.I	TRUE
+	BEQ	_PROGRAM_GET_ARG_DONE	; done searching if space character is found
+	INC.Z	VR11			; add 1 to NL
+	JSR	INC10			; increment pointer to next character
+	BRA	_PROGRAM_GET_ARG_WORD	; loop
+>_PROGRAM_GET_ARG_DONE
+	SEC				; subtract NL from current character pointer to set it to the beginning of argument and set NA
+	LDA.Z	VR10
+	SBC.Z	VR11
+	STA.Z	VR10
+	LDA.Z	VR10 1
+	SBC.I	0
+	STA.Z	VR10 1
+	LDA.I	TRUE			; load true value
+	RTS				; return
+>_PROGRAM_GET_ARG_NONE
+	LDA.I	FALSE			; load false value
+	RTS				; return
+
+;==================================================
+
+; PROGRAM_POINTER_ADJUST
+; P --- VR0: pointer to start of pointer array P
+;	VR4: number of pointers in array N
+;	VR5: program pointer offset O
+; adds O to every pointer in P to adjust absolute value pointer literals
+
+>PROGRAM_POINTER_ADJUST
+	PHA			; store A
+	PHY			; store Y
+	LDA.Z	VR0		; store VR0
+	PHA
+	LDA.Z	VR0 1
+	PHA
+	LDA.Z	VR4		; store VR4
+	PHA
+	LDA.Z	VR4 1
+	PHA
+	LDY.I	1		; set Y to 1 for high byte access through pointer
+>_PROGRAM_POINTER_ADJUST_LOOP
+	LDA.Z	VR4		; test if no more pointers left
+	ORA.Z	VR4 1
+	BEQ	_PROGRAM_POINTER_ADJUST_LOOP_DONE
+	CLC			; clc for adc
+	LDA.ZP	VR0		; load low byte of pointer
+	ADC.Z	VR5		; add low byte of O
+	STA.ZP	VR0		; store back
+	LDA.ZPY	VR0		; load high byte of pointer
+	ADC.Z	VR5 1		; add high byte of O
+	STA.ZPY	VR0		; store back
+	JSR	INC0		; add 2 to pointer for next pointer in p
+	JSR	INC0
+	JSR	DEC4		; sub 1 from number of pointers
+	BRA	_PROGRAM_POINTER_ADJUST_LOOP	; loop
+>_PROGRAM_POINTER_ADJUST_LOOP_DONE
+	PLA			; restore VR4
+	STA.Z	VR4 1
+	PLA
+	STA.Z	VR4
+	PLA			; restore VR0
+	STA.Z	VR0 1
+	PLA
+	STA.Z	VR0
+	PLY			; restore Y
+	PLA			; restore A
+	RTS			; return

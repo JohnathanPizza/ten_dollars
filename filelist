@@ -1,5 +1,6 @@
 const/ascii.cvm
 const/bool.cvm
+const/error.cvm
 const/fileop.cvm
 const/hardware.cvm
 const/null.cvm
@@ -63,9 +64,11 @@ core/service/wait_focus.cvm
 extra/bit.cvm
 extra/charconv.cvm
 extra/chartest.cvm
+extra/error.cvm
 extra/math16.cvm
 extra/memory.cvm
 extra/print.cvm
+extra/standard.cvm
 extra/string.cvm
 extra/wait.cvm
 

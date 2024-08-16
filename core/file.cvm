@@ -1,181 +1,115 @@
 ; FILE.CVM
 ; ===
-; RETRY_FLOPPY_READ
-; RETRY_FLOPPY_WRITE
 ; FILE_ENABLE
 ; FILE_DISABLE
 ; FILE_SET_NAME
-; DISK_SET_NAME
 ; FILE_SPACE
 ; FILE_FIND
-; FILE_CREATE
 ; FILE_FLUSH_A
 ; FILE_FLUSH_B
 ; FILE_LOAD_A
 ; FILE_LOAD_B
-; FILE_OPEN_A
-; FILE_OPEN_B
-; FILE_CLOSE_A
-; FILE_CLOSE_B
-; FILE_DESTROY_A
-; FILE_DESTROY_B
-; FILE_RENAME_A
-; FILE_RENAME_B
-; FILE_JUMP_A
-; FILE_JUMP_B
-; FILE_READ_A
-; FILE_READ_B
-; FILE_WRITE_A
-; FILE_WRITE_B
-
-=FILE_ERROR		1
-=FILE_ERROR_NONAME	2
-=FILE_ERROR_DUPNAME	3
-=FILE_ERROR_DISKFULL	4
-=FILE_ERROR_NOFILE	5
-=FILE_ERROR_INUSE	6
-=FILE_EOF		7
 
 =FILE_POS_END		256 * 19 - 1
 =FILE_COUNT_MAX		79
-
-;==================================================
-
-; RETRY_FLOPPY_READ
-; P --- VR4/1: track value T
-;	VR4/2: sector value S
-; R --- A: success value R
-; repeatedly tries to perform the FLOPPY_READ function on track T sector S
-; R = 0 if the read was successful
-; R = FLOPPY_ERROR_NODISK if a disk was not detected
-; R = FLOPPY_ERROR_NOFORMAT if the sector was not found on the track
-
->RETRY_FLOPPY_READ
-	JSR	FLOPPY_READ		; try to read
-	CMP.I	0			; test if success
-	BEQ	_RETRY_FLOPPY_READ_END	; end if success
-	JSR	FLOPPY_READ		; try to read
-	CMP.I	0			; test if success
-	BEQ	_RETRY_FLOPPY_READ_END	; end if success
-	JSR	FLOPPY_READ		; try to read
->_RETRY_FLOPPY_READ_END
-	RTS				; return
-
-;==================================================
-
-; P --- VR4/1: track value T
-;	VR4/2: sector value S
-; R --- A: success value R
-; repeatedly tries to perform the FLOPPY_WRITE function on track T sector S
-; R = 0 if the read was successful
-; R = FLOPPY_ERROR_NODISK if a disk was not detected
-; R = FLOPPY_ERROR_NOFORMAT if the sector was not found on the track
-
->RETRY_FLOPPY_WRITE
-	JSR	FLOPPY_WRITE		; try to write
-	CMP.I	0			; test if success
-	BEQ	_RETRY_FLOPPY_WRITE_END	; end if success
-	JSR	FLOPPY_WRITE		; try to write
-	CMP.I	0			; test if success
-	BEQ	_RETRY_FLOPPY_WRITE_END	; end if success
-	JSR	FLOPPY_WRITE		; try to write
->_RETRY_FLOPPY_WRITE_END
-	RTS				; return
+=FILE_EOF		0XFF
 
 ;==================================================
 
 ; FILE_ENABLE
 ; P --- A: file id F
-; R --- A: success value V
-; marks the indicator byte for F as in-use
-; V = FALSE if the operation failed at any point
-; V = TRUE if the operation finished
+; R --- A: success value R
+; marks the indicator byte for F as in use
+; R = 0 if the operation finished
+; otherwise R = either a floppy error code or file error code
 
 >FILE_ENABLE
-	PHX				; store X
 	DEC				; dec F to make it an index
+	CMP.I	FILE_COUNT_MAX		; test if in range
+	BGE	_FILE_ENABLE_ID		; fail if not
+	PHX				; store X
 	TAX				; move F idx to X
-	LDA.Z	VR7			; store VR7/1
-	PHA
-	STZ.Z	VR7			; store 0/FALSE to VR7/1 and use it as V
 	LDA.Z	VR4			; store VR4
 	PHA
 	LDA.Z	VR4 1
 	PHA
-	CPX.I	FILE_COUNT_MAX		; compare F idx to max
-	BGE	_FILE_ENABLE_FAIL	; fail if F is out of range
 	STZ.Z	VR4			; set track 0
 	LDA.I	1			; set sector 1
 	STA.Z	VR4 1
 	JSR	RETRY_FLOPPY_READ	; read sector
 	CMP.I	0			; test if success
-	BNE	_FILE_ENABLE_FAIL	; fail on error
-	LDA.I	1			; load enable value for F
-	STA.X	FLOPPY_PAGE		; store
-	JSR	RETRY_FLOPPY_WRITE	; write sector back
-	CMP.I	0			; test if success
-	BNE	_FILE_ENABLE_FAIL	; fail on error
-	LDA.I	TRUE			; load true value
-	STA.Z	VR7			; store to V
->_FILE_ENABLE_FAIL
+	BEQ	_FILE_ENABLE_READ	; continue
+	STA.Z	VR11			; save error
 	PLA				; restore VR4
 	STA.Z	VR4 1
 	PLA
 	STA.Z	VR4
-	LDA.Z	VR7			; load V
-	STA.Z	VR8			; store in VR8/1
-	PLA				; restore VR7/1
-	STA.Z	VR7
-	LDA.Z	VR8			; load V
 	PLX				; restore X
+	LDA.Z	VR11			; load error
+	RTS				; return
+>_FILE_ENABLE_READ
+	LDA.I	1			; load enable value for F
+	STA.X	FLOPPY_PAGE		; store
+	JSR	RETRY_FLOPPY_WRITE	; write sector back
+	STA.Z	VR11			; save return code
+	PLA				; restore VR4
+	STA.Z	VR4 1
+	PLA
+	STA.Z	VR4
+	PLX				; restore X
+	LDA.Z	VR11			; load return code
+	RTS				; return
+>_FILE_ENABLE_ID
+	LDA.I	FILE_ERROR_ID		; load bad file id error value
 	RTS				; return
 
 ;==================================================
 
 ; FILE_DISABLE
 ; P --- A: file id F
-; R --- A: success value V
-; marks the indicator byte for F as unused
-; V = FALSE if the operation failed at any point
-; V = TRUE if the operation finished
+; R --- A: success value R
+; marks the indicator byte for F as not used
+; R = 0 if the operation finished
+; otherwise R = either a floppy error code or file error code
 
 >FILE_DISABLE
-	PHX				; store X
 	DEC				; dec F to make it an index
+	CMP.I	FILE_COUNT_MAX		; test if in range
+	BGE	_FILE_DISABLE_ID	; fail if not
+	PHX				; store X
 	TAX				; move F idx to X
-	LDA.Z	VR7			; store VR7/1
-	PHA
-	STZ.Z	VR7			; store 0/FALSE to VR7/1 and use it as V
 	LDA.Z	VR4			; store VR4
 	PHA
 	LDA.Z	VR4 1
 	PHA
-	CPX.I	FILE_COUNT_MAX		; compare F idx to max
-	BGE	_FILE_DISABLE_FAIL	; fail if F is out of range
 	STZ.Z	VR4			; set track 0
 	LDA.I	1			; set sector 1
 	STA.Z	VR4 1
 	JSR	RETRY_FLOPPY_READ	; read sector
 	CMP.I	0			; test if success
-	BNE	_FILE_DISABLE_FAIL	; fail on error
-	LDA.I	0			; load disable value for F
-	STA.X	FLOPPY_PAGE		; store
-	JSR	RETRY_FLOPPY_WRITE	; write sector back
-	CMP.I	0			; test if success
-	BNE	_FILE_DISABLE_FAIL	; fail on error
-	LDA.I	TRUE			; load true value
-	STA.Z	VR7			; store to V
->_FILE_DISABLE_FAIL
+	BEQ	_FILE_DISABLE_READ	; continue
+	STA.Z	VR11			; save error
 	PLA				; restore VR4
 	STA.Z	VR4 1
 	PLA
 	STA.Z	VR4
-	LDA.Z	VR7			; load V
-	STA.Z	VR8			; store in VR8/1
-	PLA				; restore VR7/1
-	STA.Z	VR7
-	LDA.Z	VR8			; load V
 	PLX				; restore X
+	LDA.Z	VR11			; load error
+	RTS				; return
+>_FILE_DISABLE_READ
+	LDA.I	0			; load disable value for F
+	STA.X	FLOPPY_PAGE		; store
+	JSR	RETRY_FLOPPY_WRITE	; write sector back
+	STA.Z	VR11			; save return code
+	PLA				; restore VR4
+	STA.Z	VR4 1
+	PLA
+	STA.Z	VR4
+	PLX				; restore X
+	LDA.Z	VR11			; load return code
+	RTS				; return
+>_FILE_DISABLE_ID
+	LDA.I	FILE_ERROR_ID		; load bad file id error value
 	RTS				; return
 
 ;==================================================
@@ -183,19 +117,18 @@
 ; FILE_SET_NAME
 ; P --- VR0: file name N
 ;	A: file id F
-; R --- A: success value V
+; R --- A: success value R
 ; sets the name of file F to N
-; maximum length of N is 15
-; V = FALSE if the operation failed at any point
-; V = TRUE if the operation finished
+; maximum length of N is 15 ( + nul character)
 ; does not check if N is too big, truncates if so
+; R = 0 if the operation finished
+; otherwise R = either a floppy error code or file error code
 
 >FILE_SET_NAME
 	DEC				; dec F to make it an index
+	CMP.I	FILE_COUNT_MAX
+	BGE	_FILE_SET_NAME_ID
 	STA.Z	VR8			; move F idx to VR8/1
-	LDA.Z	VR7			; store VR7/1
-	PHA
-	STZ.Z	VR7			; store 0/FALSE to VR7/1 and use it as V
 	LDA.Z	VR1			; store VR1
 	PHA
 	LDA.Z	VR1 1
@@ -204,18 +137,10 @@
 	PHA
 	LDA.Z	VR4 1
 	PHA
+	LDA.Z	VR7			; store VR7/1
+	PHA
 	LDA.Z	VR8			; load F idx
-	CPX.I	FILE_COUNT_MAX		; compare F idx to max
-	BGE	_FILE_SET_NAME_FAIL	; fail if F is out of range
-	AND.I	0XF			; mask first 4 bits of F idx
-	ASL				; idx *= 16
-	ASL
-	ASL
-	ASL
-	STA.Z	VR1			; use that as low byte of pointer for STRNCPY
-	LDA.I	FLOPPY_PAGE > 8		; load floppy page number
-	STA.Z	VR1 1			; store as high byte for STRNCPY pointer
-	LDA.Z	VR8			; load F idx
+	STA.Z	VR7			; save in VR7/1
 	LSR				; idx /= 16 to get sector offset
 	LSR
 	LSR
@@ -226,18 +151,27 @@
 	STZ.Z	VR4			; set track 0
 	JSR	RETRY_FLOPPY_READ	; read sector
 	CMP.I	0			; test if success
-	BNE	_FILE_SET_NAME_FAIL	; fail on error
+	BNE	_FILE_SET_NAME_ERROR	; return on error
+	LDA.Z	VR7			; load F idx
+	AND.I	0XF			; mask first 4 bits of F idx
+	ASL				; idx *= 16
+	ASL
+	ASL
+	ASL
+	STA.Z	VR1			; use that as low byte of pointer for STRNCPY
+	LDA.I	FLOPPY_PAGE > 8		; load floppy page number
+	STA.Z	VR1 1			; store as high byte for STRNCPY pointer
+	LDA.Z	VR8			; load F idx
 	LDA.I	15			; load 15 for STRNCPY value
 	STA.Z	VR4			; store
 	; nul char not added since on format all data is 0 and if byte 16 is never touched then it will always be 0 / nul char
 	JSR	STRNCPY			; copy N to sector
 	STZ.Z	VR4			; set track 0 again
 	JSR	RETRY_FLOPPY_WRITE	; write sector
-	CMP.I	0			; test if success
-	BNE	_FILE_SET_NAME_FAIL	; fail on error
-	LDA.I	TRUE			; load true value
-	STA.Z	VR7			; set V
->_FILE_SET_NAME_FAIL
+>_FILE_SET_NAME_ERROR
+	STA.Z	VR8			; store R
+	PLA				; restore VR7
+	STA.Z	VR7
 	PLA				; restore VR4
 	STA.Z	VR4 1
 	PLA
@@ -246,95 +180,39 @@
 	STA.Z	VR1 1
 	PLA
 	STA.Z	VR1
-	LDA.Z	VR7			; load V
-	STA.Z	VR8			; move to VR8/1
-	PLA				; restore VR7/1
-	STA.Z	VR7
-	LDA.Z	VR8			; load V
+	LDA.Z	VR8			; load R
 	RTS				; return
-
-;==================================================
-
-; DISK_SET_NAME
-; P --- VR0: pointer to name N
-; R --- A: success value V
-; changes the name of the disk to N
-; maximum length of N is 15
-; V = FALSE if a failure happened at any point of the renaming
-; V = TRUE if the operation completed fully
-; does not check if N is too big, truncates if so
-
->DISK_SET_NAME
-	LDA.Z	VR7			; load VR7/1
-	PHA				; store
-	STZ.Z	VR7			; set to 0/FALSE and use as V
-	LDA.Z	VR1			; store VR1
-	PHA
-	LDA.Z	VR1 1
-	PHA
-	LDA.Z	VR4			; store VR4
-	PHA
-	LDA.Z	VR4 1
-	PHA
-	STZ.Z	VR4			; set track 0
-	LDA.I	7			; set sector 7
-	STA.Z	VR4 1
-	JSR	RETRY_FLOPPY_READ	; read sector
-	CMP.I	0			; test if success
-	BNE	_DISK_SET_NAME_FAIL	; fail on error
-	LDA.I	15			; load max copy length
-	STA.Z	VR4			; store
-	STZ.Z	VR1			; set destination pointer
-	LDA.I	FLOPPY_PAGE > 8
-	STA.Z	VR1 1
-	JSR	STRNCPY			; copy N to sector
-	; nul char not added since on format all data is 0 and if byte 16 is never touched then it will always be 0 / nul char
-	STZ.Z	VR4			; set track 0
-	JSR	RETRY_FLOPPY_WRITE	; write sector
-	CMP.I	0			; test if success
-	BNE	_DISK_SET_NAME_FAIL	; fail on error
-	LDA.I	TRUE			; all operations successful, load true value
-	STA.Z	VR7			; set V to true
->_DISK_SET_NAME_FAIL
-	PLA				; restore VR4
-	STA.Z	VR4 1
-	PLA
-	STA.Z	VR4
-	PLA				; restore VR1
-	STA.Z	VR1 1
-	PLA
-	STA.Z	VR1
-	LDA.Z	VR7			; load V
-	STA.Z	VR8			; move to VR8/1
-	PLA				; restore VR7/1
-	STA.Z	VR7
-	LDA.Z	VR8			; load V to A
+>_FILE_SET_NAME_ID
+	LDA.I	FILE_ERROR_ID		; load file id error value
 	RTS				; return
 
 ;==================================================
 
 ; FILE_SPACE
-; R --- A: unused file ID F
-; returns a file ID of a unused file on the disk
+; R --- A: return value R
+;	VR11/1: unused filed id F
+; returns a file ID of an unused file on the disk
+; R = 0 if the function succeeded / F should be used
+; otherwise R = either a floppy error code or file error code and F should not be used
 ; F = 0 if no files are unused
-; F = 0XFF if an error happened
 ; otherwise F is the file ID of the next unused file
 
 >FILE_SPACE
-	LDA.Z	VR7			; store VR7/1
-	PHA
-	STZ.Z	VR7			; set to 0 to use it as F
 	LDA.Z	VR4			; store VR4
 	PHA
 	LDA.Z	VR4 1
 	PHA
-
 	STZ.Z	VR4			; set track 0
 	LDA.I	1			; set sector 1
 	STA.Z	VR4 1
 	JSR	RETRY_FLOPPY_READ	; read sector
-	CMP.I	0			; test if success
-	BNE	_FILE_SPACE_FAIL	; fail on error
+	STA.Z	VR8			; save return value
+	PLA				; restore VR4
+	STA.Z	VR4 1
+	PLA
+	STA.Z	VR4
+	LDA.Z	VR8			; load return value
+	BNE	_FILE_SPACE_ERROR	; fail on error
 	PHX				; store X
 	LDX.I	0			; set file id index to 0
 >_FILE_SPACE_LOOP
@@ -343,41 +221,30 @@
 	INX				; increment idx
 	CPX.I	FILE_COUNT_MAX		; test if all file IDs gone through
 	BNE	_FILE_SPACE_LOOP	; loop if not done
-	PLX				; restore X
-	BRA	_FILE_SPACE_END		; go to end so F is not updated and is 0
+	; none available
+	LDX.I	0XFF			; set X to 0XFF so that later X + 1 = 0 for none available (saving instructions)
 >_FILE_SPACE_LOOP_END
 	INX				; inc X so that it becomes the F value
-	STX.Z	VR7			; store to F
+	STX.Z	VR11			; store to F
 	PLX				; restore X
-	BRA	_FILE_SPACE_END
->_FILE_SPACE_FAIL
-	LDA.I	0XFF			; load error code
-	STA.Z	VR7			; store in F
->_FILE_SPACE_END
-	PLA				; restore VR4
-	STA.Z	VR4 1
-	PLA
-	STA.Z	VR4
-	LDA.Z	VR7			; load F
-	STA.Z	VR8			; store to VR8/1
-	PLA				; restore VR7/1
-	STA.Z	VR7
-	LDA.Z	VR8			; load F
+	LDA.I	0			; set R to 0
+>_FILE_SPACE_ERROR
 	RTS				; return
 
 ;==================================================
 
 ; FILE_FIND
 ; P --- VR0: file name N
-; R --- A: file ID F
+; R --- A: return value R
+;	VR11/1: file ID F
 ; finds the file ID of the first file with name N
-; if F = 0 then no file with name N was found
-; if F = 0XFF then an error happened
-; otherwise F = the file ID of the first file with name N
+; R = 0 if the function succeeded / F should be used
+; otherwise R = either a floppy error code or file error code and F should not be used
+; F = 0 if no file with name N was found
+; otherwise F is the file ID of first file with name N
 
 >FILE_FIND
 	PHX				; store X
-	PHY				; store Y
 	LDA.Z	VR1			; store VR1
 	PHA
 	LDA.Z	VR1 1
@@ -386,46 +253,39 @@
 	PHA
 	LDA.Z	VR4 1
 	PHA
-	LDA.Z	VR7			; store VR7/1
-	PHA
-	LDA.I	1			; load 1
-	STA.Z	VR7			; set VR7/1 to 1 to use as F
+	LDX.I	1			; let X keep track of F
+	STZ.Z	VR1			; set STRCMP pointer low to 0 first
 	LDA.I	FLOPPY_PAGE > 8		; set STRCMP pointer high byte for floppy page
 	STA.Z	VR1 1
 	STZ.Z	VR4			; set track 0
-	LDX.I	2			; set X to starting sector where names are
+	LDA.I	2			; set sector 2
+	STA.Z	VR4 1
 >_FILE_FIND_SEC_LOOP
-	STX.Z	VR4 1			; set sector X
 	JSR	RETRY_FLOPPY_READ	; read sector
 	CMP.I	0			; test if success
-	BNE	_FILE_FIND_FAIL		; fail on error
-	LDY.I	0			; set Y to 0 for string offset in sector
+	BNE	_FILE_FIND_ERROR	; fail on error
 >_FILE_FIND_STR_LOOP
-	STY.Z	VR1			; set string offset in floppy page
 	JSR	STRCMP			; compare N to string in sector
 	CMP.I	0			; test if equal
 	BEQ	_FILE_FIND_END		; if equal then return F
 	; not found
-	INC.Z	VR7			; increment F
-	TYA				; move Y to A to math
+	INX				; increment F
+	CPX.I	FILE_COUNT_MAX + 1	; test if at limit
+	BGE	_FILE_FIND_NONE		; if so then return
 	CLC				; clc for adc
-	ADC.I	16			; add 16 to Y for next string pointer offset
-	TAY				; move back to Y
-	CPY.I	0			; test if 0
-	BNE	_FILE_FIND_STR_LOOP	; if not 0 then keep testing in same sector
-	INX				; else need next sector, inc X
-	CPX.I	7			; test if 7
-	BNE	_FILE_FIND_SEC_LOOP	; if not 7, can load next sector
-	STZ.Z	VR7			; not found set F to 0
-	BRA	_FILE_FIND_END		; go to end code
->_FILE_FIND_FAIL
-	LDA.I	0XFF			; load error code
-	STA.Z	VR7			; store in F
+	LDA.Z	VR1			; add 16 for next string pointer offset
+	ADC.I	16
+	STA.Z	VR1
+	BCC	_FILE_FIND_STR_LOOP	; if carry not set, still in same sector and can go next
+	INC.Z	VR4 1			; otherwise increment sector
+	BRA	_FILE_FIND_SEC_LOOP	; get next sector
+>_FILE_FIND_NONE
+	LDX.I	0			; set X to 0 so F gets set to 0
 >_FILE_FIND_END
-	LDA.Z	VR7			; load F
-	STA.Z	VR8			; store in VR8/1
-	PLA				; restore VR7/1
-	STA.Z	VR7
+	STX.Z	VR11			; store F
+	LDA.I	0			; set A to 0 so R gets set to 0
+>_FILE_FIND_ERROR
+	STA.Z	VR8			; store R
 	PLA				; restore VR4
 	STA.Z	VR4 1
 	PLA
@@ -434,88 +294,25 @@
 	STA.Z	VR1 1
 	PLA
 	STA.Z	VR1
-	PLY				; restore Y
 	PLX				; restore X
-	LDA.Z	VR8			; load F
-	RTS				; return
-
-;==================================================
-
-; FILE_CREATE
-; P --- VR0: file name N
-; R --- A: return code C
-; creates a new file on disk with name N and length 0
-; C = 0 if the function succeeded
-; C = FILE_ERROR_NONAME if N has length 0
-; C = FILE_ERROR_DUPNAME if a file already exists with name N
-; C = FILE_ERROR_DISKFULL if no more files can be stored on disk
-; C = FILE_ERROR if a general error happened
-
->FILE_CREATE
-	JSR	STRLEN			; get length of N
-	CMP.I	0			; test if 0
-	BNE	_FILE_CREATE_GOODNAME	; continue if name not empty
-	LDA.I	FILE_ERROR_NONAME	; else load no name code
-	RTS				; return
->_FILE_CREATE_GOODNAME
-	JSR	FILE_FIND		; try to find a file with the same name on disk
-	CMP.I	0XFF			; test if error
-	BEQ	_FILE_CREATE_FAIL2	; fail on error
-	CMP.I	0			; test if success
-	BEQ	_FILE_CREATE_UNIQUE	; continue if name not used
-	LDA.I	FILE_ERROR_DUPNAME	; else load duplicate name code
-	RTS				; return
->_FILE_CREATE_UNIQUE
-	JSR	FILE_SPACE		; try to get an unused file id
-	CMP.I	0XFF			; test if error
-	BEQ	_FILE_CREATE_FAIL2	; fail on error
-	CMP.I	0			; test if any available
-	BNE	_FILE_CREATE_SPACE	; continue if a file id is available
-	LDA.I	FILE_ERROR_DISKFULL	; else load disk full code
-	RTS				; return
->_FILE_CREATE_SPACE
-	STA.Z	VR8			; store file id to VR8/1
-	LDA.Z	VR7			; load VR7/1
-	PHA				; store
-	LDA.Z	VR8			; load file id
-	STA.Z	VR7			; move into VR7/1
-	JSR	FILE_ENABLE		; try to enable the file
-	CMP.I	FALSE			; test if fail
-	BEQ	_FILE_CREATE_FAIL1	; fail on error
-	LDA.Z	VR7			; load file id
-	JSR	FILE_SET_NAME		; set file name to N
-	CMP.I	FALSE			; test if fail
-	BEQ	_FILE_CREATE_FAIL1	; fail on error
-	PLA				; restore VR7/1
-	STA.Z	VR7
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_CREATE_FAIL1
-	PLA				; restore VR7/1
-	STA.Z	VR7
->_FILE_CREATE_FAIL2
-	LDA.I	FILE_ERROR		; load error code
+	LDA.Z	VR8			; load R
 	RTS				; return
 
 ;==================================================
 
 ; FILE_FLUSH_A
-; R --- A: return code C
+; R --- A: return code R
 ; writes back contents of the current file A page to disk
 ; does not perform a write if the dirty value is not set
 ; does not indicate failure if A has no open file
-; C = 0 if the function succeeded
-; C = FILE_ERROR if a general error happened
+; R = 0 if the function succeeded
+; otherwise R = either a floppy error code or file error code
 
 >FILE_FLUSH_A
 	LDA	IO_FILE_A_ID		; load file id
-	BEQ	_FILE_FLUSH_A_NOTHING	; just return if no file
+	BEQ	_FILE_FLUSH_A_END	; just return if no file
 	LDA	IO_FILE_A_DIRTY		; load file dirty
-	BEQ	_FILE_FLUSH_A_NOTHING	; just return if no modification
-	LDA.Z	VR4			; store VR4
-	PHA
-	LDA.Z	VR4 1
-	PHA
+	BEQ	_FILE_FLUSH_A_END	; just return if no modification
 	LDA.Z	VR0 1			; store VR0/2
 	PHA
 	LDA.Z	VR1 1			; store VR1/2
@@ -529,49 +326,42 @@
 	STA.Z	VR1 1
 	PLA				; restore VR0/2
 	STA.Z	VR0 1
+	LDA.Z	VR4			; store VR4
+	PHA
+	LDA.Z	VR4 1
+	PHA
 	LDA	IO_FILE_A_ID		; load file id
 	STA.Z	VR4			; set track based on file id
 	LDA	IO_FILE_A_POS 1		; load high byte of file pos
 	INC				; inc to get corresponding sector number
 	STA.Z	VR4 1			; set sector
 	JSR	RETRY_FLOPPY_WRITE	; write sector
-	CMP.I	0			; test if failure
-	BNE	_FILE_FLUSH_A_FAIL	; fail on error
+	STA.Z	VR8			; store return value
+	PLA				; restore VR4
+	STA.Z	VR4 1
+	PLA
+	STA.Z	VR4
+	LDA.Z	VR8			; restore return value
+	BNE	_FILE_FLUSH_A_END	; dont reset dirty on error
 	STZ	IO_FILE_A_DIRTY		; reset dirty
-	PLA				; restore VR4
-	STA.Z	VR4 1
-	PLA
-	STA.Z	VR4
->_FILE_FLUSH_A_NOTHING
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_FLUSH_A_FAIL
-	PLA				; restore VR4
-	STA.Z	VR4 1
-	PLA
-	STA.Z	VR4
-	LDA.I	FILE_ERROR		; load error code
+>_FILE_FLUSH_A_END
 	RTS				; return
 
 ;==================================================
 
 ; FILE_FLUSH_B
-; R --- A: return code C
+; R --- A: return code R
 ; writes back contents of the current file B page to disk
 ; does not perform a write if the dirty value is not set
 ; does not indicate failure if B has no open file
-; C = 0 if the function succeeded
-; C = FILE_ERROR if a general error happened
+; R = 0 if the function succeeded
+; otherwise R = either a floppy error code or file error code
 
 >FILE_FLUSH_B
 	LDA	IO_FILE_B_ID		; load file id
-	BEQ	_FILE_FLUSH_B_NOTHING	; just return if no file
+	BEQ	_FILE_FLUSH_B_END	; just return if no file
 	LDA	IO_FILE_B_DIRTY		; load file dirty
-	BEQ	_FILE_FLUSH_B_NOTHING	; just return if no modification
-	LDA.Z	VR4			; store VR4
-	PHA
-	LDA.Z	VR4 1
-	PHA
+	BEQ	_FILE_FLUSH_B_END	; just return if no modification
 	LDA.Z	VR0 1			; store VR0/2
 	PHA
 	LDA.Z	VR1 1			; store VR1/2
@@ -585,43 +375,40 @@
 	STA.Z	VR1 1
 	PLA				; restore VR0/2
 	STA.Z	VR0 1
+	LDA.Z	VR4			; store VR4
+	PHA
+	LDA.Z	VR4 1
+	PHA
 	LDA	IO_FILE_B_ID		; load file id
 	STA.Z	VR4			; set track based on file id
 	LDA	IO_FILE_B_POS 1		; load high byte of file pos
 	INC				; inc to get corresponding sector number
 	STA.Z	VR4 1			; set sector
 	JSR	RETRY_FLOPPY_WRITE	; write sector
-	CMP.I	0			; test if failure
-	BNE	_FILE_FLUSH_B_FAIL	; fail on error
+	STA.Z	VR8			; store return value
+	PLA				; restore VR4
+	STA.Z	VR4 1
+	PLA
+	STA.Z	VR4
+	LDA.Z	VR8			; restore return value
+	BNE	_FILE_FLUSH_A_END	; dont reset dirty on error
 	STZ	IO_FILE_B_DIRTY		; reset dirty
-	PLA				; restore VR4
-	STA.Z	VR4 1
-	PLA
-	STA.Z	VR4
->_FILE_FLUSH_B_NOTHING
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_FLUSH_B_FAIL
-	PLA				; restore VR4
-	STA.Z	VR4 1
-	PLA
-	STA.Z	VR4
-	LDA.I	FILE_ERROR		; load error code
+>_FILE_FLUSH_B_END
 	RTS				; return
 
 ;==================================================
 
 ; FILE_LOAD_A
-; R --- A: return code C
+; R --- A: return code R
 ; loads the corresponding page of the file open in A at the current position
 ; does not indicate failure if A has no open file
 ; erases any modified data in the currently loaded page and resets the dirty value
-; C = 0 if the function succeeded
-; C = FILE_ERROR if a general error happened
+; R = 0 if the function succeeded
+; otherwise R = either a floppy error code or file error code
 
 >FILE_LOAD_A
 	LDA	IO_FILE_A_ID		; load file id
-	BEQ	_FILE_LOAD_A_NOTHING	; just return if no file
+	BEQ	_FILE_LOAD_A_END	; just return if no file
 	LDA.Z	VR4			; store VR4
 	PHA
 	LDA.Z	VR4 1
@@ -632,8 +419,13 @@
 	INC				; inc to get corresponding sector number
 	STA.Z	VR4 1			; set sector
 	JSR	RETRY_FLOPPY_READ	; read sector
-	CMP.I	0			; test if failure
-	BNE	_FILE_LOAD_A_FAIL	; fail on error
+	STA.Z	VR8			; store return value
+	PLA				; restore VR4
+	STA.Z	VR4 1
+	PLA
+	STA.Z	VR4
+	LDA.Z	VR8			; load return value
+	BNE	_FILE_LOAD_A_END	; fail on error
 	STZ	IO_FILE_A_DIRTY		; reset dirty
 	LDA.Z	VR0 1			; store VR0/2
 	PHA
@@ -648,34 +440,23 @@
 	STA.Z	VR1 1
 	PLA				; restore VR0/2
 	STA.Z	VR0 1
-	PLA				; restore VR4
-	STA.Z	VR4 1
-	PLA
-	STA.Z	VR4
->_FILE_LOAD_A_NOTHING
 	LDA.I	0			; load success code
-	RTS				; return
->_FILE_LOAD_A_FAIL
-	PLA				; restore VR4
-	STA.Z	VR4 1
-	PLA
-	STA.Z	VR4
-	LDA.I	FILE_ERROR		; load error code
+>_FILE_LOAD_A_END
 	RTS				; return
 
 ;==================================================
 
 ; FILE_LOAD_B
-; R --- A: return code C
+; R --- A: return code R
 ; loads the corresponding page of the file open in B at the current position
 ; does not indicate failure if B has no open file
 ; erases any modified data in the currently loaded page and resets the dirty value
-; C = 0 if the function succeeded
-; C = FILE_ERROR if a general error happened
+; R = 0 if the function succeeded
+; otherwise R = either a floppy error code or file error code
 
 >FILE_LOAD_B
 	LDA	IO_FILE_B_ID		; load file id
-	BEQ	_FILE_LOAD_B_NOTHING	; just return if no file
+	BEQ	_FILE_LOAD_B_END	; just return if no file
 	LDA.Z	VR4			; store VR4
 	PHA
 	LDA.Z	VR4 1
@@ -686,8 +467,13 @@
 	INC				; inc to get corresponding sector number
 	STA.Z	VR4 1			; set sector
 	JSR	RETRY_FLOPPY_READ	; read sector
-	CMP.I	0			; test if failure
-	BNE	_FILE_LOAD_B_FAIL	; fail on error
+	STA.Z	VR8			; store return value
+	PLA				; restore VR4
+	STA.Z	VR4 1
+	PLA
+	STA.Z	VR4
+	LDA.Z	VR8			; load return value
+	BNE	_FILE_LOAD_B_END	; fail on error
 	STZ	IO_FILE_B_DIRTY		; reset dirty
 	LDA.Z	VR0 1			; store VR0/2
 	PHA
@@ -702,629 +488,6 @@
 	STA.Z	VR1 1
 	PLA				; restore VR0/2
 	STA.Z	VR0 1
-	PLA				; restore VR4
-	STA.Z	VR4 1
-	PLA
-	STA.Z	VR4
->_FILE_LOAD_B_NOTHING
 	LDA.I	0			; load success code
-	RTS				; return
->_FILE_LOAD_B_FAIL
-	PLA				; restore VR4
-	STA.Z	VR4 1
-	PLA
-	STA.Z	VR4
-	LDA.I	FILE_ERROR		; load error code
-	RTS				; return
-
-;==================================================
-
-; FILE_OPEN_A
-; P --- VR0: file name N
-; R --- A: return code C
-; opens file N as file A
-; sets the starting position at the beginning of the file
-; C = 0 if the function succeeded
-; C = FILE_ERROR_INUSE if a file is already open in A
-; C = FILE_ERROR_NOFILE if no file with name N exists
-; C = FILE_ERROR if a general error happened
-
->FILE_OPEN_A
-	LDA	IO_FILE_A_ID		; load file id
-	BEQ	_FILE_OPEN_A_EMPTY	; if 0, not open, continue
-	LDA.I	FILE_ERROR_INUSE	; load in use code
-	RTS				; return
->_FILE_OPEN_A_EMPTY
-	JSR	FILE_FIND		; try to find file on disk
-	CMP.I	0XFF			; test if error
-	BEQ	_FILE_OPEN_A_FAIL2	; fail on error
-	CMP.I	0			; test if fail
-	BNE	_FILE_OPEN_A_FOUND	; continue if found
-	LDA.I	FILE_ERROR_NOFILE	; load no file found error
-	RTS				; return
->_FILE_OPEN_A_FOUND
-	STA.Z	VR8			; store file id to VR8/1
-	LDA.Z	VR7			; load VR7/1
-	PHA				; store
-	LDA.Z	VR8			; load file id
-	STA.Z	VR7			; store in VR7/1
-	LDA.Z	VR4			; store VR4
-	PHA
-	LDA.Z	VR4 1
-	PHA
-	STZ	IO_FILE_A_POS		; zero out file position
-	STZ	IO_FILE_A_POS 1
-	STZ	IO_FILE_A_DIRTY		; reset dirty value
-	JSR	FILE_LOAD_A		; load the first page of file
-	CMP.I	0			; test if success
-	BNE	_FILE_OPEN_A_FAIL1	; fail on error
-	LDA.Z	VR7			; load file id
-	STA	IO_FILE_A_ID		; finally update the file id in mem
-	PLA				; restore VR4
-	STA.Z	VR4 1
-	PLA
-	STA.Z	VR4
-	PLA				; restore VR7/1
-	STA.Z	VR7
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_OPEN_A_FAIL1
-	PLA				; restore VR4
-	STA.Z	VR4 1
-	PLA
-	STA.Z	VR4
-	PLA				; restore VR7/1
-	STA.Z	VR7
->_FILE_OPEN_A_FAIL2
-	LDA.I	FILE_ERROR		; load error code
-	RTS				; return
-
-;==================================================
-
-; FILE_OPEN_B
-; P --- VR0: file name N
-; R --- A: return code C
-; opens file N as file B
-; sets the starting position at the beginning of the file
-; C = 0 if the function succeeded
-; C = FILE_ERROR_INUSE if a file is already open in B
-; C = FILE_ERROR_NOFILE if no file with name N exists
-; C = FILE_ERROR if a general error happened
-
->FILE_OPEN_B
-	LDA	IO_FILE_B_ID		; load file id
-	BEQ	_FILE_OPEN_B_EMPTY	; if 0, not open, continue
-	LDA.I	FILE_ERROR_INUSE	; load in use code
-	RTS				; return
->_FILE_OPEN_B_EMPTY
-	JSR	FILE_FIND		; try to find file on disk
-	CMP.I	0XFF			; test if error
-	BEQ	_FILE_OPEN_B_FAIL2	; fail on error
-	CMP.I	0			; test if fail
-	BNE	_FILE_OPEN_B_FOUND	; continue if found
-	LDA.I	FILE_ERROR_NOFILE	; load no file found error
-	RTS				; return
->_FILE_OPEN_B_FOUND
-	STA.Z	VR8			; store file id to VR8/1
-	LDA.Z	VR7			; load VR7/1
-	PHA				; store
-	LDA.Z	VR8			; load file id
-	STA.Z	VR7			; store in VR7/1
-	LDA.Z	VR4			; store VR4
-	PHA
-	LDA.Z	VR4 1
-	PHA
-	STZ	IO_FILE_B_POS		; zero out file position
-	STZ	IO_FILE_B_POS 1
-	STZ	IO_FILE_B_DIRTY		; reset dirty value
-	JSR	FILE_LOAD_B		; load the first page of file
-	CMP.I	0			; test if success
-	BNE	_FILE_OPEN_B_FAIL1	; fail on error
-	LDA.Z	VR7			; load file id
-	STA	IO_FILE_B_ID		; finally update the file id in mem
-	PLA				; restore VR4
-	STA.Z	VR4 1
-	PLA
-	STA.Z	VR4
-	PLA				; restore VR7/1
-	STA.Z	VR7
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_OPEN_B_FAIL1
-	PLA				; restore VR4
-	STA.Z	VR4 1
-	PLA
-	STA.Z	VR4
-	PLA				; restore VR7/1
-	STA.Z	VR7
->_FILE_OPEN_B_FAIL2
-	LDA.I	FILE_ERROR		; load error code
-	RTS				; return
-
-;==================================================
-
-; FILE_CLOSE_A
-; R --- A: return code C
-; closes file A and flushes the current open page
-; does not indicate failure if A has no open file
-; C = 0 if the function succeeded
-; C = FILE_ERROR if a general error happened
-
->FILE_CLOSE_A
-	JSR	FILE_FLUSH_A		; flush current page
-	CMP.I	0			; test if success
-	BNE	_FILE_CLOSE_A_FAIL	; fail on error
-	STZ	IO_FILE_A_ID		; reset file id to indicate no file open
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_CLOSE_A_FAIL
-	LDA.I	FILE_ERROR		; load error code
-	RTS				; return
-
-;==================================================
-
-; FILE_CLOSE_B
-; R --- A: return code C
-; closes file B and flushes the current open page
-; does not indicate failure if B has no open file
-; C = 0 if the function succeeded
-; C = FILE_ERROR if a general error happened
-
->FILE_CLOSE_B
-	JSR	FILE_FLUSH_B		; flush current page
-	CMP.I	0			; test if success
-	BNE	_FILE_CLOSE_B_FAIL	; fail on error
-	STZ	IO_FILE_B_ID		; reset file id to indicate no file open
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_CLOSE_B_FAIL
-	LDA.I	FILE_ERROR		; load error code
-	RTS				; return
-
-;==================================================
-
-; FILE_DESTROY_A
-; R --- A: return code C
-; destroys the file open in A
-; closes the file, clears its name on disk, and sets it as unused on disk
-; does not indicate failure if A has no open file
-; C = 0 if the function succeeded
-; C = FILE_ERROR if a general error happened
-
->FILE_DESTROY_A
-	LDA	IO_FILE_A_ID		; load file id
-	BEQ	_FILE_DESTROY_A_NOTHING	; just return if nothing open
-	LDA.Z	VR0			; store VR0
-	PHA
-	LDA.Z	VR0 1
-	PHA
-	LDA	IO_FILE_A_ID		; load file id
-	JSR	FILE_DISABLE		; disable the file on disk
-	CMP.I	FALSE			; test if fail
-	BEQ	_FILE_DESTROY_A_FAIL	; fail on error
-	STZ.Z	VR0 1			; will use pointer to VR0/2, set high to 0
-	LDA.I	VR0 1			; load address of VR0/2
-	STA.Z	VR0			; store
-	; ^want to write nul char, use the zero part of the pointer which points to itself
-	LDA	IO_FILE_A_ID		; load file id
-	JSR	FILE_SET_NAME		; set name
-	CMP.I	FALSE			; test if fail
-	BEQ	_FILE_DESTROY_A_FAIL	; fail on error
-	STZ	IO_FILE_A_ID		; reset file id to indicate no file open
-	PLA				; restore VR0
-	STA.Z	VR0 1
-	PLA
-	STA.Z	VR0
->_FILE_DESTROY_A_NOTHING
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_DESTROY_A_FAIL
-	PLA				; restore VR0
-	STA.Z	VR0 1
-	PLA
-	STA.Z	VR0
-	LDA.I	FILE_ERROR		; load error code
-	RTS				; return
-
-;==================================================
-
-; FILE_DESTROY_B
-; R --- A: return code C
-; destroys the file open in B
-; closes the file, clears its name on disk, and sets it as unused on disk
-; does not indicate failure if B has no open file
-; C = 0 if the function succeeded
-; C = FILE_ERROR if a general error happened
-
->FILE_DESTROY_B
-	LDA	IO_FILE_B_ID		; load file id
-	BEQ	_FILE_DESTROY_B_NOTHING	; just return if nothing open
-	LDA.Z	VR0			; store VR0
-	PHA
-	LDA.Z	VR0 1
-	PHA
-	LDA	IO_FILE_B_ID		; load file id
-	JSR	FILE_DISABLE		; disable the file on disk
-	CMP.I	FALSE			; test if fail
-	BEQ	_FILE_DESTROY_B_FAIL	; fail on error
-	STZ.Z	VR0 1			; will use pointer to VR0/2, set high to 0
-	LDA.I	VR0 1			; load address of VR0/2
-	STA.Z	VR0			; store
-	; ^want to write nul char, use the zero part of the pointer which points to itself
-	LDA	IO_FILE_B_ID		; load file id
-	JSR	FILE_SET_NAME		; set name
-	CMP.I	FALSE			; test if fail
-	BEQ	_FILE_DESTROY_B_FAIL	; fail on error
-	STZ	IO_FILE_B_ID		; reset file id to indicate no file open
-	PLA				; restore VR0
-	STA.Z	VR0 1
-	PLA
-	STA.Z	VR0
->_FILE_DESTROY_B_NOTHING
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_DESTROY_B_FAIL
-	PLA				; restore VR0
-	STA.Z	VR0 1
-	PLA
-	STA.Z	VR0
-	LDA.I	FILE_ERROR		; load error code
-	RTS				; return
-
-;==================================================
-
-; FILE_RENAME_A
-; P --- VR0: file name N
-; R --- A: return code C
-; renames the file open in A to N
-; does not indicate failure if A has no open file
-; C = 0 if the function succeeded
-; C = FILE_ERROR_NONAME if N has length 0
-; C = FILE_ERROR if a general error happened
-
->FILE_RENAME_A
-	LDA	IO_FILE_A_ID		; load file id
-	BEQ	_FILE_RENAME_A_NOTHING	; just return if nothing open
-	JSR	STRLEN			; get length of N
-	CMP.I	0			; test if 0
-	BNE	_FILE_RENAME_A_GOOD	; continue of not 0
-	LDA.I	FILE_ERROR_NONAME	; load no name code
-	RTS				; return
->_FILE_RENAME_A_GOOD
-	LDA	IO_FILE_A_ID		; load file id
-	JSR	FILE_SET_NAME		; set name to N
-	CMP.I	FALSE			; test if failure
-	BEQ	_FILE_RENAME_A_FAIL	; fail on error
->_FILE_RENAME_A_NOTHING
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_RENAME_A_FAIL
-	LDA.I	FILE_ERROR		; load error code
-	RTS				; return
-
-;==================================================
-
-; FILE_RENAME_B
-; P --- VR0: file name N
-; R --- A: return code C
-; renames the file open in B to N
-; does not indicate failure if B has no open file
-; C = 0 if the function succeeded
-; C = FILE_ERROR_NONAME if N has length 0
-; C = FILE_ERROR if a general error happened
-
->FILE_RENAME_B
-	LDA	IO_FILE_B_ID		; load file id
-	BEQ	_FILE_RENAME_B_NOTHING	; just return if nothing open
-	JSR	STRLEN			; get length of N
-	CMP.I	0			; test if 0
-	BNE	_FILE_RENAME_B_GOOD	; continue of not 0
-	LDA.I	FILE_ERROR_NONAME	; load no name code
-	RTS				; return
->_FILE_RENAME_B_GOOD
-	LDA	IO_FILE_B_ID		; load file id
-	JSR	FILE_SET_NAME		; set name to N
-	CMP.I	FALSE			; test if failure
-	BEQ	_FILE_RENAME_B_FAIL	; fail on error
->_FILE_RENAME_B_NOTHING
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_RENAME_B_FAIL
-	LDA.I	FILE_ERROR		; load error code
-	RTS				; return
-
-;==================================================
-
-; FILE_JUMP_A
-; P --- VR4: new position P
-; R --- A: return code C
-; moves the current file position of A to P
-; flushes and loads new pages if necessary
-; does not indicate failure if A has no open file
-; if P is out of range (>=0x1300), the new position is set to one past the end
-; C = 0 if the function succeeded
-; C = FILE_ERROR if a general error happened
-
->FILE_JUMP_A
-	LDA.Z	VR4 1			; load high byte of P
-	CMP.I	0X13			; test if out of range
-	BGE	_FILE_JUMP_A_EOF	; set one past the end if out of range
-	LDA.Z	VR4			; load low byte of P
-	STA	IO_FILE_A_POS		; store in file position low byte
-	LDA.Z	VR4 1			; load high byte of P
-	CMP	IO_FILE_A_POS 1		; comapre to current position high byte
-	BNE	_FILE_JUMP_A_FLUSHLOAD	; flush and load new page if different
-	LDA.I	0			; else load success code
-	RTS				; return
->_FILE_JUMP_A_FLUSHLOAD
-	JSR	FILE_FLUSH_A		; flush the file
-	CMP.I	0			; test if success
-	BNE	_FILE_JUMP_A_FAIL	; fail on error
-	LDA.Z	VR4 1			; load high byte of P
-	STA	IO_FILE_A_POS 1		; store in position high byte
-	JSR	FILE_LOAD_A		; load new page into file
-	CMP.I	0			; test if success
-	BNE	_FILE_JUMP_A_FAIL	; fail on error
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_JUMP_A_EOF
-	JSR	FILE_FLUSH_A		; flush the file
-	CMP.I	0			; test if success
-	BNE	_FILE_JUMP_A_FAIL	; fail on error
-	STZ	IO_FILE_A_POS		; set low byte of position to 0
-	LDA.I	0X13			; load out of range high byte value
-	STA	IO_FILE_A_POS 1		; set high byte of position
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_JUMP_A_FAIL
-	LDA.I	FILE_ERROR		; load error code
-	RTS				; return
-
-;==================================================
-
-; FILE_JUMP_B
-; P --- VR4: new position P
-; R --- A: return code C
-; moves the current file position of B to P
-; flushes and loads new pages if necessary
-; does not indicate failure if A has no open file
-; if P is out of range (>=0x1300), the new position is set to one past the end
-; C = 0 if the function succeeded
-; C = FILE_ERROR if a general error happened
-
->FILE_JUMP_B
-	LDA.Z	VR4 1			; load high byte of P
-	CMP.I	0X13			; test if out of range
-	BGE	_FILE_JUMP_B_EOF	; set one past the end if out of range
-	LDA.Z	VR4			; load low byte of P
-	STA	IO_FILE_B_POS		; store in file position low byte
-	LDA.Z	VR4 1			; load high byte of P
-	CMP	IO_FILE_B_POS 1		; comapre to current position high byte
-	BNE	_FILE_JUMP_B_FLUSHLOAD	; flush and load new page if different
-	LDA.I	0			; else load success code
-	RTS				; return
->_FILE_JUMP_B_FLUSHLOAD
-	JSR	FILE_FLUSH_B		; flush the file
-	CMP.I	0			; test if success
-	BNE	_FILE_JUMP_B_FAIL	; fail on error
-	LDA.Z	VR4 1			; load high byte of P
-	STA	IO_FILE_B_POS 1		; store in position high byte
-	JSR	FILE_LOAD_B		; load new page into file
-	CMP.I	0			; test if success
-	BNE	_FILE_JUMP_B_FAIL	; fail on error
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_JUMP_B_EOF
-	JSR	FILE_FLUSH_B		; flush the file
-	CMP.I	0			; test if success
-	BNE	_FILE_JUMP_B_FAIL	; fail on error
-	STZ	IO_FILE_B_POS		; set low byte of position to 0
-	LDA.I	0X13			; load out of range high byte value
-	STA	IO_FILE_B_POS 1		; set high byte of position
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_JUMP_B_FAIL
-	LDA.I	FILE_ERROR		; load error code
-	RTS				; return
-
-;==================================================
-
-; FILE_READ_A
-; R --- A: return code C
-;	VR11/1: value read V
-; reads and returns the next character from file A as V
-; the character is read at the position for file A
-; increments the file position by 1
-; if the file position crosses the page border, the current page is flushed and the next one is loaded
-; C = 0 if the function succeeded
-; C = FILE_EOF if no more data can be read / at the end of the file
-; C = FILE_ERROR if a general error happened
-
->FILE_READ_A
-	LDA	IO_FILE_A_POS 1		; load high byte of position
-	CMP.I	0X13			; test if in eof region
-	BEQ	_FILE_READ_A_EOF	; return eof code
-	PHX				; store X
-	LDX	IO_FILE_A_POS		; load offset into file page
-	LDA.X	FILE_A_PAGE		; load character
-	STA.Z	VR11			; store character in V
-	TXA				; move low byte of position to A
-	PLX				; restore X
-	CMP.I	0XFF			; test if on last byte of page
-	BEQ	_FILE_READ_A_NEXT	; if so load next page
-	INC	IO_FILE_A_POS		; inc position
->_FILE_READ_A_END
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_READ_A_EOF
-	LDA.I	FILE_EOF		; load eof code
-	RTS				; return
->_FILE_READ_A_NEXT
-	JSR	FILE_FLUSH_A		; flush current page
-	CMP.I	0			; test if success
-	BNE	_FILE_READ_A_FAIL	; fail on error
-	INC	IO_FILE_A_POS		; increment position
-	INC	IO_FILE_A_POS 1
-	LDA	IO_FILE_A_POS 1		; load high byte of position
-	CMP.I	0X13			; test if in eof region
-	BEQ	_FILE_READ_A_END	; end if so
-	JSR	FILE_LOAD_A		; load next page
-	CMP.I	0			; test if success
-	BNE	_FILE_READ_A_FAIL	; fail on error
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_READ_A_FAIL
-	LDA.I	FILE_ERROR		; load error code
-	RTS				; return
-
-;==================================================
-
-; FILE_READ_B
-; R --- A: return code C
-;	VR11/1: value read V
-; reads and returns the next character from file B as V
-; the character is read at the position for file B
-; increments the file position by 1
-; if the file position crosses the page border, the current page is flushed and the next one is loaded
-; C = 0 if the function succeeded
-; C = FILE_EOF if no more data can be read / at the end of the file
-; C = FILE_ERROR if a general error happened
-
->FILE_READ_B
-	LDA	IO_FILE_B_POS 1		; load high byte of position
-	CMP.I	0X13			; test if in eof region
-	BEQ	_FILE_READ_B_EOF	; return eof code
-	PHX				; store X
-	LDX	IO_FILE_B_POS		; load offset into file page
-	LDA.X	FILE_B_PAGE		; load character
-	STA.Z	VR11			; store character in V
-	TXA				; move low byte of position to A
-	PLX				; restore X
-	CMP.I	0XFF			; test if on last byte of page
-	BEQ	_FILE_READ_B_NEXT	; if so load next page
-	INC	IO_FILE_B_POS		; inc position
->_FILE_READ_B_END
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_READ_B_EOF
-	LDA.I	FILE_EOF		; load eof code
-	RTS				; return
->_FILE_READ_B_NEXT
-	JSR	FILE_FLUSH_B		; flush current page
-	CMP.I	0			; test if success
-	BNE	_FILE_READ_B_FAIL	; fail on error
-	INC	IO_FILE_B_POS		; increment position
-	INC	IO_FILE_B_POS 1
-	LDA	IO_FILE_B_POS 1		; load high byte of position
-	CMP.I	0X13			; test if in eof region
-	BEQ	_FILE_READ_B_END	; end if so
-	JSR	FILE_LOAD_B		; load next page
-	CMP.I	0			; test if success
-	BNE	_FILE_READ_B_FAIL	; fail on error
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_READ_B_FAIL
-	LDA.I	FILE_ERROR		; load error code
-	RTS				; return
-
-;==================================================
-
-; FILE_WRITE_A
-; P --- A: value V
-; R --- A: return code C
-; writes V to file A
-; the character is written at the position for file A
-; increments the file position by 1
-; if the file position crosses the page border, the current page is flushed and the next one is loaded
-; C = 0 if the function succeeded
-; C = FILE_EOF if no more data can be written / at the end of the file
-; C = FILE_ERROR if a general error happened
-
->FILE_WRITE_A
-	STA.Z	VR8			; store V in VR8/1
-	LDA	IO_FILE_A_POS 1		; load high byte of position
-	CMP.I	0X13			; test if in eof region
-	BEQ	_FILE_WRITE_A_EOF	; return eof if so
-	PHX				; store X
-	LDX	IO_FILE_A_POS		; load offset into file page
-	LDA.Z	VR8			; load V
-	STA.X	FILE_A_PAGE		; store into file page
-	TXA				; move low byte of position to A
-	PLX				; restore X
-	CMP.I	0XFF			; test if on last byte of page
-	BEQ	_FILE_WRITE_A_NEXT	; if so load next page
-	INC	IO_FILE_A_POS		; inc position
->_FILE_WRITE_A_END
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_WRITE_A_EOF
-	LDA.I	FILE_EOF		; load eof code
-	RTS				; return
->_FILE_WRITE_A_NEXT
-	JSR	FILE_FLUSH_A		; flush current page
-	CMP.I	0			; test if success
-	BNE	_FILE_WRITE_A_FAIL	; fail on error
-	INC	IO_FILE_A_POS		; increment position
-	INC	IO_FILE_A_POS 1
-	LDA	IO_FILE_A_POS 1		; load high byte of position
-	CMP.I	0X13			; test if in eof region
-	BEQ	_FILE_WRITE_A_END	; end if so
-	JSR	FILE_LOAD_A		; load next page
-	CMP.I	0			; test if success
-	BNE	_FILE_WRITE_A_FAIL	; fail on error
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_WRITE_A_FAIL
-	LDA.I	FILE_ERROR		; load error code
-	RTS				; return
-
-;==================================================
-
-; FILE_WRITE_B
-; P --- A: value V
-; R --- A: return code C
-; writes V to file B
-; the character is written at the position for file B
-; increments the file position by 1
-; if the file position crosses the page border, the current page is flushed and the next one is loaded
-; C = 0 if the function succeeded
-; C = FILE_EOF if no more data can be written / at the end of the file
-; C = FILE_ERROR if a general error happened
-
->FILE_WRITE_B
-	STA.Z	VR8			; store V in VR8/1
-	LDA	IO_FILE_B_POS 1		; load high byte of position
-	CMP.I	0X13			; test if in eof region
-	BEQ	_FILE_WRITE_B_EOF	; return eof if so
-	PHX				; store X
-	LDX	IO_FILE_B_POS		; load offset into file page
-	LDA.Z	VR8			; load V
-	STA.X	FILE_B_PAGE		; store into file page
-	TXA				; move low byte of position to A
-	PLX				; restore X
-	CMP.I	0XFF			; test if on last byte of page
-	BEQ	_FILE_WRITE_B_NEXT	; if so load next page
-	INC	IO_FILE_A_POS		; inc position
->_FILE_WRITE_B_END
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_WRITE_B_EOF
-	LDA.I	FILE_EOF		; load eof code
-	RTS				; return
->_FILE_WRITE_B_NEXT
-	JSR	FILE_FLUSH_B		; flush current page
-	CMP.I	0			; test if success
-	BNE	_FILE_WRITE_B_FAIL	; fail on error
-	INC	IO_FILE_B_POS		; increment position
-	INC	IO_FILE_B_POS 1
-	LDA	IO_FILE_B_POS 1		; load high byte of position
-	CMP.I	0X13			; test if in eof region
-	BEQ	_FILE_WRITE_B_END	; end if so
-	JSR	FILE_LOAD_B		; load next page
-	CMP.I	0			; test if success
-	BNE	_FILE_WRITE_B_FAIL	; fail on error
-	LDA.I	0			; load success code
-	RTS				; return
->_FILE_WRITE_B_FAIL
-	LDA.I	FILE_ERROR		; load error code
+>_FILE_LOAD_B_END
 	RTS				; return

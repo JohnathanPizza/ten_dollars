@@ -15,11 +15,10 @@
 ; FLOPPY_FORMAT
 ; FLOPPY_READ
 ; FLOPPY_WRITE
+; RETRY_FLOPPY_READ
+; RETRY_FLOPPY_WRITE
 
 =FLOPPY_STEP_TIME 10	; miliseconds
-
-=FLOPPY_ERROR_NODISK	1
-=FLOPPY_ERROR_NOFORMAT	2
 
 ;==================================================
 
@@ -233,8 +232,8 @@
 ; looks for a 1 to 0 to 1 transition on the index line
 ; outside index to inside to outside indicates region was entered and left so a disk must be spinning
 ; must read a 1 then read a 0 then read a 1
-; P = FALSE when no disk is inserted
-; P = TRUE when a disk is inserted
+; P = 0 when a disk is inserted
+; P = FLOPPY_ERROR_NODISK when no disk is inserted
 
 >FLOPPY_DISK_CHECK
 	STZ.Z	VR8			; zero the timout counter
@@ -308,10 +307,10 @@
 	AND.I	0B01000000		; test index bit
 	BEQ	_FLOPPY_DISK_CHECK3	; loop if the bit is not 1
 	; fell through so a 1 was detected, probably safe to assume a disk is inserted
-	LDA.I	TRUE			; load TRUE return value
+	LDA.I	0			; load success return value
 	RTS				; return
 >_FLOPPY_DISK_CHECK_FAIL
-	LDA.I	FALSE			; load FALSE return value
+	LDA.I	FLOPPY_ERROR_NODISK	; load no disk error value
 	RTS				; return
 
 ;==================================================
@@ -406,7 +405,7 @@
 
 	JSR	FLOPPY_ENTER		; enter floppy mode
 	JSR	FLOPPY_DISK_CHECK	; test for disk
-	CMP.I	TRUE			; test if disk was found
+	CMP.I	0			; test if disk was found
 	BNE	_FLOPPY_FORMAT_FAIL	; fail formatting if no disk found
 
 	LDA.I	FLOPPY_PAGE > 8		; load floppy page number
@@ -485,14 +484,14 @@
 ; T values >= 40 are on side B, all else are on side A
 ; R = 0 if the read was successful
 ; R = FLOPPY_ERROR_NODISK if a disk was not detected
-; R = FLOPPY_ERROR_NOFORMAT if the sector was not found on the track
+; R = FLOPPY_ERROR_DRIVE if the sector was not found on the track
 
 >FLOPPY_READ
 	PHX				; store X
 
 	JSR	FLOPPY_ENTER		; enter floppy mode
 	JSR	FLOPPY_DISK_CHECK	; test for disk
-	CMP.I	TRUE			; test if disk was found
+	CMP.I	0			; test if disk was found
 	BEQ	_FLOPPY_READ_DISK	; continue if disk found
 
 	JSR	FLOPPY_EXIT		; exit floppy mode
@@ -550,7 +549,7 @@
 	STA.Z	VR8 1
 	BCC	_FLOPPY_READ_ALIGN	; loop if timeout counter is still valid
 	JSR	FLOPPY_EXIT		; exit floppy mode
-	LDA.I	FLOPPY_ERROR_NOFORMAT	; load error value for no format
+	LDA.I	FLOPPY_ERROR_DRIVE	; load error value for some drive error
 	PLX				; restore X
 	RTS				; return
 >_FLOPPY_READ_LOCKED
@@ -619,14 +618,14 @@
 ; T values >= 40 are on side B, all else are on side A
 ; R = 0 if the read was successful
 ; R = FLOPPY_ERROR_NODISK if a disk was not detected
-; R = FLOPPY_ERROR_NOFORMAT if the sector was not found on the track
+; R = FLOPPY_ERROR_DRIVE if the sector was not found on the track
 
 >FLOPPY_WRITE
 	PHX				; store X
 
 	JSR	FLOPPY_ENTER		; enter floppy mode
 	JSR	FLOPPY_DISK_CHECK	; test for disk
-	CMP.I	TRUE			; test if disk was found
+	CMP.I	0			; test if disk was found
 	BEQ	_FLOPPY_WRITE_DISK	; continue if disk found
 	
 	JSR	FLOPPY_EXIT		; exit floppy mode
@@ -684,7 +683,7 @@
 	STA.Z	VR8 1
 	BCC	_FLOPPY_WRITE_ALIGN	; loop if timeout counter still valid
 	JSR	FLOPPY_EXIT		; exit floppy mode
-	LDA.I	FLOPPY_ERROR_NOFORMAT	; load no format error value
+	LDA.I	FLOPPY_ERROR_DRIVE	; load drive error value
 	PLX				; restore X
 	RTS				; return
 >_FLOPPY_WRITE_LOCKED
@@ -751,4 +750,45 @@
 	JSR	FLOPPY_EXIT		; exit floppy mode
 	LDA.I	0			; load successful return value
 	PLX				; restore X
+	RTS				; return
+
+;==================================================
+
+; RETRY_FLOPPY_READ
+; P --- VR4/1: track value T
+;	VR4/2: sector value S
+; R --- A: success value R
+; repeatedly tries to perform the FLOPPY_READ function on track T sector S
+; R = 0 if the read was successful
+; otherwise R = either a floppy error code or file error code
+
+>RETRY_FLOPPY_READ
+	JSR	FLOPPY_READ		; try to read
+	CMP.I	0			; test if success
+	BEQ	_RETRY_FLOPPY_READ_END	; end if success
+	JSR	FLOPPY_READ		; try to read
+	CMP.I	0			; test if success
+	BEQ	_RETRY_FLOPPY_READ_END	; end if success
+	JSR	FLOPPY_READ		; try to read
+>_RETRY_FLOPPY_READ_END
+	RTS				; return
+
+;==================================================
+
+; P --- VR4/1: track value T
+;	VR4/2: sector value S
+; R --- A: success value R
+; repeatedly tries to perform the FLOPPY_WRITE function on track T sector S
+; R = 0 if the read was successful
+; otherwise R = either a floppy error code or file error code
+
+>RETRY_FLOPPY_WRITE
+	JSR	FLOPPY_WRITE		; try to write
+	CMP.I	0			; test if success
+	BEQ	_RETRY_FLOPPY_WRITE_END	; end if success
+	JSR	FLOPPY_WRITE		; try to write
+	CMP.I	0			; test if success
+	BEQ	_RETRY_FLOPPY_WRITE_END	; end if success
+	JSR	FLOPPY_WRITE		; try to write
+>_RETRY_FLOPPY_WRITE_END
 	RTS				; return

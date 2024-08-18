@@ -9,7 +9,7 @@
 ; jump - vr4 position
 ; read - ret vr10/1 value
 ; write - vr7/1 value
-; *getpos - vr10 ret pos
+; getpos - vr10 ret pos
 ; getid - vr10/1 current file id
 ; exist - vr0 name vr10/1 exist (0 = not exist)
 ; info - vr1 ptr to str buffer (16) if 0 str len then no file, vr4/1 file id
@@ -130,10 +130,12 @@ $_BRK_FILE_OP_DISK_TEST
 	LDA.I	FILE_ERROR_NOFILE		; load no file found error
 	BRA	_BRK_FILE_OP_OPEN_A_END		; return
 >_BRK_FILE_OP_OPEN_A_FOUND
-	PHA					; push file id
 	STZ	IO_FILE_A_POS			; zero out file position
 	STZ	IO_FILE_A_POS 1
+	PHA					; push file id
+	STA	IO_FILE_A_ID			; temporarily set file id
 	JSR	FILE_LOAD_A			; load the first page of file
+	STZ	IO_FILE_A_ID			; reset file id
 	; want to clear the stack
 	STA.Z	VR8 1				; store return value
 	PLA					; load file id
@@ -171,10 +173,12 @@ $_BRK_FILE_OP_DISK_TEST
 	LDA.I	FILE_ERROR_NOFILE		; load no file found error
 	BRA	_BRK_FILE_OP_OPEN_B_END		; return
 >_BRK_FILE_OP_OPEN_B_FOUND
-	PHA
 	STZ	IO_FILE_B_POS			; zero out file position
 	STZ	IO_FILE_B_POS 1
+	PHA					; push file id
+	STA	IO_FILE_B_ID			; temporarily set file id
 	JSR	FILE_LOAD_B			; load the first page of file
+	STZ	IO_FILE_B_ID			; reset file id
 	; want to clear the stack
 	STA.Z	VR8 1				; store return value
 	PLA					; load file id

@@ -9,7 +9,7 @@
 ; jump - vr4 position
 ; read - ret vr10/1 value
 ; write - vr7/1 value
-; getpos - vr10 ret pos
+; *getpos - vr10 ret pos
 ; getid - vr10/1 current file id
 ; exist - vr0 name vr10/1 exist (0 = not exist)
 ; info - vr1 ptr to str buffer (16) if 0 str len then no file, vr4/1 file id
@@ -230,13 +230,15 @@ $_BRK_FILE_OP_DISK_TEST
 ; R --- VR11/1: return code R
 ; destroys the file open in A
 ; closes the file, clears its name on disk, and sets it as unused on disk
-; does not indicate failure if A has no open file
 ; R = 0 if the function succeeded
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_DESTROY_A
 	LDA	IO_FILE_A_ID			; load file id
-	BEQ	_BRK_FILE_OP_DESTROY_A_END	; just return if nothing open
+	BNE	_BRK_FILE_OP_DESTROY_A_OPEN	; continue if file open
+	LDA.I	FILE_ERROR_OPEN			; load no file open error
+	BRA	_BRK_FILE_OP_DESTROY_A_END	; return
+>_BRK_FILE_OP_DESTROY_A_OPEN
 	JSR	FILE_DISABLE			; disable the file on disk
 	CMP.I	0				; test if fail
 	BNE	_BRK_FILE_OP_DESTROY_A_END	; fail on error
@@ -268,13 +270,15 @@ $_BRK_FILE_OP_DISK_TEST
 ; R --- VR11/1: return code R
 ; destroys the file open in B
 ; closes the file, clears its name on disk, and sets it as unused on disk
-; does not indicate failure if B has no open file
 ; R = 0 if the function succeeded
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_DESTROY_B
 	LDA	IO_FILE_B_ID			; load file id
-	BEQ	_BRK_FILE_OP_DESTROY_B_END	; just return if nothing open
+	BNE	_BRK_FILE_OP_DESTROY_B_OPEN	; continue if file open
+	LDA.I	FILE_ERROR_OPEN			; load no file open error
+	BRA	_BRK_FILE_OP_DESTROY_B_END	; return
+>_BRK_FILE_OP_DESTROY_B_OPEN
 	JSR	FILE_DISABLE			; disable the file on disk
 	CMP.I	0				; test if fail
 	BNE	_BRK_FILE_OP_DESTROY_B_END	; fail on error
@@ -306,14 +310,16 @@ $_BRK_FILE_OP_DISK_TEST
 ; P --- VR0: file name N
 ; R --- VR11/1: return code R
 ; renames the file open in A to N
-; does not indicate failure if A has no open file
 ; fails if a file with name N already exists
 ; R = 0 if the function succeeded
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_RENAME_A
 	LDA	IO_FILE_A_ID			; load file id
-	BEQ	_BRK_FILE_OP_RENAME_A_END	; just return if nothing open
+	BNE	_BRK_FILE_OP_RENAME_A_OPEN	; continue if file open
+	LDA.I	FILE_ERROR_OPEN			; load no file open error
+	BRA	_BRK_FILE_OP_RENAME_A_END	; retun
+>_BRK_FILE_OP_RENAME_A_OPEN
 	JSR	STRLEN				; get length of N
 	CMP.I	0				; test if 0
 	BNE	_BRK_FILE_OP_RENAME_A_NAME	; continue of not 0
@@ -340,14 +346,16 @@ $_BRK_FILE_OP_DISK_TEST
 ; P --- VR0: file name N
 ; R --- VR11/1: return code R
 ; renames the file open in B to N
-; does not indicate failure if B has no open file
 ; fails if a file with name N already exists
 ; R = 0 if the function succeeded
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_RENAME_B
 	LDA	IO_FILE_B_ID			; load file id
-	BEQ	_BRK_FILE_OP_RENAME_B_END	; just return if nothing open
+	BNE	_BRK_FILE_OP_RENAME_B_OPEN	; continue if file open
+	LDA.I	FILE_ERROR_OPEN			; load no file open error
+	BRA	_BRK_FILE_OP_RENAME_B_END	; return
+>_BRK_FILE_OP_RENAME_B_OPEN
 	JSR	STRLEN				; get length of N
 	CMP.I	0				; test if 0
 	BNE	_BRK_FILE_OP_RENAME_B_NAME	; continue of not 0
@@ -375,12 +383,16 @@ $_BRK_FILE_OP_DISK_TEST
 ; R --- VR11/1: return code R
 ; moves the current file position of A to P
 ; flushes and loads new pages if necessary
-; does not indicate failure if A has no open file
 ; if P is out of range (>=0x1300), the new position is set to one past the end
 ; R = 0 if the function succeeded
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_JUMP_A
+	LDA	IO_FILE_A_ID			; load file id
+	BNE	_BRK_FILE_OP_JUMP_A_OPEN	; continue if file open
+	LDA.I	FILE_ERROR_OPEN			; load no file open error
+	BRA	_BRK_FILE_OP_JUMP_A_END		; return
+>_BRK_FILE_OP_JUMP_A_OPEN
 	LDA.Z	VR4 1				; load high byte of P
 	CMP.I	0X13				; test if out of range
 	BGE	_BRK_FILE_OP_JUMP_A_EOF		; set one past the end if out of range
@@ -429,12 +441,16 @@ $_BRK_FILE_OP_DISK_TEST
 ; R --- VR11/1: return code R
 ; moves the current file position of B to P
 ; flushes and loads new pages if necessary
-; does not indicate failure if B has no open file
 ; if P is out of range (>=0x1300), the new position is set to one past the end
 ; R = 0 if the function succeeded
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_JUMP_B
+	LDA	IO_FILE_B_ID			; load file id
+	BNE	_BRK_FILE_OP_JUMP_B_OPEN	; continue if file open
+	LDA.I	FILE_ERROR_OPEN			; load no file open error
+	BRA	_BRK_FILE_OP_JUMP_B_END		; return
+>_BRK_FILE_OP_JUMP_B_OPEN
 	LDA.Z	VR4 1				; load high byte of P
 	CMP.I	0X13				; test if out of range
 	BGE	_BRK_FILE_OP_JUMP_B_EOF		; set one past the end if out of range
@@ -490,6 +506,11 @@ $_BRK_FILE_OP_DISK_TEST
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_READ_A
+	LDA	IO_FILE_A_ID			; load file id
+	BNE	_BRK_FILE_OP_READ_A_OPEN	; continue if file open
+	LDA.I	FILE_ERROR_OPEN			; load no file open error
+	BRA	_BRK_FILE_OP_READ_A_END		; return
+>_BRK_FILE_OP_READ_A_OPEN
 	LDA	IO_FILE_A_POS 1			; load high byte of position
 	CMP.I	0X13				; test if in eof region
 	BLS	_BRK_FILE_OP_READ_A_NO_EOF	; continue if in range
@@ -545,6 +566,11 @@ $_BRK_FILE_OP_DISK_TEST
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_READ_B
+	LDA	IO_FILE_B_ID			; load file id
+	BNE	_BRK_FILE_OP_READ_B_OPEN	; continue if file open
+	LDA.I	FILE_ERROR_OPEN			; load no file open error
+	BRA	_BRK_FILE_OP_READ_B_END		; return
+>_BRK_FILE_OP_READ_B_OPEN
 	LDA	IO_FILE_B_POS 1			; load high byte of position
 	CMP.I	0X13				; test if in eof region
 	BLS	_BRK_FILE_OP_READ_B_NO_EOF	; continue if in range
@@ -599,6 +625,11 @@ $_BRK_FILE_OP_DISK_TEST
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_WRITE_A
+	LDA	IO_FILE_A_ID			; load file id
+	BNE	_BRK_FILE_OP_WRITE_A_OPEN	; continue if file open
+	LDA.I	FILE_ERROR_OPEN			; load no file open error
+	BRA	_BRK_FILE_OP_WRITE_A_END	; return
+>_BRK_FILE_OP_WRITE_A_OPEN
 	LDA	IO_FILE_A_POS 1			; load high byte of position
 	CMP.I	0X13				; test if in eof region
 	BLS	_BRK_FILE_OP_WRITE_A_NO_EOF	; continue if in range
@@ -646,6 +677,11 @@ $_BRK_FILE_OP_DISK_TEST
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_WRITE_B
+	LDA	IO_FILE_B_ID			; load file id
+	BNE	_BRK_FILE_OP_WRITE_B_OPEN	; continue if file open
+	LDA.I	FILE_ERROR_OPEN			; load no file open error
+	BRA	_BRK_FILE_OP_WRITE_B_END	; return
+>_BRK_FILE_OP_WRITE_B_OPEN
 	LDA	IO_FILE_B_POS 1			; load high byte of position
 	CMP.I	0X13				; test if in eof region
 	BLS	_BRK_FILE_OP_WRITE_B_NO_EOF	; continue if in range

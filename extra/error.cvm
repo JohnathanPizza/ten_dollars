@@ -9,6 +9,7 @@ $FILE_ERROR_DISKFULL_STR
 $FILE_ERROR_NOFILE_STR
 $FILE_ERROR_INUSE_STR
 $FILE_ERROR_ID_STR
+$FILE_ERROR_OPEN_STR
 
 >FLOPPY_ERROR_NODISK_STR
 "No disk inserted in drive\0
@@ -26,6 +27,8 @@ $FILE_ERROR_ID_STR
 "File already in use\0
 >FILE_ERROR_ID_STR
 "File ID not in range\0
+>FILE_ERROR_OPEN_STR
+"File not open\0
 
 ; A file error code
 >PRINT_ERROR

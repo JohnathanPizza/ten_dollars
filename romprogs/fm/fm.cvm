@@ -37,6 +37,19 @@
 	STA.Z	VR0 1
 	JSR	PRINTL						; print
 
+	; get file perms for the duration of program
+	LDA.I	BC_FILE_CLAIM					; try claiming file access
+	BRK
+	LDA.Z	VR11						; test if file access claimed
+	CMP.I	TRUE
+	BEQ	_FM_LOOP					; continue if claimed
+	LDA	_FM_STR_PTR_ARRAY _FM_FILE_CLAIM_ERROR_STR_ID	; load file perm claim error string
+	STA.Z	VR0
+	LDA	_FM_STR_PTR_ARRAY _FM_FILE_CLAIM_ERROR_STR_ID 1
+	STA.Z	VR0 1
+	JSR	PRINTL						; print
+	JMP	_FM_EXIT_FUNC					; exit program
+
 >_FM_LOOP
 	; get user input
 	LDA.I	ASCII_HASHTAG					; print leading # to indicate ready for input
@@ -92,11 +105,6 @@
 	JSR	PRINTL
 	JMP	_FM_LOOP					; go back to main loop and get new input
 
->_FM_LOOP_CLEAR
-	LDA.I	BC_FILE_RELEASE
-	BRK
-	JMP	_FM_LOOP
-
 ; command strings
 
 >_FM_HELP_STR
@@ -119,6 +127,16 @@
 "fname\0
 >_FM_EXIT_STR
 "exit\0
+>_FM_OPEN_STR
+"open\0
+>_FM_CLOSE_STR
+"close\0
+>_FM_READ_STR
+"read\0
+>_FM_WRITE_STR
+"write\0
+>_FM_JUMP_STR
+"jump\0
 
 ; other strings
 
@@ -132,7 +150,13 @@
 "create name - try to create a file by name on the inserted disk\n
 "destroy name - try to destroy a file by name on the inserted disk\n
 "fname oldname newname - try to rename file oldname to newname (15 chars max)\n
-"exit - exit File Manager\0
+"exit - exit File Manager\n
+"\n
+"open name - open a file on disk for editing\n
+"close - close the open file and save edits to file\n
+"read - read bytes from the file in order\n
+"write value - write bytes to the file in order\n
+"jump position - move the read/write position in the file\0
 
 >_FM_PROMPT_STR
 "File Manager - enter command or type "help" to see all commands\0
@@ -158,6 +182,12 @@
 >_FM_FILE_NOT_FOUND_STR
 "File not found\0
 
+>_FM_EOF_STR
+"Encountered end of file\0
+
+>_FM_NUMBER_ERROR_STR
+"Argument given is not a number\0
+
 >_FM_PTR_ARRAY			; label for the array of all string pointers to adjust
 >_FM_FUNC_STR_PTR_ARRAY		; label for the subarray of command strings
 
@@ -171,6 +201,11 @@ $_FM_CREATE_STR
 $_FM_DESTROY_STR
 $_FM_FNAME_STR
 $_FM_EXIT_STR
+$_FM_OPEN_STR
+$_FM_CLOSE_STR
+$_FM_READ_STR
+$_FM_WRITE_STR
+$_FM_JUMP_STR
 
 >_FM_FUNC_STR_PTR_ARRAY_END	; end label for command string subarray
 >_FM_STR_PTR_ARRAY		; label for the subarray of other strings
@@ -184,20 +219,10 @@ $_FM_FILE_COUNT_STR
 $_FM_MISSING_ARG_STR
 $_FM_FILE_FOUND_STR
 $_FM_FILE_NOT_FOUND_STR
+$_FM_EOF_STR
+$_FM_NUMBER_ERROR_STR
 
 >_FM_PTR_ARRAY_END		; end label for array of all string pointers
-
-; string IDs (array indexes) for command strings
-=_FM_HELP_STR_ID		0
-=_FM_DISK_STR_ID		2
-=_FM_FORMAT_STR_ID		4
-=_FM_DNAME_STR_ID		6
-=_FM_LIST_STR_ID		8
-=_FM_FIND_STR_ID		10
-=_FM_CREATE_STR_ID		12
-=_FM_DESTROY_OUT_STR_ID		14
-=_FM_FNAME_STR_ID		16
-=_FM_EXIT_STR_ID		18
 
 ; string IDs (array indexes) for other strings
 =_FM_HELP_OUT_STR_ID		0
@@ -209,6 +234,8 @@ $_FM_FILE_NOT_FOUND_STR
 =_FM_MISSING_ARG_STR_ID		12
 =_FM_FILE_FOUND_STR_ID		14
 =_FM_FILE_NOT_FOUND_STR_ID	16
+=_FM_EOF_STR_ID			18
+=_FM_NUMBER_ERROR_STR_ID	20
 
 ; function pointer array for command functions
 ; parallel to command strings array
@@ -223,6 +250,11 @@ $_FM_CREATE_FUNC
 $_FM_DESTROY_FUNC
 $_FM_FNAME_FUNC
 $_FM_EXIT_FUNC
+$_FM_OPEN_FUNC
+$_FM_CLOSE_FUNC
+$_FM_READ_FUNC
+$_FM_WRITE_FUNC
+$_FM_JUMP_FUNC
 
 ; command functions
 
@@ -239,7 +271,6 @@ $_FM_EXIT_FUNC
 ;==================================================
 
 >_FM_DISK_FUNC
-	JSR	_FM_CLAIM_DISK					; claim file perms
 	LDA.I	_FM_NAME_BUF					; load name buffer address
 	STA.Z	VR1
 	STZ.Z	VR1 1
@@ -252,7 +283,7 @@ $_FM_EXIT_FUNC
 	JSR	PRINT_ERROR					; print the error with newline
 	LDA.I	ASCII_LF
 	JSR	PRINTC
-	JMP	_FM_LOOP_CLEAR					; return to main loop and release file perms
+	JMP	_FM_LOOP					; return to main loop
 >_FM_DISK_FUNC_NAME
 	LDA	_FM_STR_PTR_ARRAY _FM_DISK_NAME_STR_ID		; load disk name leading string
 	STA.Z	VR0
@@ -263,12 +294,11 @@ $_FM_EXIT_FUNC
 	STA.Z	VR0
 	STZ.Z	VR0 1
 	JSR	PRINTL						; print
-	JMP	_FM_LOOP_CLEAR					; return to main loop and release file perms
+	JMP	_FM_LOOP					; return to main loop
 
 ;==================================================
 
 >_FM_FORMAT_FUNC
-	JSR	_FM_CLAIM_DISK					; claim file perms
 	LDA.I	FILE_OP_FORMAT					; load floppy format op code
 	STA.Z	VR6
 	LDA.I	BC_FILE_OP					; format disk
@@ -279,7 +309,7 @@ $_FM_EXIT_FUNC
 	LDA.I	ASCII_LF
 	JSR	PRINTC
 >_FM_FORMAT_FUNC_SUCCESS
-	JMP	_FM_LOOP_CLEAR					; return to main loop and release file perms
+	JMP	_FM_LOOP					; return to main loop
 
 ;==================================================
 
@@ -290,7 +320,6 @@ $_FM_EXIT_FUNC
 	JSR	_FM_MISSING_ARG_ERROR				; print missing arg error
 	JMP	_FM_LOOP					; return to main loop
 >_FM_DNAME_FUNC_ARG
-	JSR	_FM_CLAIM_DISK					; claim file perms
 	LDA.Z	_FM_ARG_PTR					; load pointer to name arg
 	STA.Z	VR0						; set in VR0 for disk rename interrupt
 	STZ.Z	VR0 1
@@ -307,7 +336,7 @@ $_FM_EXIT_FUNC
 	LDA.I	ASCII_LF
 	JSR	PRINTC
 >_FM_DNAME_FUNC_END
-	JMP	_FM_LOOP_CLEAR					; return to main loop and release file perms
+	JMP	_FM_LOOP					; return to main loop
 
 ;==================================================
 
@@ -317,7 +346,6 @@ $_FM_EXIT_FUNC
 	; because this program has file claims, the sector in the floppy page wont change until we read again
 	; can just load file 1, 17, 33 etc and read all 16 strings from the floppy page to save disk requests and lots of time
 	; can tell that a file exists by a name since names cant be 0 length and destroying files clears names
-	JSR	_FM_CLAIM_DISK					; claim file perms
 	LDA.I	FILE_OP_INFO					; load file info code
 	STA.Z	VR6
 	LDA.I	_FM_NAME_BUF					; load file name buffer pointer for file name (wont be used though)
@@ -338,7 +366,7 @@ $_FM_EXIT_FUNC
 	JSR	PRINT_ERROR					; print the error and newline
 	LDA.I	ASCII_LF
 	JSR	PRINTC
-	JMP	_FM_LOOP_CLEAR					; return to main loop and release file perms
+	JMP	_FM_LOOP					; return to main loop
 >_FM_LIST_FUNC_LOOP2
 	JSR	STRLEN						; get length of file name
 	CMP.I	0						; test if length is 0
@@ -373,7 +401,7 @@ $_FM_EXIT_FUNC
 	LDA	_FM_STR_PTR_ARRAY _FM_FILE_COUNT_STR_ID 1
 	STA.Z	VR0 1
 	JSR	PRINTL
-	JMP	_FM_LOOP_CLEAR					; return to main loop and release file perms
+	JMP	_FM_LOOP					; return to main loop
 
 ;==================================================
 
@@ -384,7 +412,6 @@ $_FM_EXIT_FUNC
 	JSR	_FM_MISSING_ARG_ERROR				; print missing arg error
 	JMP	_FM_LOOP					; return to main loop
 >_FM_FIND_FUNC_ARG
-	JSR	_FM_CLAIM_DISK					; claim file perms
 	LDA.Z	_FM_ARG_PTR					; load pointer to name arg
 	STA.Z	VR0						; set in VR0 for file find interrupt
 	STZ.Z	VR0 1
@@ -400,7 +427,7 @@ $_FM_EXIT_FUNC
 	JSR	PRINT_ERROR					; print the error and newline
 	LDA.I	ASCII_LF
 	JSR	PRINTC
-	JMP	_FM_LOOP_CLEAR					; return to main loop and release file perms
+	JMP	_FM_LOOP					; return to main loop
 >_FM_FIND_FUNC_GOOD
 	LDA.Z	VR10						; load result of find op
 	BNE	_FM_FIND_FUNC_FOUND				; if not zero then the file was found
@@ -409,14 +436,14 @@ $_FM_EXIT_FUNC
 	LDA	_FM_STR_PTR_ARRAY _FM_FILE_NOT_FOUND_STR_ID 1
 	STA.Z	VR0 1
 	JSR	PRINTL						; print
-	JMP	_FM_LOOP_CLEAR					; return to main loop and release file perms
+	JMP	_FM_LOOP					; return to main loop
 >_FM_FIND_FUNC_FOUND
 	LDA	_FM_STR_PTR_ARRAY _FM_FILE_FOUND_STR_ID		; load file found string
 	STA.Z	VR0
 	LDA	_FM_STR_PTR_ARRAY _FM_FILE_FOUND_STR_ID 1
 	STA.Z	VR0 1
 	JSR	PRINTL						; print
-	JMP	_FM_LOOP_CLEAR					; return to main loop and release file perms
+	JMP	_FM_LOOP					; return to main loop
 
 ;==================================================
 
@@ -427,7 +454,6 @@ $_FM_EXIT_FUNC
 	JSR	_FM_MISSING_ARG_ERROR				; print missing arg error
 	JMP	_FM_LOOP					; return to main loop
 >_FM_CREATE_FUNC_ARG
-	JSR	_FM_CLAIM_DISK					; claim file perms
 	LDA.Z	_FM_ARG_PTR					; load pointer to name arg in VR0 for file create interrupt
 	STA.Z	VR0
 	STZ.Z	VR0 1
@@ -444,7 +470,7 @@ $_FM_EXIT_FUNC
 	LDA.I	ASCII_LF
 	JSR	PRINTC
 >_FM_CREATE_FUNC_SUCCESS
-	JMP	_FM_LOOP_CLEAR					; return to main loop and release file perms
+	JMP	_FM_LOOP					; return to main loop
 
 ;==================================================
 
@@ -455,9 +481,8 @@ $_FM_EXIT_FUNC
 	JSR	_FM_MISSING_ARG_ERROR				; print missing arg error
 	JMP	_FM_LOOP					; return to main loop
 >_FM_DESTROY_FUNC_ARG
-	JSR	_FM_CLAIM_DISK					; claim file perms
 	LDA.Z	_FM_ARG_PTR					; load pointer to name arg
-	STA.Z	VR0						; set in VR0 for file destroy interrupt
+	STA.Z	VR0						; set in VR0 for file open interrupt
 	STZ.Z	VR0 1
 	LDA.I	ASCII_NUL					; truncate arg
 	LDY.Z	_FM_ARG_LEN
@@ -471,7 +496,7 @@ $_FM_EXIT_FUNC
 	JSR	PRINT_ERROR					; print the error and newline
 	LDA.I	ASCII_LF
 	JSR	PRINTC
-	JMP	_FM_LOOP_CLEAR					; return to main loop and release file perms
+	JMP	_FM_LOOP					; return to main loop
 >_FM_DESTROY_FUNC_OPENED
 	LDA.I	FILE_OP_DESTROY_A				; load file destroy op code
 	STA.Z	VR6
@@ -483,7 +508,7 @@ $_FM_EXIT_FUNC
 	LDA.I	ASCII_LF
 	JSR	PRINTC
 >_FM_DESTROY_FUNC_SUCCESS
-	JMP	_FM_LOOP_CLEAR					; return to main loop and release file perms
+	JMP	_FM_LOOP					; return to main loop
 
 ;==================================================
 
@@ -494,7 +519,6 @@ $_FM_EXIT_FUNC
 	JSR	_FM_MISSING_ARG_ERROR				; print missing arg error
 	JMP	_FM_LOOP					; return to main loop
 >_FM_FNAME_FUNC_ARG
-	JSR	_FM_CLAIM_DISK					; claim
 	LDA.Z	_FM_ARG_PTR					; load pointer to name arg in VR0 for file open
 	STA.Z	VR0
 	STZ.Z	VR0 1
@@ -510,14 +534,14 @@ $_FM_EXIT_FUNC
 	JSR	PRINT_ERROR					; print the error and newline
 	LDA.I	ASCII_LF
 	JSR	PRINTC
-	JMP	_FM_LOOP_CLEAR					; return to main loop and release file perms
+	JMP	_FM_LOOP					; return to main loop
 >_FM_FNAME_FUNC_OPEN
 	JSR	_FM_ARG_RESTORE					; restore truncated byte
 	JSR	_FM_NEXT_ARG					; try to get new file name
 	CMP.I	TRUE						; test if given arg
 	BEQ	_FM_FNAME_FUNC_ARG2				; continue if arg given
 	JSR	_FM_MISSING_ARG_ERROR				; print missing arg error
-	JMP	_FM_LOOP_CLEAR					; return to main loop and release file perms
+	JMP	_FM_LOOP					; return to main loop
 >_FM_FNAME_FUNC_ARG2
 	LDA.Z	_FM_ARG_PTR					; load pointer to name arg in VR0 for file rename
 	STA.Z	VR0
@@ -535,17 +559,229 @@ $_FM_EXIT_FUNC
 	LDA.I	ASCII_LF
 	JSR	PRINTC
 >_FM_FNAME_FUNC_SUCCESS
-	JMP	_FM_LOOP_CLEAR					; return to main loop and release file perms
+	JMP	_FM_LOOP					; return to main loop
 
 ;==================================================
 
 >_FM_EXIT_FUNC
-	;LDA.I	FILE_OP_CLOSE_A
-	;BRK
-	;LDA.I	FILE_OP_CLOSE_B
-	;BRK
+	LDA.I	FILE_OP_CLOSE_A					; close maybe files on exit
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP
+	BRK
+	LDA.I	FILE_OP_CLOSE_B
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP
+	BRK
 	LDA.I	BC_EXIT						; exit program
 	BRK
+
+;==================================================
+
+>_FM_OPEN_FUNC
+	JSR	_FM_NEXT_ARG					; try to get file name
+	CMP.I	TRUE						; test if given arg
+	BEQ	_FM_OPEN_FUNC_ARG				; continue if arg given
+	JSR	_FM_MISSING_ARG_ERROR				; print missing arg error
+	JMP	_FM_LOOP					; return to main loop
+>_FM_OPEN_FUNC_ARG
+	LDA.Z	_FM_ARG_PTR					; load pointer to name arg
+	STA.Z	VR0						; set in VR0 for file open interrupt
+	STZ.Z	VR0 1
+	LDA.I	ASCII_NUL					; truncate arg
+	LDY.Z	_FM_ARG_LEN
+	STA.ZPY	VR0
+	LDA.I	FILE_OP_OPEN_B					; load file open op code
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP					; open the file
+	BRK
+	LDA.Z	VR11						; test if file opened
+	BEQ	_FM_OPEN_FUNC_SUCCESS				; continue if opened
+	JSR	PRINT_ERROR	 				; print the error and newline
+	LDA.I	ASCII_LF
+	JSR	PRINTC
+>_FM_OPEN_FUNC_SUCCESS
+	JMP	_FM_LOOP					; return to main loop
+
+;==================================================
+
+>_FM_CLOSE_FUNC
+	LDA.I	FILE_OP_CLOSE_B					; load file close op code
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP					; close any open file
+	BRK
+	LDA.Z	VR11						; test if file closed
+	BEQ	_FM_CLOSE_FUNC_SUCCESS				; continue if closed
+	JSR	PRINT_ERROR					; print the error and newline
+	LDA.I	ASCII_LF
+	JSR	PRINTC
+>_FM_CLOSE_FUNC_SUCCESS
+	JMP	_FM_LOOP					; return to main loop
+
+;==================================================
+
+>_FM_READ_FUNC
+	LDA.I	FILE_OP_READ_B					; load file read op code
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP					; read from file
+	BRK
+	LDA.Z	VR11						; test if file read
+	BEQ	_FM_READ_FUNC_SUCCESS				; contiune if read
+	CMP.I	FILE_EOF					; test if encountered eof
+	BEQ	_FM_READ_FUNC_EOF				; print eof string
+	JSR	PRINT_ERROR					; print the error and newline
+	LDA.I	ASCII_LF
+	JSR	PRINTC
+	JMP	_FM_LOOP					; return to main loop
+>_FM_READ_FUNC_SUCCESS
+	LDA.Z	VR10						; load read byte
+	PHA							; store
+	LDA.I	FILE_OP_GETPOS_B				; load get file position op
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP					; get file position
+	BRK
+	SEC							; sub 1 for previous position
+	LDA.Z	VR10
+	SBC.I	1
+	STA.Z	VR10
+	LDA.Z	VR10 1
+	SBC.I	0
+	JSR	PRINTH						; print file position
+	LDA.Z	VR10
+	JSR	PRINTH
+	LDA.I	ASCII_SPACE					; space
+	JSR	PRINTC
+	PLA							; print read value
+	JSR	PRINTH
+	LDA.I	ASCII_LF
+	JSR	PRINTC
+	JMP	_FM_LOOP					; return to main loop
+>_FM_READ_FUNC_EOF
+	LDA	_FM_STR_PTR_ARRAY _FM_EOF_STR_ID		; print eof string
+	STA.Z	VR0
+	LDA	_FM_STR_PTR_ARRAY _FM_EOF_STR_ID 1
+	STA.Z	VR0 1
+	JSR	PRINTL
+	JMP	_FM_LOOP					; return to main loop
+
+;==================================================
+
+>_FM_WRITE_FUNC
+	JSR	_FM_NEXT_ARG					; try to get byte
+	CMP.I	TRUE						; test if given arg
+	BEQ	_FM_WRITE_FUNC_ARG				; continue if arg given
+	JSR	_FM_MISSING_ARG_ERROR				; print missing arg error
+	JMP	_FM_LOOP					; return to main loop
+>_FM_WRITE_FUNC_ARG
+	LDA.Z	_FM_ARG_PTR					; load pointer to value arg
+	STA.Z	VR0						; set in VR0 for STRTONUM
+	STZ.Z	VR0 1
+	LDA.I	ASCII_NUL					; truncate arg
+	LDY.Z	_FM_ARG_LEN
+	STA.ZPY	VR0
+	JSR	STRTONUM					; get value of arg
+	CMP.I	TRUE						; test if succeeded
+	BEQ	_FM_WRITE_FUNC_VALUE				; continue if so
+	LDA	_FM_STR_PTR_ARRAY _FM_NUMBER_ERROR_STR_ID	; print number error string
+	STA.Z	VR0
+	LDA	_FM_STR_PTR_ARRAY _FM_NUMBER_ERROR_STR_ID 1
+	STA.Z	VR0 1
+	JSR	PRINTL
+	JMP	_FM_LOOP					; return to main loop
+>_FM_WRITE_FUNC_VALUE
+	LDA.Z	VR11						; move given number to VR7/1 for file write
+	STA.Z	VR7
+	LDA.I	FILE_OP_WRITE_B					; load file write op
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP					; write to file
+	BRK
+	LDA.Z	VR11						; test if file written
+	BEQ	_FM_WRITE_FUNC_SUCCESS				; continue if written
+	CMP.I	FILE_EOF					; test if eof
+	BEQ	_FM_WRITE_FUNC_EOF				; print eof string
+	JSR	PRINT_ERROR	 				; print the error and newline
+	LDA.I	ASCII_LF
+	JSR	PRINTC
+	JMP	_FM_LOOP					; return to main loop
+>_FM_WRITE_FUNC_SUCCESS
+	LDA.I	FILE_OP_GETPOS_B				; load get file position op
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP					; get file position
+	BRK
+	SEC							; sub 1 from new file position
+	LDA.Z	VR10
+	SBC.I	1
+	STA.Z	VR10
+	LDA.Z	VR10 1
+	SBC.I	0
+	JSR	PRINTH						; print file position
+	LDA.Z	VR10
+	JSR	PRINTH
+	LDA.I	ASCII_SPACE					; space
+	JSR	PRINTC
+	LDA.Z	VR7						; print written value
+	JSR	PRINTH
+	LDA.I	ASCII_LF					; print newline
+	JSR	PRINTC
+	JMP	_FM_LOOP					; return to main loop
+>_FM_WRITE_FUNC_EOF
+	LDA	_FM_STR_PTR_ARRAY _FM_EOF_STR_ID		; print eof string
+	STA.Z	VR0
+	LDA	_FM_STR_PTR_ARRAY _FM_EOF_STR_ID 1
+	STA.Z	VR0 1
+	JSR	PRINTL
+	JMP	_FM_LOOP					; return to main loop
+
+;==================================================
+
+>_FM_JUMP_FUNC
+	JSR	_FM_NEXT_ARG					; try to get position
+	CMP.I	TRUE						; test if given arg
+	BEQ	_FM_JUMP_FUNC_ARG				; continue if arg given
+	JSR	_FM_MISSING_ARG_ERROR				; print missing arg error
+	JMP	_FM_LOOP					; return to main loop
+>_FM_JUMP_FUNC_ARG
+	LDA.Z	_FM_ARG_PTR					; load pointer to value arg
+	STA.Z	VR0						; set in VR0 for STRTONUM
+	STZ.Z	VR0 1
+	LDA.I	ASCII_NUL					; truncate arg
+	LDY.Z	_FM_ARG_LEN
+	STA.ZPY	VR0
+	JSR	STRTONUM					; get value of arg
+	CMP.I	TRUE						; test if succeeded
+	BEQ	_FM_JUMP_FUNC_VALUE				; continue if so
+	LDA	_FM_STR_PTR_ARRAY _FM_NUMBER_ERROR_STR_ID	; print number error string
+	STA.Z	VR0
+	LDA	_FM_STR_PTR_ARRAY _FM_NUMBER_ERROR_STR_ID 1
+	STA.Z	VR0 1
+	JSR	PRINTL
+	JMP	_FM_LOOP					; return to main loop
+>_FM_JUMP_FUNC_VALUE
+	LDA.Z	VR11						; move position to VR4 for jump op
+	STA.Z	VR4
+	LDA.Z	VR11 1
+	STA.Z	VR4 1
+	LDA.I	FILE_OP_JUMP_B					; load file jump op code
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP					; jump in file
+	BRK
+	LDA.Z	VR11						; test if jumped
+	BEQ	_FM_JUMP_FUNC_SUCCESS				; continue if so
+	JSR	PRINT_ERROR					; print the error and newline
+	LDA.I	ASCII_LF
+	JSR	PRINTC
+	JMP	_FM_LOOP					; return to main loop
+>_FM_JUMP_FUNC_SUCCESS
+	LDA.I	FILE_OP_GETPOS_B				; load get position op code
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP					; get file position
+	BRK
+	LDA.Z	VR10 1						; print new position
+	JSR	PRINTH
+	LDA.Z	VR10
+	JSR	PRINTH
+	LDA.I	ASCII_LF
+	JSR	PRINTC
+	JMP	_FM_LOOP					; return to main loop
 
 ;==================================================
 
@@ -581,6 +817,7 @@ $_FM_EXIT_FUNC
 	LDA.I	BC_READ			; load read code
 	BRK				; get input
 	JSR	PRINTL			; reflect input
+	JSR	PRINT_WAIT		; wait
 	JSR	STRLEN			; get input length
 	STA.Z	_FM_TOT_LEN		; update total length
 	PLA				; restore VR4/1
@@ -637,29 +874,5 @@ $_FM_EXIT_FUNC
 	STA.Z	VR0
 	PLA				; restore A
 	RTS				; return
-
-
-; tries to claim file perms
-; returns to caller on success, else clears return pointer off stack and jumps to main loop on fail after printing error
->_FM_CLAIM_DISK
-	PHA							; store A
-	JSR	PRINT_WAIT					; wait here to save code in other functions
-	LDA.I	BC_FILE_CLAIM					; try claiming file access
-	BRK
-	LDA.Z	VR11						; test if file access claimed
-	CMP.I	TRUE
-	BEQ	_FM_CLAIM_DISK_CLAIMED				; return normally if claimed
-	LDA	_FM_STR_PTR_ARRAY _FM_FILE_CLAIM_ERROR_STR_ID	; load file perm claim error string
-	STA.Z	VR0
-	LDA	_FM_STR_PTR_ARRAY _FM_FILE_CLAIM_ERROR_STR_ID 1
-	STA.Z	VR0 1
-	JSR	PRINTL						; print
-	PLA							; clear A
-	PLA							; clear return address
-	PLA
-	JMP	_FM_LOOP					; return to main loop
->_FM_CLAIM_DISK_CLAIMED
-	PLA							; restore A
-	RTS							; return
 
 >FM_END

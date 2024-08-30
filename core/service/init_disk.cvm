@@ -9,8 +9,8 @@
 ; 0-253: XXXX
 ; 254-255: 0000
 ; with N ptrs
-; 0-(2N-1): XXXX
-; 2N-(2N+1): 0000
+; [0,2N-1]: XXXX
+; [2N,2N+1]: 0000
 
 >SERVICE_INIT_DISK
 	LDY	PROC_ACTIVE_ID		; load proc id

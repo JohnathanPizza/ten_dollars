@@ -1,154 +1,143 @@
-=SHELL_PTROFFL		0 ; 1
-=SHELL_PTROFFH		1 ; 1
-=SHELL_ARGPTR		2 ; 2
-=SHELL_ARGLEN		4 ; 1
-
-=SHELL_INPUT_BUF	0X40 ; 0x40
-=SHELL_INPUT_BUF_SIZE	0X40
+=_SHELL_ARG_PTR		0 ; 1
+=_SHELL_ARG_LEN		1 ; 1
+=_SHELL_TOT_LEN		2 ; 1
+=_SHELL_INPUT_BUF	0X10 ; 0x40
+=_SHELL_INPUT_BUF_LEN	0X40
 
 >SHELL_START
 
-	LDA.I	BC_PTROFF			; get ptr offset
+	; get the process pointer offset to adjust strings
+	LDA.I	BC_PTROFF					; interrupt to get offset
 	BRK
-	LDA.Z	VR11				; store ptr offset low in ptroffl
-	STA.Z	SHELL_PTROFFL
-	LDA.Z	VR11 1				; ptr offset high in ptroffh
-	STA.Z	SHELL_PTROFFH
-	JSR	SHELL_ADJPTRS			; adjust pointers
-
->_SHELL_MAIN_LOOP
-
-	LDA	SHELL_PTRS SHELL_STR_READY_PID 0	; load string pointer
+	LDA.Z	VR11						; move offset to VR5 for adjust func
+	STA.Z	VR5
+	LDA.Z	VR11 1
+	STA.Z	VR5 1
+	LDA.I	_SHELL_PTR_ARRAY_END - _SHELL_PTR_ARRAY / 2	; load length of pointer array to adjust
+	STA.Z	VR4
+	LDA.I	_SHELL_PTR_ARRAY_END - _SHELL_PTR_ARRAY / 2 > 8
+	STA.Z	VR4 1
+	CLC							; add offset to pointer to array of string pointers to adjust
+	LDA.I	_SHELL_PTR_ARRAY
+	ADC.Z	VR5
 	STA.Z	VR0
-	LDA	SHELL_PTRS SHELL_STR_READY_PID 1
+	LDA.I	_SHELL_PTR_ARRAY > 8
+	ADC.Z	VR5 1
 	STA.Z	VR0 1
-	JSR	PRINTL				; print
+	JSR	PROGRAM_POINTER_ADJUST				; adjust all string pointers
 
-	JSR	SHELL_GET_INPUT			; grab some input
+>_SHELL_LOOP
 
-	LDA.I	ASCII_PERCENT			; print %
-	JSR	PRINTC
-	LDA.I	SHELL_INPUT_BUF			; load input buffer pointer
-	STA.Z	VR0
-	STZ.Z	VR0 1
-	JSR	PRINTL				; print input buffer
+	JSR	_SHELL_PRINT_HEADER				; print input header
 
-	LDA.I	SHELL_INPUT_BUF			; reset argument pointer for single line evaluation
-	STA.Z	SHELL_ARGPTR
-	STZ.Z	SHELL_ARGPTR 1
-	STZ.Z	SHELL_ARGLEN			; reset argument length
+	JSR	_SHELL_GET_INPUT
+	JSR	_SHELL_NEXT_ARG
+	CMP.I	FALSE
+	BEQ	_SHELL_LOOP
 
-	JSR	SHELL_GET_ARG			; get first argument
-	CMP.I	FALSE				; test if nothing given
-	BEQ	_SHELL_MAIN_LOOP		; if nothing just loop again
-
-	LDA.Z	SHELL_ARGPTR			; set the argument pointer in vr1 to do comparisons on
+	LDA.Z	_SHELL_ARG_PTR
 	STA.Z	VR1
 	STZ.Z	VR1 1
-	LDA.Z	SHELL_ARGLEN			; set argument length too
+	LDA.Z	_SHELL_ARG_LEN
 	STA.Z	VR4
-
-	LDX.I	0				; set index to 0
->_SHELL_COMMAND_PTR_LOOP
-	LDA.X	SHELL_COMMAND_STR_PTRS 0	; load low part of pointer to string
-	STA.Z	VR0				; store
-	LDA.X	SHELL_COMMAND_STR_PTRS 1	; load high part of pointer to string
-	STA.Z	VR0 1				; store
-	JSR	STRLEN				; find string length
-	CMP.Z	SHELL_ARGLEN			; test if argument length is equal to command length
-	BNE	_SHELL_COMMAND_PTR_LOOP_SKIP	; fail if they are not equal
-	JSR	STRNCMP				; compare strings
-	CMP.I	0				; test if input buf equals command string
-	BEQ	_SHELL_COMMAND_PTR_LOOP_FOUND	; run matching command
->_SHELL_COMMAND_PTR_LOOP_SKIP
-	INX					; inc index
-	INX					; inc index again for ptr stride
-	CPX.I	SHELL_COMMAND_STR_PTRS_END - SHELL_COMMAND_STR_PTRS	; test if done
-	BNE	_SHELL_COMMAND_PTR_LOOP		; loop if not
-
-	; no matching command string, print error message and try again
-	LDA	SHELL_PTRS SHELL_STR_FAIL_PID 0	; load pointer to fail string
+	LDX.I	0
+>_SHELL_SEARCH_LOOP
+	LDA.X	_SHELL_COMMAND_STR_PTR_ARRAY
 	STA.Z	VR0
-	LDA	SHELL_PTRS SHELL_STR_FAIL_PID 1
+	LDA.X	_SHELL_COMMAND_STR_PTR_ARRAY 1
 	STA.Z	VR0 1
-	JSR	PRINTL				; print
-	JMP	_SHELL_MAIN_LOOP		; loop back up
+	JSR	STRLEN
+	CMP.Z	VR4
+	BNE	_SHELL_SEARCH_LOOP_SKIP
+	JSR	STRNCMP
+	CMP.I	0
+	BNE	_SHELL_SEARCH_LOOP_SKIP
+	JMP.XP	_SHELL_FUNC_ARRAY
+>_SHELL_SEARCH_LOOP_SKIP
+	INX
+	INX
+	CPX.I	_SHELL_COMMAND_STR_PTR_ARRAY_END - _SHELL_COMMAND_STR_PTR_ARRAY
+	BNE	_SHELL_SEARCH_LOOP
 
->_SHELL_COMMAND_PTR_LOOP_FOUND
+	LDA.I	ASCII_QUOTE
+	JSR	PRINTC
+	LDA.I	_SHELL_ARG_PTR
+	STA.Z	VR0
+	STA.Z	VR0 1
+	LDY.Z	_SHELL_ARG_LEN
+	LDA.I	ASCII_NUL
+	STA.ZPY	VR0
+	JSR	PRINTS
+	LDA.I	ASCII_QUOTE
+	JSR	PRINTC
+	LDA	_SHELL_STR_PTR_ARRAY _SHELL_COMMAND_ERROR_STR_ID
+	STA.Z	VR0
+	LDA	_SHELL_STR_PTR_ARRAY _SHELL_COMMAND_ERROR_STR_ID 1
+	STA.Z	VR0 1
+	JSR	PRINTL
+	JMP	_SHELL_LOOP
 
-	JMP.XP	SHELL_COMMAND_FUNC_PTRS		; jump to the command function using X value from string search
+; command strings
 
-	LDA.I	BC_EXIT
-	BRK
-
-;=====
-
->SHELL_PTRS
-
-$SHELL_STR_READY
-$SHELL_STR_FAIL
-$SHELL_STR_RUN_FAIL
-$SHELL_STR_CF_FAIL
-
->SHELL_COMMAND_STR_PTRS
-$SHELL_STR_RUN
-$SHELL_STR_ME
-$SHELL_STR_CF
->SHELL_COMMAND_STR_PTRS_END
-
->SHELL_COMMAND_FUNC_PTRS
-$SHELL_COMMAND_RUN
-$SHELL_COMMAND_ME
-$SHELL_COMMAND_CF
-
->SHELL_PTRS_END
-
-=SHELL_STR_READY_PID	0
-=SHELL_STR_FAIL_PID	2
-=SHELL_STR_RUN_FAIL_PID 4
-=SHELL_STR_CF_FAIL_PID 6
-
-;=====
-
->SHELL_STR_READY
-"shell ready\0
->SHELL_STR_FAIL
-"no command exists\0
->SHELL_STR_RUN_FAIL
-"no program exists\0
->SHELL_STR_CF_FAIL
-"enter a process id\0
-
->SHELL_STR_RUN
+>_SHELL_RUN_STR
 "run\0
->SHELL_STR_ME
-"me\0
->SHELL_STR_CF
-"cf\0
+>_SHELL_SPAWN_STR
+"spawn\0
 
-;=====
+; other strings
 
->SHELL_ADJPTRS
-	PHA				; store A
-	PHX				; store X
-	LDX.I	0			; set X to 0
->_SHELL_ADJPTRS_LOOP
-	CLC				; clc for adc
-	LDA.X	SHELL_PTRS		; load low value for pointer
-	ADC.Z	SHELL_PTROFFL		; add ptroff low
-	STA.X	SHELL_PTRS		; store back
-	LDA.X	SHELL_PTRS 1		; load high value for pointer
-	ADC.Z	SHELL_PTROFFH		; add ptroff high
-	STA.X	SHELL_PTRS 1		; store back
-	INX				; X += 1
-	INX				; X += 2 for pointer stride
-	CPX.I	SHELL_PTRS_END - SHELL_PTRS	; test if done
-	BNE	_SHELL_ADJPTRS_LOOP	; loop if not
-	PLX				; restore X
-	PLA				; restore A
-	RTS				; return
+>_SHELL_MISSING_ARG_STR
+"Missing argument(s)\0
 
->SHELL_GET_INPUT
+>_SHELL_COMMAND_ERROR_STR
+" is not a command\0
+
+>_SHELL_HEADER_STR
+"(shell) #\0
+
+>_SHELL_PTR_ARRAY
+>_SHELL_COMMAND_STR_PTR_ARRAY
+
+$_SHELL_RUN_STR
+$_SHELL_SPAWN_STR
+
+>_SHELL_COMMAND_STR_PTR_ARRAY_END
+>_SHELL_STR_PTR_ARRAY
+
+$_SHELL_MISSING_ARG_STR
+$_SHELL_COMMAND_ERROR_STR
+$_SHELL_HEADER_STR
+
+>_SHELL_PTR_ARRAY_END
+
+; string IDs for other strings
+
+=_SHELL_MISSING_ARG_STR_ID	0
+=_SHELL_COMMAND_ERROR_STR_ID	2
+=_SHELL_HEADER_STR_ID		4
+
+; function pointer array for command functions
+; parallel to command strings array
+
+>_SHELL_FUNC_ARRAY
+$_SHELL_RUN_FUNC
+$_SHELL_SPAWN_FUNC
+
+; utility functions
+
+; prints the missing arg error string
+>_SHELL_MISSING_ARG_ERROR
+	PHA							; store A
+	LDA	_SHELL_STR_PTR_ARRAY _SHELL_MISSING_ARG_STR_ID	; load missing arg string
+	STA.Z	VR0
+	LDA	_SHELL_STR_PTR_ARRAY _SHELL_MISSING_ARG_STR_ID 1
+	STA.Z	VR0 1
+	JSR	PRINTL						; print
+	PLA							; restore A
+	RTS							; return
+
+; gets new user input in the input buffer and resets arg vars
+>_SHELL_GET_INPUT
 	PHA				; store A
 	LDA.Z	VR0			; save VR0
 	PHA
@@ -156,13 +145,19 @@ $SHELL_COMMAND_CF
 	PHA
 	LDA.Z	VR4			; save VR4/1
 	PHA
-	LDA.I	SHELL_INPUT_BUF		; load pointer to input buffer
-	STA.Z	VR0
+	LDA.I	_SHELL_INPUT_BUF	; load pointer to input buffer
+	STA.Z	_SHELL_ARG_PTR		; reset arg pointer
+	STZ.Z	_SHELL_ARG_LEN		; reset arg length
+	STA.Z	VR0			; set read buffer to input buffer
 	STZ.Z	VR0 1
-	LDA.I	SHELL_INPUT_BUF_SIZE	; load input buffer size
+	LDA.I	_SHELL_INPUT_BUF_LEN	; load input buffer size
 	STA.Z	VR4
 	LDA.I	BC_READ			; load read code
 	BRK				; get input
+	JSR	PRINTL			; reflect input
+	JSR	PRINT_WAIT		; wait
+	JSR	STRLEN			; get input length
+	STA.Z	_SHELL_TOT_LEN		; update total length
 	PLA				; restore VR4/1
 	STA.Z	VR4
 	PLA				; restore VR0
@@ -172,56 +167,70 @@ $SHELL_COMMAND_CF
 	PLA				; return A
 	RTS				; return
 
-; advance argptr to next val
-; a = true if found another arg
-; a = false if none left to read / do not use
->SHELL_GET_ARG
-	LDA.Z	SHELL_ARGPTR
-	CLC
-	ADC.Z	SHELL_ARGLEN
-	STA.Z	SHELL_ARGPTR
-	STZ.Z	SHELL_ARGLEN
->_SHELL_GET_ARG_TRIM_LOOP
-	LDA.ZP	SHELL_ARGPTR
-	BEQ	_SHELL_GET_ARG_NONE
-	JSR	ISSPACE
-	CMP.I	FALSE
-	BEQ	_SHELL_GET_ARG_TRIM_DONE
-	INC.Z	SHELL_ARGPTR
-	BRA	_SHELL_GET_ARG_TRIM_LOOP
->_SHELL_GET_ARG_TRIM_DONE
->_SHELL_GET_ARG_SPACE_LOOP
-	LDA.ZP	SHELL_ARGPTR
-	BEQ	_SHELL_GET_ARG_SPACE_DONE
-	JSR	ISSPACE
-	CMP.I	TRUE
-	BEQ	_SHELL_GET_ARG_SPACE_DONE
-	INC.Z	SHELL_ARGLEN
-	INC.Z	SHELL_ARGPTR
-	BRA	_SHELL_GET_ARG_SPACE_LOOP
->_SHELL_GET_ARG_SPACE_DONE
-	LDA.Z	SHELL_ARGPTR
-	SEC
-	SBC.Z	SHELL_ARGLEN
-	STA.Z	SHELL_ARGPTR
-	LDA.I	TRUE
-	RTS
->_SHELL_GET_ARG_NONE
-	LDA.I	FALSE
-	RTS
+; gets the next argument and updates arg vars
+; returns in A TRUE or FALSE if there is or isnt another arg
+>_SHELL_NEXT_ARG
+	LDA.Z	_SHELL_ARG_PTR		; load arg pointer in VR10
+	STA.Z	VR10
+	STZ.Z	VR10 1
+	LDA.Z	_SHELL_ARG_LEN		; add current arg length to set pointer to one after end of last arg
+	STA.Z	VR11
+	JSR	PROGRAM_GET_ARG		; get next arg
+	PHA				; store result
+	LDA.Z	VR10			; update arg pointer
+	STA.Z	_SHELL_ARG_PTR
+	LDA.Z	VR11			; update arg length
+	STA.Z	_SHELL_ARG_LEN
+	PLA				; restore result
+	RTS				; return
 
-;=====
-
->SHELL_COMMAND_RUN
-	JSR	SHELL_GET_INPUT
-	LDA.I	SHELL_INPUT_BUF
+; conditionally restores the truncated byte of args
+>_SHELL_ARG_RESTORE
+	PHA				; store A
+	LDA.Z	VR0			; store VR0
+	PHA
+	LDA.Z	VR0 1
+	PHA
+	LDA.I	_SHELL_INPUT_BUF	; load pointer to input buf in VR0
 	STA.Z	VR0
 	STZ.Z	VR0 1
-	JSR	PRINTL
-	JSR	PRINT_WAIT
+	JSR	STRLEN			; get length of input buffer
+	CMP.Z	_SHELL_TOT_LEN		; compare to the length of input when first entered by user
+	BEQ	_SHELL_ARG_RESTORE_SAME	; if the same, then any truncated byte shouldnt be restored as it is acting as the true buffer end
+	PHY				; store Y
+	LDY.Z	_SHELL_ARG_LEN		; load current arg length
+	LDA.Z	_SHELL_ARG_PTR		; load current arg pointer in VR0
+	STA.Z	VR0
+	STZ.Z	VR0 1
+	LDA.I	ASCII_SPACE		; set truncated byte back to non-delimiting whitespace character
+	STA.ZPY	VR0
+	PLY				; restore Y
+>_SHELL_ARG_RESTORE_SAME
+	PLA				; restore VR0
+	STA.Z	VR0 1
+	PLA
+	STA.Z	VR0
+	PLA				; restore A
+	RTS				; return
+
+;==================================================
+
+>_SHELL_RUN_FUNC
+	JSR	_SHELL_NEXT_ARG
+	CMP.I	TRUE
+	BEQ	_SHELL_RUN_FUNC_ARG
+	JSR	_SHELL_MISSING_ARG_ERROR
+	JMP	_SHELL_LOOP
+>_SHELL_RUN_FUNC_ARG
+	LDA.Z	_SHELL_ARG_PTR					; load pointer to name arg
+	STA.Z	VR0						; set in VR0 for rom name finder
+	STZ.Z	VR0 1
+	LDA.I	ASCII_NUL					; truncate arg
+	LDY.Z	_SHELL_ARG_LEN
+	STA.ZPY	VR0
 	JSR	ROM_PROGRAM_GET
 	CMP.I	0XFF
-	BEQ	_SHELL_COMMAND_RUN_FAIL
+	BEQ	_SHELL_RUN_FUNC_FAIL
 	STA.Z	VR4
 	LDA.I	BC_SPAWN_ROM
 	BRK
@@ -231,54 +240,100 @@ $SHELL_COMMAND_CF
 	BRK
 	LDA.I	BC_WAIT_FOCUS
 	BRK
-	JMP	_SHELL_MAIN_LOOP
->_SHELL_COMMAND_RUN_FAIL
-	LDA	SHELL_PTRS SHELL_STR_RUN_FAIL_PID 0
-	STA.Z	VR0
-	LDA	SHELL_PTRS SHELL_STR_RUN_FAIL_PID 1
-	STA.Z	VR0 1
-	JSR	PRINTL
-	JMP	_SHELL_MAIN_LOOP
+	JMP	_SHELL_LOOP
+>_SHELL_RUN_FUNC_FAIL
+	JMP	_SHELL_LOOP
 
->SHELL_COMMAND_ME
-	LDA.I	0XFF
-	STA.Z	VR4
-	STA.Z	VR3
-	STA.Z	VR3 1
-	LDA.I	BC_PROCSTAT
+>_SHELL_SPAWN_FUNC
+	JSR	_SHELL_NEXT_ARG
+	CMP.I	TRUE
+	BEQ	_SHELL_SPAWN_FUNC_ARG
+	JSR	_SHELL_MISSING_ARG_ERROR
+	JMP	_SHELL_LOOP
+>_SHELL_SPAWN_FUNC_ARG
+	LDA.I	BC_FILE_CLAIM
 	BRK
 	LDA.Z	VR11
-	JSR	PRINTH
-	LDA.I	ASCII_LF
-	JSR	PRINTC
-	JMP	_SHELL_MAIN_LOOP
-
->SHELL_COMMAND_CF
-	JSR	SHELL_GET_ARG
-	CMP.I	FALSE
-	BEQ	_SHELL_COMMAND_CF_FAIL
-	LDA.Z	SHELL_ARGPTR
-	STA.Z	VR0
+	BEQ	_SHELL_SPAWN_FUNC_FAIL
+	
+	LDA.Z	_SHELL_ARG_PTR					; load pointer to name arg
+	STA.Z	VR0						; set in VR0 for file open
 	STZ.Z	VR0 1
-	JSR	STRTONUM
-	CMP.I	FALSE
-	BEQ	_SHELL_COMMAND_CF_FAIL
+	LDA.I	ASCII_NUL					; truncate arg
+	LDY.Z	_SHELL_ARG_LEN
+	STA.ZPY	VR0
+
+	LDA.I	FILE_OP_OPEN_A					; *change to find and pass file id?
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP
+	BRK
+	LDA.Z	VR11
+	BNE	_SHELL_SPAWN_FUNC_FAIL
+
+	LDA.I	BC_SPAWN_DISK
+	BRK
 	LDA.Z	VR11
 	STA.Z	VR4
 	LDA.I	BC_FOCUS_CHANGE
 	BRK
-	LDA.Z	VR11
-	CMP.I	FALSE
-	BEQ	_SHELL_COMMAND_CF_FAIL
+	LDA.I	BC_FILE_RELEASE
+	BRK
 	LDA.I	BC_WAIT_FOCUS
 	BRK
-	JMP	_SHELL_MAIN_LOOP
->_SHELL_COMMAND_CF_FAIL
-	LDA	SHELL_PTRS SHELL_STR_CF_FAIL_PID 0
+	JMP	_SHELL_LOOP
+>_SHELL_SPAWN_FUNC_FAIL
+	JMP	_SHELL_LOOP
+
+;>SHELL_COMMAND_ME
+;	LDA.I	0XFF
+;	STA.Z	VR4
+;	STA.Z	VR3
+;	STA.Z	VR3 1
+;	LDA.I	BC_PROCSTAT
+;	BRK
+;	LDA.Z	VR11
+;	JSR	PRINTH
+;	LDA.I	ASCII_LF
+;	JSR	PRINTC
+;	JMP	_SHELL_MAIN_LOOP
+
+;>SHELL_COMMAND_CF
+;	JSR	SHELL_GET_ARG
+;	CMP.I	FALSE
+;	BEQ	_SHELL_COMMAND_CF_FAIL
+;	LDA.Z	SHELL_ARGPTR
+;	STA.Z	VR0
+;	STZ.Z	VR0 1
+;	JSR	STRTONUM
+;	CMP.I	FALSE
+;	BEQ	_SHELL_COMMAND_CF_FAIL
+;	LDA.Z	VR11
+;	STA.Z	VR4
+;	LDA.I	BC_FOCUS_CHANGE
+;	BRK
+;	LDA.Z	VR11
+;	CMP.I	FALSE
+;	BEQ	_SHELL_COMMAND_CF_FAIL
+;	LDA.I	BC_WAIT_FOCUS
+;	BRK
+;	JMP	_SHELL_MAIN_LOOP
+;>_SHELL_COMMAND_CF_FAIL
+;	LDA	SHELL_PTRS SHELL_STR_CF_FAIL_PID 0
+;	STA.Z	VR0
+;	LDA	SHELL_PTRS SHELL_STR_CF_FAIL_PID 1
+;	STA.Z	VR0 1
+;	JSR	PRINTL
+;	JMP	_SHELL_MAIN_LOOP
+
+; print "(shell) #" line
+>_SHELL_PRINT_HEADER
+	PHA				; store A
+	LDA	_SHELL_STR_PTR_ARRAY _SHELL_HEADER_STR_ID	; print header string
 	STA.Z	VR0
-	LDA	SHELL_PTRS SHELL_STR_CF_FAIL_PID 1
+	LDA	_SHELL_STR_PTR_ARRAY _SHELL_HEADER_STR_ID 1
 	STA.Z	VR0 1
 	JSR	PRINTL
-	JMP	_SHELL_MAIN_LOOP
+	PLA				; restore A
+	RTS				; return
 
 >SHELL_END

@@ -52,10 +52,7 @@
 
 >_FM_LOOP
 	; get user input
-	LDA.I	ASCII_HASHTAG					; print leading # to indicate ready for input
-	JSR	PRINTC
-	LDA.I	ASCII_LF
-	JSR	PRINTC
+	JSR	_FM_PRINT_HEADER				; print input header
 	JSR	_FM_GET_INPUT					; get input from user
 	JSR	_FM_NEXT_ARG					; grab first argument
 	CMP.I	FALSE						; test if there was no argument entered at all
@@ -188,6 +185,9 @@
 >_FM_NUMBER_ERROR_STR
 "Argument given is not a number\0
 
+>_FM_HEADER_STR
+"(fm) #\0
+
 >_FM_PTR_ARRAY			; label for the array of all string pointers to adjust
 >_FM_FUNC_STR_PTR_ARRAY		; label for the subarray of command strings
 
@@ -221,6 +221,7 @@ $_FM_FILE_FOUND_STR
 $_FM_FILE_NOT_FOUND_STR
 $_FM_EOF_STR
 $_FM_NUMBER_ERROR_STR
+$_FM_HEADER_STR
 
 >_FM_PTR_ARRAY_END		; end label for array of all string pointers
 
@@ -236,6 +237,7 @@ $_FM_NUMBER_ERROR_STR
 =_FM_FILE_NOT_FOUND_STR_ID	16
 =_FM_EOF_STR_ID			18
 =_FM_NUMBER_ERROR_STR_ID	20
+=_FM_HEADER_STR_ID		22
 
 ; function pointer array for command functions
 ; parallel to command strings array
@@ -872,6 +874,17 @@ $_FM_JUMP_FUNC
 	STA.Z	VR0 1
 	PLA
 	STA.Z	VR0
+	PLA				; restore A
+	RTS				; return
+
+; print "(fm) #" line
+>_FM_PRINT_HEADER
+	PHA				; store A
+	LDA	_FM_STR_PTR_ARRAY _FM_HEADER_STR_ID	; print header string
+	STA.Z	VR0
+	LDA	_FM_STR_PTR_ARRAY _FM_HEADER_STR_ID 1
+	STA.Z	VR0 1
+	JSR	PRINTL
 	PLA				; restore A
 	RTS				; return
 

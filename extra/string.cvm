@@ -374,163 +374,145 @@
 ; V = FALSE when an error occurred
 
 >STRTONUM
-	STZ.Z	VR9		; set negative var to 0
-	STZ.Z	VR11		; set N to 0
+	STZ.Z	VR11			; init N to 0
 	STZ.Z	VR11 1
-	LDA.Z	VR0		; move S to VR4
-	STA.Z	VR4
+	STZ.Z	VR10			; use VR10/1 as base tracker, 0 dec, 1 bin, 2 hex (dec init)
+	STZ.Z	VR10 1			; use VR10/2 as negative tracker
+	LDA.Z	VR0			; copy S to VR8
+	STA.Z	VR8
 	LDA.Z	VR0 1
-	STA.Z	VR4 1
->_STRTONUM_WS
-	LDA.ZP	VR4		; load character from S
-	JSR	ISSPACE		; test if character is whitespace
-	CMP.I	FALSE		; test if not whitespace
-	BEQ	_STRTONUM_CHAR	; exit loop if not
-	JSR	INC4		; increment S pointer
-	BRA	_STRTONUM_WS	; loop if character was whitespace
->_STRTONUM_CHAR
-	LDA.ZP	VR4
-	CMP.I	ASCII_HYPHEN	; test if number begins with hyphen
-	BNE	_STRTONUM_POS	; skip if not hyphen
-	INC.Z	VR9		; increment negative var to 1
-	JSR	INC4		; increment S pointer
-	LDA.ZP	VR4		; load next character
->_STRTONUM_POS
-	JSR	TOUPPER		; make char uppercase
-	CMP.I	ASCII_X		; test if X for hex base
-	BEQ	_STRTONUM_HEX	; go to hex code if hex
-	CMP.I	ASCII_B		; test if B for binary base
-	BNE	_STRTONUM_DEC	; go to decimal code if not binary
-	JMP	_STRTONUM_BIN	; else go to binary code
->_STRTONUM_DEC
-	LDA.ZP	VR4		; load character
-	BNE	_STRTONUM_DEC_NOTNUL	; if not nul char then continue
-	JMP	_STRTONUM_FINISH	; else finish
->_STRTONUM_DEC_NOTNUL
-	JSR	ISSPACE		; test if space
-	CMP.I	TRUE		; if is space char
-	BNE	_STRTONUM_DEC_NOTSPACE	; if not space then continue
-	JMP	_STRTONUM_FINISH	; else finish
->_STRTONUM_DEC_NOTSPACE
-	LDA.ZP	VR4		; load char again
-	JSR	ISNUM		; test if number char
-	CMP.I	TRUE		; if number char
-	BEQ	_STRTONUM_DEC_NOTFAIL	; then continue
-	JMP	_STRTONUM_FAIL	; else fail
->_STRTONUM_DEC_NOTFAIL
-	ASL.Z	VR11		; N = N * 2
+	STA.Z	VR8 1
+>_STRTONUM_REDO_NEG
+	; get base and negative
+	LDA.ZP	VR8			; load first char in string
+	JSR	TOUPPER			; make uppercase
+	CMP.I	ASCII_HYPHEN		; if first char is -, flip negative flag
+	BEQ	_STRTONUM_SET_NEG
+	CMP.I	ASCII_B			; if first char is B, use binary mode
+	BEQ	_STRTONUM_SET_BIN
+	CMP.I	ASCII_X			; if first char is X, use hex mode
+	BEQ	_STRTONUM_SET_HEX
+	JSR	ISNUM			; otherwise the first char should be 0-9, use decimal mode
+	CMP.I	TRUE
+	BEQ	_STRTONUM_SET_DEC
+	JMP	_STRTONUM_FAIL		; fail
+>_STRTONUM_SET_NEG
+	LDA.Z	VR10 1			; load negative flag value
+	EOR.I	0XFF			; flip it
+	STA.Z	VR10 1			; store back
+	JSR	INC8			; increment string pointer
+	BRA	_STRTONUM_REDO_NEG	; go back and try to get base value again
+>_STRTONUM_SET_HEX
+	INC.Z	VR10			; set base value to 2 for hex
+>_STRTONUM_SET_BIN
+	INC.Z	VR10			; set base value to 1 for bin
+>_STRTONUM_LOOP
+	JSR	INC8			; increment string pointer
+>_STRTONUM_SET_DEC	; dec label is here because first char is reused
+	LDA.ZP	VR8			; load next char
+	BNE	_STRTONUM_NOT_NUL	; continue if not nul char
+	JMP	_STRTONUM_END		; go to end code, number is done
+>_STRTONUM_NOT_NUL
+	JSR	ISSPACE			; test if space char
+	CMP.I	FALSE
+	BEQ	_STRTONUM_NOT_SPACE	; continue if not space
+	JMP	_STRTONUM_END		; go to end code, number is done
+>_STRTONUM_NOT_SPACE
+	LDA.Z	VR10			; load base
+	BEQ	_STRTONUM_DO_DEC	; do dec function if 0
+	CMP.I	1
+	BEQ	_STRTONUM_DO_BIN	; do bin function if 1
+	; hex base
+	ASL.Z	VR11			; N * 2
 	ROL.Z	VR11 1
-	LDA.Z	VR11		; copy N * 2 to VR10
-	STA.Z	VR10
-	LDA.Z	VR11 1
-	STA.Z	VR10 1
-	PHX			; store X
-	PHY			; store Y
-	LDX.I	VRI_11		; load VR11 index
-	LDY.I	VRI_10		; load VR10 index
-	JSR	ADD16		; N = N * 2 + N * 2 = N * 4
-	JSR	ADD16		; N = N * 2 + N * 2 + N * 2 = N * 6
-	JSR	ADD16		; N = N * 2 + N * 2 + N * 2 + N * 2 = N * 8
-	JSR	ADD16		; N = N * 2 + N * 2 + N * 2 + N * 2 + N * 2 = N * 10
-	PLY			; restore Y
-	PLX			; restore X
-	LDA.ZP	VR4		; load char again
-	SEC			; sec for sbc
-	SBC.I	ASCII_0		; convert ascii value to number value
-	CLC			; clc for adc
-	ADC.Z	VR11		; add number value to N
+	ASL.Z	VR11			; N * 4
+	ROL.Z	VR11 1
+	ASL.Z	VR11			; N * 8
+	ROL.Z	VR11 1
+	ASL.Z	VR11			; N * 16
+	ROL.Z	VR11 1
+	LDA.ZP	VR8			; load next char
+	JSR	ISNUM			; test if number
+	CMP.I	TRUE
+	BEQ	_STRTONUM_HEX_SHORTCUT	; reuse dec code
+	LDA.ZP	VR8			; load char again
+	JSR	ISHEX			; test if alpha hex because 0-9 already tested
+	CMP.I	FALSE
+	BEQ	_STRTONUM_FAIL		; fail if not
+	LDA.ZP	VR8			; load char again
+	JSR	TOUPPER			; make uppercase
+	SEC				; subtract 'A' value and add 10 to get hex alpha value
+	SBC.I	ASCII_A
+	CLC
+	ADC.I	10
+	CLC				; add value to N
+	ADC.Z	VR11
 	STA.Z	VR11
 	LDA.Z	VR11 1
 	ADC.I	0
 	STA.Z	VR11 1
-	JSR	INC4		; increment S pointer
-	BRA	_STRTONUM_DEC	; loop
->_STRTONUM_HEX
-	JSR	INC4		; increment S pointer
-	LDA.ZP	VR4		; load character
-	BEQ	_STRTONUM_FINISH	; if nul char then finish
-	JSR	ISSPACE		; test if space
-	CMP.I	TRUE		; if is space char
-	BEQ	_STRTONUM_FINISH	; then finish
-	LDA.ZP	VR4		; load char again
-	JSR	ISHEX		; test if hex char
-	CMP.I	TRUE		; if  hex char
-	BEQ	_STRTONUM_HEX_NOTFAIL	; then continue
-	JMP	_STRTONUM_FAIL	; else fail
->_STRTONUM_HEX_NOTFAIL
-	LDA.ZP	VR4		; load char again
-	JSR	ISNUM		; test if number char
-	CMP.I	TRUE		; if number char
-	BEQ	_STRTONUM_HEX_DIGIT	; go to decimal handling
-	LDA.ZP	VR4		; load char again
-	JSR	TOUPPER		; make uppercase
-	SEC			; sec for sbc
-	SBC.I	ASCII_A		; convert ascii value to number value - 10
-	CLC			; clc for adc
-	ADC.I	10		; add 10 to make correct number value
-	ASL.Z	VR11		; N = N * 16
+	BRA	_STRTONUM_LOOP		; loop
+>_STRTONUM_DO_DEC
+	ASL.Z	VR11			; N * 2
 	ROL.Z	VR11 1
-	ASL.Z	VR11
+	LDA.Z	VR11 1			; save N * 2
+	PHA
+	LDA.Z	VR11
+	PHA
+	ASL.Z	VR11			; N * 4
 	ROL.Z	VR11 1
-	ASL.Z	VR11
+	ASL.Z	VR11			; N * 8
 	ROL.Z	VR11 1
-	ASL.Z	VR11
-	ROL.Z	VR11 1
-	ORA.Z	VR11		; add number to N
+	PLA				; add N * 2 to N * 8
+	CLC
+	ADC.Z	VR11
 	STA.Z	VR11
-	BRA	_STRTONUM_HEX	; loop
->_STRTONUM_HEX_DIGIT
-	LDA.ZP	VR4		; load char
-	SEC			; sec for sbc
-	SBC.I	ASCII_0		; convert ascii value to number value
-	ASL.Z	VR11		; N = N * 16
-	ROL.Z	VR11 1
-	ASL.Z	VR11
-	ROL.Z	VR11 1
-	ASL.Z	VR11
-	ROL.Z	VR11 1
-	ASL.Z	VR11
-	ROL.Z	VR11 1
-	ORA.Z	VR11		; add number value to N
+	PLA
+	ADC.Z	VR11 1
+	STA.Z	VR11 1
+	LDA.ZP	VR8			; load next char
+	JSR	ISNUM			; test if number
+	CMP.I	FALSE
+	BEQ	_STRTONUM_FAIL		; fail if not
+>_STRTONUM_HEX_SHORTCUT
+	LDA.ZP	VR8			; load char again
+	SEC				; get dec value
+	SBC.I	ASCII_0
+	CLC				; add number to N
+	ADC.Z	VR11
 	STA.Z	VR11
-	BRA	_STRTONUM_HEX	; loop
->_STRTONUM_BIN
-	JSR	INC4		; increment S pointer
-	LDA.ZP	VR4		; load character
-	BEQ	_STRTONUM_FINISH	; if nul char then finish
-	JSR	ISSPACE		; test if space
-	CMP.I	TRUE		; if is space char
-	BEQ	_STRTONUM_FINISH	; then finish
-	LDA.ZP	VR4		; load char again
-	CMP.I	ASCII_0		; test if 0
-	BEQ	_STRTONUM_BIN_0	; go to 0 code if so
-	CMP.I	ASCII_1		; test if 1
-	BEQ	_STRTONUM_BIN_1	; go to 1 code if so
-	BRA	_STRTONUM_FAIL	; otherwise fail
->_STRTONUM_BIN_0
-	ASL.Z	VR11		; N = N * 2
+	LDA.Z	VR11 1
+	ADC.I	0
+	STA.Z	VR11 1
+	JMP	_STRTONUM_LOOP		; loop
+>_STRTONUM_DO_BIN
+	ASL.Z	VR11			; N * 2
 	ROL.Z	VR11 1
-	BRA	_STRTONUM_BIN	; loop
+	LDA.ZP	VR8 			; load char
+	CMP.I	ASCII_1			; if 1, set bit
+	BEQ	_STRTONUM_BIN_1
+	CMP.I	ASCII_0			; if 0, do nothing, so if NOT 0, fail
+	BNE	_STRTONUM_FAIL
+	JMP	_STRTONUM_LOOP		; loop
 >_STRTONUM_BIN_1
-	SEC			; N = N * 2 + 1
-	ROL.Z	VR11
-	ROL.Z	VR11 1
-	BRA	_STRTONUM_BIN	; loop
->_STRTONUM_FINISH
-	LDA.Z	VR9		; load negative var
-	BEQ	_STRTONUM_FINFIN	; skip negative conversion if not set
-	CLC			; clc for adc
-	LDA.Z	VR11		; load low byte
-	EOR.I	0XFF		; invert
-	ADC.I	1		; add 1
-	STA.Z	VR11		; store back
-	LDA.Z	VR11 1		; load high byte
-	EOR.I	0XFF		; invert
-	ADC.I	0		; add 0 + C
-	STA.Z	VR11 1		; store back
->_STRTONUM_FINFIN
-	LDA.I	TRUE		; load success value
-	RTS			; return
+	SMB0.Z	VR11			; set 0 bit in N
+	JMP	_STRTONUM_LOOP		; loop
+>_STRTONUM_END
+	; neg convert
+	LDA.Z	VR10 1			; load negative flag
+	BEQ	_STRTONUM_FIN		; finish if not set
+	CLC				; invert and add 1 to get negative value
+	LDA.Z	VR11
+	EOR.I	0XFF
+	ADC.I	1
+	STA.Z	VR11
+	LDA.Z	VR11 1
+	EOR.I	0XFF
+	ADC.I	0
+	STA.Z	VR11 1
+>_STRTONUM_FIN
+	LDA.I	TRUE			; load success code
+	RTS				; return
 >_STRTONUM_FAIL
-	LDA.I	FALSE		; load fail value
-	RTS			; return
+	LDA.I	FALSE			; load fail code
+	RTS				; return

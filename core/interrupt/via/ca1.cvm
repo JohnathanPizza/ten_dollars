@@ -4,6 +4,7 @@
 =KEYBOARD_SC_EXTEND	0XE0
 =KEYBOARD_SC_LSHIFT	0X12
 =KEYBOARD_SC_RETURN	0X5A
+=KEYBOARD_SC_ESCAPE	0X76
 
 =IO_READ_BUFFER_LEN	0X80
 
@@ -18,6 +19,8 @@
 	BEQ	_INTERRUPT_CA1_SPECIAL	; if extend, adjust flags
 	CMP.I	KEYBOARD_SC_RETURN	; compare scan code to return
 	BEQ	_INTERRUPT_CA1_RETURN	; if return, finalize input
+	CMP.I	KEYBOARD_SC_ESCAPE	; compare scan code to escape
+	BEQ	_INTERRUPT_CA1_ESCAPE	; if escape, spawn new shell
 
 	; can translate the scan code to an ASCII character
 	BIT	IO_KEYBOARD_FLAGS	; BIT the flags var, N flag will have bit 7
@@ -36,8 +39,6 @@
 >_INTERRUPT_CA1_LOOP_END
 	CPX.I	ASCII_BS		; compare against backspace character
 	BEQ	_INTERRUPT_CA1_BACK	; go to backspace code
-	CPX.I	ASCII_ESC		; compare against escape character
-	BEQ	_INTERRUPT_CA1_ESC	; go to escape code
 	
 	; treat as a normal ASCII character and add to the buffer
 	TXA				; move ASCII value to A
@@ -73,7 +74,9 @@
 	BEQ	_INTERRUPT_CA1_EXIT	; if at 0 already, nothing to delete so return
 	DEC	IO_READ_IDX		; else decrement write index, effectively deleting char
 	BRA	_INTERRUPT_CA1_EXIT	; exit
->_INTERRUPT_CA1_ESC
+>_INTERRUPT_CA1_ESCAPE
+	BIT	IO_KEYBOARD_FLAGS	; test if flags are set
+	BPL	_INTERRUPT_CA1_EXIT	; if not set then end
 	JSR	PROC_GET		; get open process id
 	CMP.I	PROC_COUNT		; test if failed
 	BEQ	_INTERRUPT_CA1_EXIT	; just return if no process open

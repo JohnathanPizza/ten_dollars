@@ -129,11 +129,11 @@
 >_FM_CLOSE_STR
 "close\0
 >_FM_READ_STR
-"read\0
+"r\0
 >_FM_WRITE_STR
-"write\0
+"w\0
 >_FM_JUMP_STR
-"jump\0
+"j\0
 
 ; other strings
 
@@ -151,9 +151,9 @@
 "\n
 "open name - open a file on disk for editing\n
 "close - close the open file and save edits to file\n
-"read - read bytes from the file in order\n
-"write value - write bytes to the file in order\n
-"jump position - move the read/write position in the file\0
+"r - read bytes from the file in order\n
+"w values... - write bytes to the file in order\n
+"j position - move the read/write position in the file\0
 
 >_FM_PROMPT_STR
 "File Manager - enter command or type "help" to see all commands\0
@@ -671,8 +671,7 @@ $_FM_JUMP_FUNC
 	JSR	_FM_NEXT_ARG					; try to get byte
 	CMP.I	TRUE						; test if given arg
 	BEQ	_FM_WRITE_FUNC_ARG				; continue if arg given
-	JSR	_FM_MISSING_ARG_ERROR				; print missing arg error
-	JMP	_FM_LOOP					; return to main loop
+	JMP	_FM_LOOP					; return to main loop, no error if no more args found
 >_FM_WRITE_FUNC_ARG
 	LDA.Z	_FM_ARG_PTR					; load pointer to value arg
 	STA.Z	VR0						; set in VR0 for STRTONUM
@@ -724,7 +723,8 @@ $_FM_JUMP_FUNC
 	JSR	PRINTH
 	LDA.I	ASCII_LF					; print newline
 	JSR	PRINTC
-	JMP	_FM_LOOP					; return to main loop
+	JSR	_FM_ARG_RESTORE					; restore truncated byte
+	BRA	_FM_WRITE_FUNC					; go to next argument
 >_FM_WRITE_FUNC_EOF
 	LDA	_FM_STR_PTR_ARRAY _FM_EOF_STR_ID		; print eof string
 	STA.Z	VR0

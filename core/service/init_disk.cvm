@@ -15,6 +15,41 @@
 >SERVICE_INIT_DISK
 	LDY	PROC_ACTIVE_ID		; load proc id
 	LDA.Y	PROC_A			; load file id from A
+	DEC
+	LSR
+	LSR
+	LSR
+	LSR
+	INC
+	STA.Z	VR4 1
+	STZ.Z	VR4
+	JSR	RETRY_FLOPPY_READ
+	CMP.I	0
+	BEQ	_SERVICE_INIT_DISK_NAME
+	JMP	_SERVICE_INIT_DISK_FAIL	; else fail
+>_SERVICE_INIT_DISK_NAME
+	LDA.Y	PROC_A
+	DEC
+	ASL
+	ASL
+	ASL
+	ASL
+	STA.Z	VR0
+	LDA.I	FLOPPY_PAGE > 8
+	STA.Z	VR0 1
+	TYA
+	ASL
+	ASL
+	ASL
+	ASL
+	STA.Z	VR1
+	LDA.I	PROC_NAME > 8
+	STA.Z	VR1 1
+	LDA.I	16
+	STA.Z	VR4
+	JSR	STRNCPY
+
+	LDA.Y	PROC_A			; load file id from A
 	STA.Z	VR4			; set file track
 	LDA.I	19			; load 19 for sector
 	STA.Z	VR4 1			; set last sector of file

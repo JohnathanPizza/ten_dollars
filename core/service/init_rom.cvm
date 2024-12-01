@@ -138,5 +138,7 @@
 	STA.Y	PROC_STATE		; update state
 	LDA.I	0X80			; load initial value for no DAP
 	STA.Y	PROC_ACTIVE_DAP_ID	; store in DAP
+	LDA.I	0			; load no flags value
+	STA.Y	PROC_FLAGS		; set no flags
 >_SERVICE_INIT_ROM_PAGES
 	JMP	SERVICE_CYCLE_BEGIN	; start new cycle

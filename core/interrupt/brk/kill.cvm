@@ -1,0 +1,10 @@
+; kill proc id in vr4/1
+
+>BRK_KILL
+	LDY.Z	VR4			; load proc id to kill
+	CPY.I	PROC_COUNT		; test if valid proc id
+	BGE	_BRK_KILL_SKIP		; if not then just return
+	LDA.I	PROC_STATE_EXIT		; load exit state value
+	STA.Y	PROC_STATE		; set target proc state to exit next service cycle
+>_BRK_KILL_SKIP
+	JSR	PROC_UNPAUSE		; return to process

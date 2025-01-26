@@ -367,8 +367,8 @@
 ; R --- VR11: 16-bit number N
 ;	A: success value V
 ; converts the numbers in S to a 16-bit integer N
-; if whitespace at the beggining of S is skipped
-; if the first non-whitespace character of S is '-' then N is converted into a signed negative number
+; if whitespace at the beggining of S then fail
+; if the character of S is '-' then N is converted into a signed negative number
 ; the number in S can be in binary, hexadecimal, or decimal format (B0101, X77AA, 105)
 ; V = TRUE when S was successfully turned into a number
 ; V = FALSE when an error occurred

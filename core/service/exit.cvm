@@ -25,8 +25,8 @@
 	JSR	_SERVICE_EXIT_PARENT_PATH	; test if this process is on its path
 	CMP.I	FALSE			; test if not on path and can be skipped
 	BEQ	_SERVICE_EXIT_FILE_CLAIM_SKIP	; skip if not on path
-	LDA.Y	PROC_PARENT		; else this proc is on path, reuse active id in Y from above, get this procs parent
-	STA	IO_FILE_CLAIM		; set this procs parent to be the new owner of file claim
+	LDA.I	0XFF			; else this proc is on path, want to reset file claim to nobody
+	STA	IO_FILE_CLAIM		; set nobody owning file claim
 	STZ	IO_FILE_A_ID		; reset file A id
 	STZ	IO_FILE_B_ID		; reset file B id
 	; note that the pages arent flushed to disk^

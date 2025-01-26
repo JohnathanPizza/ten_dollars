@@ -62,12 +62,12 @@
 >_INTERRUPT_CA1_RETURN
 	BIT	IO_KEYBOARD_FLAGS	; test if flags are set
 	BPL	_INTERRUPT_CA1_EXIT	; if not set then end
+	STZ	IO_KEYBOARD_FLAGS	; reset flags
 	LDX	IO_READ_IDX		; load write index to write nul char
 	STZ.X	IO_READ_BUFFER		; write nul char
 	LDA.I	TRUE			; load true value
 	STA	IO_READ_VALID		; set valid to true since user hit enter to signal end of input
 	STZ	IO_READ_IDX		; reset write index to 0
-	STZ	IO_KEYBOARD_FLAGS	; reset flags
 	BRA	_INTERRUPT_CA1_EXIT	; exit
 >_INTERRUPT_CA1_BACK
 	LDA	IO_READ_IDX		; load index to delete
@@ -77,6 +77,7 @@
 >_INTERRUPT_CA1_ESCAPE
 	BIT	IO_KEYBOARD_FLAGS	; test if flags are set
 	BPL	_INTERRUPT_CA1_EXIT	; if not set then end
+	STZ	IO_KEYBOARD_FLAGS	; reset flags
 	JSR	PROC_GET		; get open process id
 	CMP.I	PROC_COUNT		; test if failed
 	BEQ	_INTERRUPT_CA1_EXIT	; just return if no process open

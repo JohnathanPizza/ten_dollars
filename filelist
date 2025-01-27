@@ -36,7 +36,6 @@ core/interrupt/brk/focus_change.cvm
 core/interrupt/brk/kill.cvm
 core/interrupt/brk/parent.cvm
 core/interrupt/brk/priority.cvm
-core/interrupt/brk/procstat.cvm
 core/interrupt/brk/ptroff.cvm
 core/interrupt/brk/read.cvm
 core/interrupt/brk/spawn_disk.cvm
@@ -77,9 +76,6 @@ romprogs/array.cvm
 
 romprogs/shell/adj.cvm
 romprogs/shell/shell.cvm
-
-romprogs/procview/adj.cvm
-romprogs/procview/procview.cvm
 
 romprogs/fm/adj.cvm
 romprogs/fm/fm.cvm

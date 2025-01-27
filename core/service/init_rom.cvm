@@ -150,7 +150,7 @@
 	STA.Z	VR0
 	LDA.X	ROM_PROGRAM_NAME 1
 	STA.Z	VR0 1
-	LDX	PROC_ACTIVE_ID		; get proc id again
+	LDA	PROC_ACTIVE_ID		; get proc id again
 	ASL				; * 16 for pointer offset in name page
 	ASL
 	ASL

@@ -18,8 +18,6 @@
 ; RETRY_FLOPPY_READ
 ; RETRY_FLOPPY_WRITE
 
-=FLOPPY_STEP_TIME 10	; miliseconds
-
 ;==================================================
 
 ; FLOPPY_ENTER

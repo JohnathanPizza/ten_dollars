@@ -10,10 +10,6 @@
 ; FILE_LOAD_A
 ; FILE_LOAD_B
 
-=FILE_POS_END		256 * 19 - 1
-=FILE_COUNT_MAX		79
-=FILE_EOF		0XFF
-
 ;==================================================
 
 ; FILE_ENABLE

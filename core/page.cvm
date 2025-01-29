@@ -16,8 +16,6 @@
 ; PAGE_TABLE_GET_DATA
 ; PAGE_TABLE_NEXT_DATA
 
-=PAGE_COUNT_RAM1	0X70
-
 ;==================================================
 
 ; PAGE_TABLE_VACANT

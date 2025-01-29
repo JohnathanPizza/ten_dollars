@@ -6,8 +6,6 @@
 =KEYBOARD_SC_RETURN	0X5A
 =KEYBOARD_SC_ESCAPE	0X76
 
-=IO_READ_BUFFER_LEN	0X80
-
 >INTERRUPT_CA1
 	LDA	VIA_READ_PORT		; load inverted scan code from keyboard
 	EOR.I	0XFF			; uninvert bits

@@ -11,6 +11,8 @@
 ; STRCAT
 ; STRNCAT
 ; STRTONUM
+; STRLEAD
+; STRTRAIL
 
 ; string functions operate under the assumption that no string will have a length of more than 254
 
@@ -515,4 +517,57 @@
 	RTS				; return
 >_STRTONUM_FAIL
 	LDA.I	FALSE			; load fail code
+	RTS				; return
+
+;==================================================
+
+; STRLEAD
+; P --- VR0: string pointer S
+; R --- VR11: trimmed string pointer T
+; sets T to the next character in S that is not a space character, trimming off leading whitespace from S
+; if S is all whitespace, T points to the delimiting nul character in S
+
+>STRLEAD
+	PHA				; store A
+	LDA.Z	VR0			; set T equal to S
+	STA.Z	VR11
+	LDA.Z	VR0 1
+	STA.Z	VR11 1
+>_STRLEAD_LOOP
+	LDA.ZP	VR11			; load next character in T
+	BEQ	_STRLEAD_DONE		; return if the string is done
+	JSR	ISSPACE			; see if the character is a space
+	CMP.I	FALSE			; test if space
+	BEQ	_STRLEAD_DONE		; return if this character is not space
+	JSR	INC11			; increment T to get next character
+	BRA	_STRLEAD_LOOP		; loop
+>_STRLEAD_DONE
+	PLA				; restore A
+	RTS				; return
+
+;==================================================
+
+; STRTRAIL
+; P --- VR0: string pointer S
+; modifies the string at S so that a nul character ends the string after the last non-whitespace character, trimming off trailing whitespace from S
+
+>STRTRAIL
+	PHA				; store A
+	LDA.Z	VR0			; copy S to VR8
+	STA.Z	VR8
+	LDA.Z	VR0 1
+	STA.Z	VR8 1
+>_STRTRAIL_LOOP
+	LDA.ZP	VR8			; load next character in S
+	BEQ	_STRTRAIL_DONE		; return if the string is done
+	JSR	ISSPACE			; see if the character is a space
+	CMP.I	TRUE			; test if space
+	BEQ	_STRTRAIL_LOOP_END	; end loop and insert nul char if space
+	JSR	INC8			; increment VR8 to get next character
+	BRA	_STRTRAIL_LOOP		; loop
+>_STRTRAIL_LOOP_END
+	LDA.I	ASCII_NUL		; load nul character
+	STA.ZP	VR8			; modify string with nul character
+>_STRTRAIL_DONE
+	PLA				; restore A
 	RTS				; return

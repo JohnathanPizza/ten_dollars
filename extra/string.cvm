@@ -13,6 +13,7 @@
 ; STRTONUM
 ; STRLEAD
 ; STRTRAIL
+; STRWORDLEN
 
 ; string functions operate under the assumption that no string will have a length of more than 254
 
@@ -569,5 +570,34 @@
 	LDA.I	ASCII_NUL		; load nul character
 	STA.ZP	VR8			; modify string with nul character
 >_STRTRAIL_DONE
+	PLA				; restore A
+	RTS				; return
+
+;==================================================
+
+; STRWORDLEN
+; P --- VR0: string pointer S
+; R --- VR11: word length L
+; sets L to the number of characters waking up a word at S
+; if the first character in S is a space character, then L is 0
+
+>STRWORDLEN
+	PHA				; store A
+	LDA.Z	VR0			; copy S to VR8
+	STA.Z	VR8
+	LDA.Z	VR0 1
+	STA.Z	VR8 1
+	STZ.Z	VR11			; set L to 0 
+	STZ.Z	VR11 1
+>_STRWORDLEN_LOOP
+	LDA.ZP	VR8			; load next character in string
+	BEQ	_STRWORDLEN_DONE	; if nul char then return
+	JSR	ISSPACE			; test if character is space
+	CMP.I	TRUE
+	BEQ	_STRWORDLEN_DONE	; if space then return
+	JSR	INC8			; increment string pointer
+	JSR	INC11			; increment word length
+	BRA	_STRWORDLEN_LOOP	; loop
+>_STRWORDLEN_DONE
 	PLA				; restore A
 	RTS				; return

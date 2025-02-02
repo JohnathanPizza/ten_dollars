@@ -18,12 +18,15 @@
 	STZ	VIA_WRITE_PORT		; preset the write port to output 0
 	LDA.I	0XFF			; load value to set write port to all output
 	STA	VIA_WRITE_PORT_DIR	; set write port to all output
-	LDA.I	0B00000000		; load initial ACR value
+	LDA.I	0B01000000		; load initial ACR value
 	STA	VIA_ACR			; store into ACR
 	LDA.I	VIA_IER_ENABLE VIA_IB_CA1 VIA_IB_T2	; enable keyboard and T2 at start
 	STA	VIA_IER			; enable
 	LDA	VIA_READ_PORT		; clear any random possible interrupt quickly
 	LDA	VIA_T2L			; same
+	LDA.I	0XFF			; load max value for T1 counters
+	STA	VIA_T1L			; set low counter latch to max value
+	STA	VIA_T1HC		; set high counter latch to max value, start looping T1 countdown
 	STA	HW_ENABLE_ADDR HW_RAM1	; disable VIA since setup is done
 
 	; initialize RAM variables

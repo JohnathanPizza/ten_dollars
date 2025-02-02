@@ -37,6 +37,7 @@ core/interrupt/brk/kill.cvm
 core/interrupt/brk/parent.cvm
 core/interrupt/brk/priority.cvm
 core/interrupt/brk/ptroff.cvm
+core/interrupt/brk/random.cvm
 core/interrupt/brk/read.cvm
 core/interrupt/brk/spawn_disk.cvm
 core/interrupt/brk/spawn_rom.cvm

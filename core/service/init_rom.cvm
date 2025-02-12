@@ -157,6 +157,7 @@
 	ASL
 	STA.Z	VR1			; set low byte of pointer for strncpy
 	LDA.I	PROC_NAME > 8		; load name page number
+	ADC.I	0			; add carry which is now bit 5 of proc id to get correct page
 	STA.Z	VR1 1			; set high byte of pointer
 	LDY.I	15			; load 15 to write nul char at the end
 	LDA.I	0			; nul char value

@@ -45,6 +45,7 @@
 	ASL
 	STA.Z	VR1
 	LDA.I	PROC_NAME > 8
+	ADC.I	0			; 5th bit in carry for 0-15 and 16-31
 	STA.Z	VR1 1
 	LDA.I	16
 	STA.Z	VR4

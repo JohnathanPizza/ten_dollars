@@ -4,7 +4,6 @@
 ; WAIT_MILIS
 ; WAIT_SEC
 
-; TODO make WAIT_1MS page aligned
 
 ;==================================================
 

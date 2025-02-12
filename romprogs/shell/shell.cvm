@@ -113,7 +113,7 @@
 "PID NAME             STATE OFFSET STACK CODE# DATA#\0
 ;##12################1##1234####123##1234##1234##\n
 >_SHELL_SYS_OUT2
-"/16 processes active\0
+"/32 processes active\0
 >_SHELL_SYS_OUT3
 "/240 pages active\0
 >_SHELL_SYS_OUT4
@@ -430,14 +430,15 @@ $_SHELL_POKE_FUNC
 	LDA.I	ASCII_SPACE
 	JSR	PRINTC
 	JSR	PRINTC
-	LDA.I	PROC_NAME > 8	; print process name
-	STA.Z	VR0 1
-	TXA
+	TXA			; print process name
 	ASL
 	ASL
 	ASL
 	ASL
 	STA.Z	VR0
+	LDA.I	PROC_NAME > 8
+	ADC.I	0
+	STA.Z	VR0 1
 	JSR	PRINTS
 	JSR	STRLEN
 	EOR.I	0XFF

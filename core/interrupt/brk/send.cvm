@@ -1,0 +1,27 @@
+; 16 byte message in vr4
+; target process in vr5/1
+; blocks until target process receives it or dies
+; skips if target proc is this proc
+
+>BRK_SEND
+	LDA.Z	VR5
+	CMP.I	PROC_COUNT
+	BGE	_BRK_SEND_SKIP
+	CMP	PROC_ACTIVE_ID
+	BGE	_BRK_SEND_SKIP
+	LDA	PROC_ACTIVE_ID
+	ASL
+	TAY
+	LDA.Z	VR4
+	STA.Y	IPC_DATA
+	LDA.Z	VR4 1
+	STA.Y	IPC_DATA 1
+	LDY	PROC_ACTIVE_ID
+	LDA.Z	VR5
+	STA.Y	IPC_TARGET
+	LDA.I	PROC_STATE_SEND
+	STA.Y	PROC_STATE
+	JSR	PROC_LEAVE
+	JMP	SERVICE_CYCLE_BEGIN
+>_BRK_SEND_SKIP
+	JMP	PROC_UNPAUSE

@@ -39,6 +39,8 @@ core/interrupt/brk/priority.cvm
 core/interrupt/brk/ptroff.cvm
 core/interrupt/brk/random.cvm
 core/interrupt/brk/read.cvm
+core/interrupt/brk/receive.cvm
+core/interrupt/brk/send.cvm
 core/interrupt/brk/spawn_disk.cvm
 core/interrupt/brk/spawn_rom.cvm
 core/interrupt/brk/suspend.cvm
@@ -60,6 +62,7 @@ core/service/init_rom.cvm
 core/service/io_read.cvm
 core/service/null.cvm
 core/service/ready.cvm
+core/service/send.cvm
 core/service/wait_focus.cvm
 
 extra/bit.cvm

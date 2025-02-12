@@ -55,7 +55,20 @@
 	INY				; inc process
 	CPY.I	PROC_COUNT		; test if done with all procs
 	BNE	_SERVICE_EXIT_CHILDREN_LOOP	; loop if not
-	
+
+	; cancel ipc messages
+	LDX.I	0
+>_SERVICE_EXIT_IPC_LOOP
+	LDA.X	IPC_TARGET
+	CMP	PROC_ACTIVE_ID
+	BNE	_SERVICE_EXIT_IPC_LOOP_SKIP
+	LDA.I	0XFF
+	STA.X	IPC_TARGET
+>_SERVICE_EXIT_IPC_LOOP_SKIP
+	INX
+	CPX.I	PROC_COUNT
+	BNE	_SERVICE_EXIT_IPC_LOOP
+
 	; free proc
 	LDY	PROC_ACTIVE_ID		; load proc id
 	LDA.I	PROC_STATE_NULL		; load null state value

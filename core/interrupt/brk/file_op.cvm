@@ -29,6 +29,7 @@
 >_BRK_FILE_OP_NOPERM
 	LDA.I	0			; load return value
 	STA.Z	VR11			; store in VR11/1
+>_BRK_FILE_OP_QUICK_END
 	JMP	PROC_UNPAUSE		; return to proc
 >_BRK_FILE_OP_END
 	JSR	PROC_LEAVE		; save proc
@@ -436,7 +437,7 @@ $_BRK_FILE_OP_DISK_TEST
 	LDA.I	0				; load success code
 >_BRK_FILE_OP_JUMP_A_END
 	STA.Z	VR11				; set error code
-	JMP	_BRK_FILE_OP_END		; return
+	JMP	_BRK_FILE_OP_QUICK_END		; return
 
 ;==================================================
 
@@ -494,7 +495,7 @@ $_BRK_FILE_OP_DISK_TEST
 	LDA.I	0				; load success code
 >_BRK_FILE_OP_JUMP_B_END
 	STA.Z	VR11				; set error code
-	JMP	_BRK_FILE_OP_END		; return
+	JMP	_BRK_FILE_OP_QUICK_END		; return
 
 ;==================================================
 
@@ -554,7 +555,7 @@ $_BRK_FILE_OP_DISK_TEST
 	LDA.Z	VR8				; load error code
 >_BRK_FILE_OP_READ_A_END
 	STA.Z	VR11				; set error code
-	JMP	_BRK_FILE_OP_END		; return
+	JMP	_BRK_FILE_OP_QUICK_END		; return
 
 ;==================================================
 
@@ -613,7 +614,7 @@ $_BRK_FILE_OP_DISK_TEST
 	LDA.Z	VR8				; load error code
 >_BRK_FILE_OP_READ_B_END
 	STA.Z	VR11				; set error code
-	JMP	_BRK_FILE_OP_END		; return
+	JMP	_BRK_FILE_OP_QUICK_END		; return
 
 ;==================================================
 
@@ -665,7 +666,7 @@ $_BRK_FILE_OP_DISK_TEST
 	LDA.I	0				; load success code
 >_BRK_FILE_OP_WRITE_A_END
 	STA.Z	VR11				; set error code
-	JMP	_BRK_FILE_OP_END		; return
+	JMP	_BRK_FILE_OP_QUICK_END		; return
 
 ;==================================================
 
@@ -717,7 +718,7 @@ $_BRK_FILE_OP_DISK_TEST
 	LDA.I	0				; load success code
 >_BRK_FILE_OP_WRITE_B_END
 	STA.Z	VR11				; set error code
-	JMP	_BRK_FILE_OP_END		; return
+	JMP	_BRK_FILE_OP_QUICK_END		; return
 
 ;==================================================
 
@@ -730,7 +731,7 @@ $_BRK_FILE_OP_DISK_TEST
 	STA.Z	VR10				; store
 	LDA	IO_FILE_A_POS 1			; load high byte of A position
 	STA.Z	VR10 1				; store
-	JMP	_BRK_FILE_OP_END		; return
+	JMP	_BRK_FILE_OP_QUICK_END		; return
 
 ;==================================================
 
@@ -743,7 +744,7 @@ $_BRK_FILE_OP_DISK_TEST
 	STA.Z	VR10				; store
 	LDA	IO_FILE_B_POS 1			; load high byte of B position
 	STA.Z	VR10 1				; store
-	JMP	_BRK_FILE_OP_END		; return
+	JMP	_BRK_FILE_OP_QUICK_END		; return
 
 ;==================================================
 
@@ -754,7 +755,7 @@ $_BRK_FILE_OP_DISK_TEST
 >_BRK_FILE_OP_GETID_A
 	LDA	IO_FILE_A_ID			; get file A id
 	STA.Z	VR10				; store
-	JMP	_BRK_FILE_OP_END		; return
+	JMP	_BRK_FILE_OP_QUICK_END		; return
 
 ;==================================================
 
@@ -765,7 +766,7 @@ $_BRK_FILE_OP_DISK_TEST
 >_BRK_FILE_OP_GETID_B
 	LDA	IO_FILE_B_ID			; get file B id
 	STA.Z	VR10				; store
-	JMP	_BRK_FILE_OP_END		; return
+	JMP	_BRK_FILE_OP_QUICK_END		; return
 
 ;==================================================
 

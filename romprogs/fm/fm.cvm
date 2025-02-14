@@ -62,7 +62,7 @@
 	LDA.Z	_FM_ARG_PTR					; load pointer to the start of the first argument
 	STA.Z	VR1
 	STZ.Z	VR1 1						; zero here because the input buffer is in the zero page so the arg pointer must be too
-	LDA.Z	_FM_ARG_LEN					; load total length of argument for strnlen
+	LDA.Z	_FM_ARG_LEN					; load total length of argument for strncmp
 	STA.Z	VR4
 	LDX.I	0						; set array search index to 0
 >_FM_SEARCH_LOOP
@@ -122,6 +122,8 @@
 "destroy\0
 >_FM_FNAME_STR
 "fname\0
+>_FM_COPY_STR
+"copy\0
 >_FM_EXIT_STR
 "exit\0
 >_FM_OPEN_STR
@@ -147,6 +149,7 @@
 "create name - try to create a file by name on the inserted disk\n
 "destroy name - try to destroy a file by name on the inserted disk\n
 "fname oldname newname - try to rename file oldname to newname (15 chars max)\n
+"copy src dest - copy file contents from existing file src to existing file dest\n
 "exit - exit File Manager\n
 "\n
 "open name - open a file on disk for editing\n
@@ -206,6 +209,7 @@ $_FM_CLOSE_STR
 $_FM_READ_STR
 $_FM_WRITE_STR
 $_FM_JUMP_STR
+$_FM_COPY_STR
 
 >_FM_FUNC_STR_PTR_ARRAY_END	; end label for command string subarray
 >_FM_STR_PTR_ARRAY		; label for the subarray of other strings
@@ -257,6 +261,7 @@ $_FM_CLOSE_FUNC
 $_FM_READ_FUNC
 $_FM_WRITE_FUNC
 $_FM_JUMP_FUNC
+$_FM_COPY_FUNC
 
 ; command functions
 
@@ -510,6 +515,7 @@ $_FM_JUMP_FUNC
 	LDA.I	ASCII_LF
 	JSR	PRINTC
 >_FM_DESTROY_FUNC_SUCCESS
+	JSR	_FM_CLOSE_FILES					; close file
 	JMP	_FM_LOOP					; return to main loop
 
 ;==================================================
@@ -543,7 +549,7 @@ $_FM_JUMP_FUNC
 	CMP.I	TRUE						; test if given arg
 	BEQ	_FM_FNAME_FUNC_ARG2				; continue if arg given
 	JSR	_FM_MISSING_ARG_ERROR				; print missing arg error
-	JMP	_FM_LOOP					; return to main loop
+	BRA	_FM_FNAME_FUNC_END				; close file and return
 >_FM_FNAME_FUNC_ARG2
 	LDA.Z	_FM_ARG_PTR					; load pointer to name arg in VR0 for file rename
 	STA.Z	VR0
@@ -556,11 +562,90 @@ $_FM_JUMP_FUNC
 	LDA.I	BC_FILE_OP					; rename file
 	BRK
 	LDA.Z	VR11						; test if renamed
-	BEQ	_FM_FNAME_FUNC_SUCCESS				; continue if renamed
+	BEQ	_FM_FNAME_FUNC_END				; continue if renamed
 	JSR	PRINT_ERROR					; print the error and newline
 	LDA.I	ASCII_LF
 	JSR	PRINTC
->_FM_FNAME_FUNC_SUCCESS
+>_FM_FNAME_FUNC_END
+	JSR	_FM_CLOSE_FILES					; close files
+	JMP	_FM_LOOP					; return to main loop
+
+;==================================================
+
+>_FM_COPY_FUNC
+	JSR	_FM_NEXT_ARG					; try to get source file name
+	CMP.I	TRUE						; test if given arg
+	BEQ	_FM_COPY_FUNC_ARG				; continue if arg given
+	JSR	_FM_MISSING_ARG_ERROR				; print missing arg error
+	JMP	_FM_LOOP					; return to main loop
+>_FM_COPY_FUNC_ARG
+	LDA.Z	_FM_ARG_PTR					; load pointer to name arg in VR0 for file open
+	STA.Z	VR0
+	STZ.Z	VR0 1
+	LDA.I	ASCII_NUL					; truncate arg
+	LDY.Z	_FM_ARG_LEN
+	STA.ZPY	VR0
+	LDA.I	FILE_OP_OPEN_A					; load file open op
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP					; open the file
+	BRK
+	LDA.Z	VR11						; test if opened
+	BEQ	_FM_COPY_FUNC_OPENA				; continue if opened
+	JSR	PRINT_ERROR					; print the error and newline
+	LDA.I	ASCII_LF
+	JSR	PRINTC
+	JMP	_FM_LOOP					; return to main loop
+>_FM_COPY_FUNC_OPENA
+	JSR	_FM_ARG_RESTORE					; restore truncated byte
+	JSR	_FM_NEXT_ARG					; try to destination file name
+	CMP.I	TRUE						; test if given arg
+	BEQ	_FM_COPY_FUNC_ARG2				; continue if arg given
+	JSR	_FM_MISSING_ARG_ERROR				; print missing arg error
+	JMP	_FM_COPY_FUNC_END				; close file and return
+>_FM_COPY_FUNC_ARG2
+	LDA.Z	_FM_ARG_PTR					; load pointer to name arg in VR0 for file open
+	STA.Z	VR0
+	STZ.Z	VR0 1
+	LDA.I	ASCII_NUL					; truncate arg
+	LDY.Z	_FM_ARG_LEN
+	STA.ZPY	VR0
+	LDA.I	FILE_OP_OPEN_B
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP
+	BRK
+	LDA.Z	VR11						; test if opened
+	BEQ	_FM_COPY_FUNC_OPENB				; continue if opened
+	JSR	PRINT_ERROR					; print the error and newline
+	LDA.I	ASCII_LF
+	JSR	PRINTC
+	BRA	_FM_COPY_FUNC_END				; close file and return
+>_FM_COPY_FUNC_OPENB
+	LDA.I	FILE_OP_READ_A					; load file read op code for source
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP					; read from source
+	BRK
+	LDA.Z	VR11						; test if file read
+	BEQ	_FM_COPY_FUNC_READ_SUCCESS			; contiune if read
+	CMP.I	FILE_EOF					; test if encountered eof
+	BEQ	_FM_COPY_FUNC_END				; finish on eof
+	JSR	PRINT_ERROR					; print the error and newline
+	LDA.I	ASCII_LF
+	JSR	PRINTC
+	BRA	_FM_COPY_FUNC_END				; close files and return
+>_FM_COPY_FUNC_READ_SUCCESS
+	LDA.Z	VR10						; load read byte
+	STA.Z	VR7						; store in VR7/1 for write
+	LDA.I	FILE_OP_WRITE_B					; load file write op
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP					; write to file
+	BRK
+	LDA.Z	VR11						; test if file written
+	BEQ	_FM_COPY_FUNC_OPENB				; continue if written
+	JSR	PRINT_ERROR	 				; print the error and newline
+	LDA.I	ASCII_LF
+	JSR	PRINTC
+>_FM_COPY_FUNC_END
+	JSR	_FM_CLOSE_FILES					; close files
 	JMP	_FM_LOOP					; return to main loop
 
 ;==================================================
@@ -885,6 +970,43 @@ $_FM_JUMP_FUNC
 	LDA	_FM_STR_PTR_ARRAY _FM_HEADER_STR_ID 1
 	STA.Z	VR0 1
 	JSR	PRINTL
+	PLA				; restore A
+	RTS				; return
+
+>_FM_CLOSE_FILES
+	PHA				; store A
+	LDA.I	FILE_OP_CLOSE_A		; load file close A op code
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP		; close any open file
+	BRK
+	LDA.Z	VR11			; test if file closed
+	BEQ	_FM_CLOSE_FILES_B	; continue if closed
+	PHA				; print the error and newline
+	LDA.I	ASCII_A
+	JSR	PRINTC
+	LDA.I	ASCII_SPACE
+	JSR	PRINTC
+	PLA
+	JSR	PRINT_ERROR
+	LDA.I	ASCII_LF
+	JSR	PRINTC
+>_FM_CLOSE_FILES_B
+	LDA.I	FILE_OP_CLOSE_B		; load file close B op code
+	STA.Z	VR6
+	LDA.I	BC_FILE_OP		; close any open file
+	BRK
+	LDA.Z	VR11			; test if file closed
+	BEQ	_FM_CLOSE_FILES_END	; continue if closed
+	PHA				; print the error and newline
+	LDA.I	ASCII_B
+	JSR	PRINTC
+	LDA.I	ASCII_SPACE
+	JSR	PRINTC
+	PLA
+	JSR	PRINT_ERROR
+	LDA.I	ASCII_LF
+	JSR	PRINTC
+>_FM_CLOSE_FILES_END
 	PLA				; restore A
 	RTS				; return
 

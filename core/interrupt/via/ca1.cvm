@@ -1,4 +1,7 @@
-; user input interrupt connected to port A (with the keyboard)
+; user input interrupt connected to VIA port A (with the keyboard)
+; if an incoming scan code is determined to be a text character, it is added to the write buffer
+; release of the return key finalizes an input line
+; release of the escape key spawns a new shell program and focuses it
 
 =KEYBOARD_SC_BREAK	0XF0
 =KEYBOARD_SC_EXTEND	0XE0

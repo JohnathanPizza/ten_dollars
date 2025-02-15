@@ -141,7 +141,7 @@
 	; flush DAP back to memory
 	LDX	PROC_ACTIVE_ID		; load proc id
 	LDA.X	PROC_FLAGS		; load proc flags to see if read-only is on
-	AND.I	PROC_FLAG_DAP_ROM	; mask read-only flag
+	AND.I	PROC_FLAG_DAP_RDONLY	; mask read-only flag
 	BNE	_PROC_LEAVE_DAP_SKIP	; skip DAP writeback if read-only on
 	LDA.X	PROC_ACTIVE_DAP_ID	; load DAP id
 	JSR	PAGE_TABLE_GET_DATA	; get page id of DAP

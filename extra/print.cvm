@@ -171,7 +171,7 @@
 	LDA.I	10000 > 8
 	STA.Z	VR10 1
 	LDX.I	VRI_4		; set first number to N
-	LDY.I	VRI_10	; set second number to 10K
+	LDY.I	VRI_10		; set second number to 10K
 	STZ.Z	VR5		; zero current digit
 	LDA.I	1		; set leading 0 flag
 	STA.Z	VR5 1
@@ -260,7 +260,7 @@
 	RTS			; else return since getting leading 0s
 >_PRINTDU16_HELPER_PRINT
 	LDA.Z	VR5		; load digit
-	CLC			; clc for adc
+	CLC			; CLC for ADC
 	ADC.I	ASCII_0		; get ascii value
 	JSR	PRINTC		; print digit
 >_PRINTDU16_HELPER_END

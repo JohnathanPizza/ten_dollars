@@ -13,17 +13,17 @@
 ; converts C into its uppercase letter equivalent U
 
 >TOUPPER
-	PHA			; store A
-	JSR	ISLOWER		; get case of C
-	CMP.I	FALSE		; test if not lowercase
-	BEQ	_TOUPPER_SAME	; if not then just return C
-	PLA			; restore A
-	CLC			; clc for adc
+	PHA				; store A
+	JSR	ISLOWER			; get case of C
+	CMP.I	FALSE			; test if not lowercase
+	BEQ	_TOUPPER_SAME		; if not then just return C
+	PLA				; restore A
+	CLC				; CLC for ADC
 	ADC.I	ASCII_A - ASCII_AL	; add constant to convert C to uppercase
-	RTS			; return
+	RTS				; return
 >_TOUPPER_SAME
-	PLA			; restore A
-	RTS			; return
+	PLA				; restore A
+	RTS				; return
 
 ;==================================================
 
@@ -33,17 +33,17 @@
 ; converts C into its lowercase letter equivalent L
 
 >TOLOWER
-	PHA			; store A
-	JSR	ISUPPER		; get case of C
-	CMP.I	FALSE		; test if not uppercase
-	BEQ	_TOLOWER_SAME	; if not then just return C
-	PLA			; restore A
-	CLC			; clc for adc
+	PHA				; store A
+	JSR	ISUPPER			; get case of C
+	CMP.I	FALSE			; test if not uppercase
+	BEQ	_TOLOWER_SAME		; if not then just return C
+	PLA				; restore A
+	CLC				; CLC for ADC
 	ADC.I	ASCII_AL - ASCII_A	; add constant to convert C to lowercase
-	RTS			; return
+	RTS				; return
 >_TOLOWER_SAME
-	PLA			; restore A
-	RTS			; return
+	PLA				; restore A
+	RTS				; return
 
 ;==================================================
 
@@ -53,16 +53,16 @@
 ; converts the LOW NYBBLE of B into its uppercase hex character equivalent
 
 >TOHEX
-	AND.I	0XF		; mask low nybble
-	CMP.I	10		; test if >= 10
-	BGE	_TOHEX_ALPHA	; if so then do alphabetical computation
-	CLC			; clc for adc
-	ADC.I	ASCII_0		; add ASCII_0 to convert 0-9 value to ASCII number
-	RTS			; return
+	AND.I	0XF			; mask low nybble
+	CMP.I	10			; test if >= 10
+	BGE	_TOHEX_ALPHA		; if so then do alphabetical computation
+	CLC				; CLC for ADC
+	ADC.I	ASCII_0			; add ASCII_0 to convert 0-9 value to ASCII number
+	RTS				; return
 >_TOHEX_ALPHA
-	CLC			; clc for adc
-	ADC.I	ASCII_A - 10	; subtract 10 then add ASCII_A to convert to alphabetical hex
-	RTS			; return
+	CLC				; CLC for ADC
+	ADC.I	ASCII_A - 10		; subtract 10 then add ASCII_A to convert to alphabetical hex
+	RTS				; return
 
 ;==================================================
 
@@ -73,26 +73,26 @@
 ; if C isnt hex then V = 0xFF
 
 >FROMHEX
-	PHA			; store C
-	JSR	ISHEX		; test if C is a hex char
-	CMP.I	FALSE		; if not hex
-	BEQ	_FROMHEX_FALSE	; then return the bad value
-	PLA			; get C
-	JSR	TOUPPER		; if the hex char is a letter just make it uppercase
-	PHA			; store it
-	JSR	ISNUM		; test if the hex char is numerical
-	CMP.I	TRUE		; if numerical
-	BEQ	_FROMHEX_NUM	; then go to number code
-	PLA			; not number, get char
-	CLC			; clc for adc
-	ADC.I	10 - ASCII_A	; convert letter to number value
-	RTS			; return
+	PHA				; store C
+	JSR	ISHEX			; test if C is a hex char
+	CMP.I	FALSE			; if not hex
+	BEQ	_FROMHEX_FALSE		; then return the bad value
+	PLA				; get C
+	JSR	TOUPPER			; if the hex char is a letter just make it uppercase
+	PHA				; store it
+	JSR	ISNUM			; test if the hex char is numerical
+	CMP.I	TRUE			; if numerical
+	BEQ	_FROMHEX_NUM		; then go to number code
+	PLA				; not number, get char
+	CLC				; CLC for ADC
+	ADC.I	10 - ASCII_A		; convert letter to number value
+	RTS				; return
 >_FROMHEX_NUM
-	PLA			; get char
-	SEC			; sec for sbc
-	SBC.I	ASCII_0		; convert digit to number value
-	RTS			; return
+	PLA				; get char
+	SEC				; SEC for SBC
+	SBC.I	ASCII_0			; convert digit to number value
+	RTS				; return
 >_FROMHEX_FALSE
-	PLA			; pull A
-	LDA.I	0XFF		; load bad value
-	RTS			; return
+	PLA				; pull A
+	LDA.I	0XFF			; load bad value
+	RTS				; return

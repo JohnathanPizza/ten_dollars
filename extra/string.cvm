@@ -167,7 +167,7 @@
 	STA.Z	VR9 1
 >_STRCMP_LOOP
 	LDA.ZP	VR8		; load character from A
-	SEC			; sec for sbc
+	SEC			; SEC for SBC
 	SBC.ZP	VR9		; subtract value from character in B
 	BNE	_STRCMP_END	; if values not equal, return
 	LDA.ZP	VR8		; load value from A
@@ -205,7 +205,7 @@
 	BRA	_STRNCMP_LOOP_CHECK
 >_STRNCMP_LOOP
 	LDA.ZP	VR8		; load character from A
-	SEC			; sec for sbc
+	SEC			; SEC for SBC
 	SBC.ZP	VR9		; subtract value from character in B
 	BNE	_STRNCMP_END	; if values not equal, return
 	LDA.ZP	VR8		; load value from A

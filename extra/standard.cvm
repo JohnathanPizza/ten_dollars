@@ -83,7 +83,7 @@
 	LDA.Z	VR4		; test if no more pointers left
 	ORA.Z	VR4 1
 	BEQ	_PROGRAM_POINTER_ADJUST_LOOP_DONE
-	CLC			; clc for adc
+	CLC			; CLC for ADC
 	LDA.ZP	VR0		; load low byte of pointer
 	ADC.Z	VR5		; add low byte of O
 	STA.ZP	VR0		; store back

@@ -10,7 +10,7 @@
 	STA.Y	PAGE_TABLE_PROCID	; store proc id into page row
 	JSR	PAGE_TABLE_NEXT_DATA	; get the data id to use for this data page
 	STA.Z	VR11			; store data page id
-	CLC				; clc for adc
+	CLC				; CLC for ADC
 	ADC.I	0X82			; add 0x82 to the data id to create home value
 	STA.Y	PAGE_TABLE_HOME		; store home value in page row
 	PHY				; push page id

@@ -268,7 +268,7 @@
 	INX				; increment F
 	CPX.I	FILE_COUNT_MAX + 1	; test if at limit
 	BGE	_FILE_FIND_NONE		; if so then return
-	CLC				; clc for adc
+	CLC				; CLC for ADC
 	LDA.Z	VR1			; add 16 for next string pointer offset
 	ADC.I	16
 	STA.Z	VR1

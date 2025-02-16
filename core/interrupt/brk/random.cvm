@@ -6,7 +6,7 @@
 	SEI					; turn off interrupts for critical section
 	STA	HW_ENABLE_ADDR HW_RAM1 HW_VIA	; enable RAM1 and VIA
 	LDA	VIA_T1L				; load T1 low counter
-	CLC					; clc for adc
+	CLC					; CLC for ADC
 	ADC	VIA_T1HC			; add low counter to T1 high counter
 	STA.Z	VR11				; store random sum to VR11/1
 	STA	HW_ENABLE_ADDR HW_RAM1		; turn off VIA

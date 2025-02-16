@@ -515,7 +515,7 @@
 	CMP.I	40			; compare with 40 to test side
 	BLS	_FLOPPY_READ_SIDE	; if less than 40 dont change side
 	JSR	FLOPPY_SIDE_B		; change to side B
-	SEC				; sec for sbc
+	SEC				; SEC for SBC
 	SBC.I	40			; subtract 40 from T to get correct track number
 >_FLOPPY_READ_SIDE
 	JSR	FLOPPY_SET_TRACK	; go to track T
@@ -580,7 +580,7 @@
 	; aligned and validated, collect sector data
 	WAI				; wait for next byte
 	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of sector id
-	SEC				; sec for ror
+	SEC				; SEC for ROR
 	ROR				; shift right so odd bits are data and even are 1
 	WAI				; wait for next byte
 	AND	VIA_FLOPPY_DATA_PORT	; AND second encoded value to get decoded sector id
@@ -593,7 +593,7 @@
 >_FLOPPY_READ_DATA
 	WAI				; wait for next byte
 	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of data
-	SEC				; sec for ror
+	SEC				; SEC for ROR
 	ROR				; shift right so odd bits are data and even are 1
 	WAI				; wait for next byte
 	AND	VIA_FLOPPY_DATA_PORT	; AND second encoded value to get decoded data
@@ -649,7 +649,7 @@
 	CMP.I	40			; compare with 40 to test side
 	BLS	_FLOPPY_WRITE_SIDE	; if less than 40 dont change side
 	JSR	FLOPPY_SIDE_B		; change to side B
-	SEC				; sec for sbc
+	SEC				; SEC for SBC
 	SBC.I	40			; subtract 40 from T to get correct track number
 >_FLOPPY_WRITE_SIDE
 	JSR	FLOPPY_SET_TRACK	; go to track T
@@ -714,7 +714,7 @@
 	; aligned and validated, collect sector data
 	WAI				; wait for next byte
 	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of sector id
-	SEC				; sec for ror
+	SEC				; SEC for ROR
 	ROR				; shift right so odd bits are data and even are 1
 	WAI				; wait for next byte
 	AND	VIA_FLOPPY_DATA_PORT	; AND second encoded value to get decoded sector id

@@ -50,7 +50,7 @@
 
 >_INTERRUPT_BRK
 	; want to decrement the return address by 1 so BRK NOP pattern can become just BRK
-	SEC			; sec for subtraction
+	SEC			; SEC for SBC
 	LDA	PROC_PAUSE_PCL	; load low byte
 	SBC.I	1		; sub 1
 	STA	PROC_PAUSE_PCL	; store back

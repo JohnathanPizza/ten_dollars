@@ -62,7 +62,7 @@
 >_SERVICE_INIT_DISK_CONT1
 	LDA	FLOPPY_PAGE 255		; get adjust pages count
 	STA.Z	VR5			; save for later
-	CLC				; clc for adc
+	CLC				; CLC for ADC
 	LDA	FLOPPY_PAGE 254		; load number of code pages
 	ADC.I	2			; add 2 to get number of pages total needed
 	STA.Z	VR7			; store in VR7/1
@@ -129,7 +129,7 @@
 
 	; copy code into pages
 	PLA				; pull starting map idx from earlier
-	CLC				; clc for adc
+	CLC				; CLC for ADC
 	ADC.I	PAGE_MAP_RAM_BASE	; load page of start of code pages for pagecpy
 	STA.Z	VR1 1
 	LDA.I	FLOPPY_PAGE > 8		; load page of floppy page for pagecpy

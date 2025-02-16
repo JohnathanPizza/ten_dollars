@@ -8,11 +8,11 @@
 	TAX				; move offset to X
 	; calculate (length - 1) >> 8
 	LDA.X	ROM_PROGRAM_LENGTH	; load first byte of program length
-	SEC				; sec for sbc
+	SEC				; SEC for SBC
 	SBC.I	1			; subtract 1 to set appropriate carry
 	LDA.X	ROM_PROGRAM_LENGTH 1	; load second byte
 	SBC.I	0			; sub 0 + C
-	CLC				; clc for adc
+	CLC				; CLC for ADC
 	ADC.I	3			; add 3 to the calculated number to get number of pages needed
 	STA.Z	VR7			; store needed pages in VR7/1
 	JSR	PAGE_TABLE_VACANT	; calculate number of vacant pages
@@ -77,7 +77,7 @@
 	
 	; copy code into pages
 	PLA				; pull starting map idx from earlier
-	CLC				; clc for adc
+	CLC				; CLC for ADC
 	ADC.I	PAGE_MAP_RAM_BASE	; load pointer to start of code pages in VR1
 	STA.Z	VR1 1
 	STZ.Z	VR1
@@ -114,7 +114,7 @@
 	LDA	PROC_ACTIVE_ID		; load proc id
 	ASL				; *2 for offset
 	TAY				; move offset to Y
-	SEC				; sec for sbc
+	SEC				; SEC for SBC
 	LDA.Z	VR0			; set PTROFF for this proc to RAM location - ROM location
 	SBC.Z	VR4
 	STA.Y	PROC_PTROFF

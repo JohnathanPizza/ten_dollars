@@ -86,7 +86,7 @@
 	LDA.I	0XFE			; load value for code page
 	BRA	_PAGE_TABLE_TEST_RET	; return
 >_PAGE_TABLE_TEST_DATA
-	SEC				; sec for sbc
+	SEC				; SEC for SBC
 	SBC.I	0X80			; subtract 0x80 to get the data page id
 	BRA	_PAGE_TABLE_TEST_RET	; return
 >_PAGE_TABLE_TEST_DIFF
@@ -204,14 +204,14 @@
 	STZ.Z	VR10			; zero highest count
 	STZ.Z	VR10 1			; zero highest base
 	LDA.I	PAGE_COUNT_RAM1		; starting base = PAGE_COUNT_RAM1 - N
-	SEC				; sec for sbc
+	SEC				; SEC for SBC
 	SBC.Z	VR8			; subtract N
 	STA.Z	VR9 1			; store starting base in current base
 >_PAGE_MAP_LARGEST_LOOP
 	STZ.Z	VR9			; zero current count
 	LDA.Z	VR9 1			; starting map idx will be current base + N - 1
 	DEC				; sub 1
-	CLC				; clc for adc
+	CLC				; CLC for ADC
 	ADC.Z	VR8			; add N
 	TAX				; set X to starting map idx
 	LDA.I	0XFF			; load null value to check for
@@ -297,7 +297,7 @@
 	
 	; make pointer in VR8
 	LDA.Z	VR8 1			; load low map idx
-	CLC				; clc for adc
+	CLC				; CLC for ADC
 	ADC.I	PAGE_MAP_RAM_BASE	; translate to physical idx
 	STA.Z	VR8 1			; store back
 	STZ.Z	VR8			; zero to low byte for pointer to start of page
@@ -310,21 +310,21 @@
 	CMP.I	PAGE_COUNT_RAM1		; test if in RAM2 low range
 	BGE	_PAGE_MAP_SWAP_RAM2L	; set up for RAM2 low if so
 	; RAM1
-	CLC				; clc for adc
+	CLC				; CLC for ADC
 	ADC.I	PAGE_MAP_RAM_BASE	; translate to physical idx in RAM1
 	STA.Z	VR9 1			; store back
 	LDA.I	HW_RAM1			; load hardware toggle for RAM1
 	STA.Z	VR10			; store in VR10/1
 	BRA	_PAGE_MAP_SWAP_START	; start swapping
 >_PAGE_MAP_SWAP_RAM2H
-	SEC				; sec for sbc
+	SEC				; SEC for SBC
 	SBC.I	PAGE_COUNT_RAM1		; translate to physical idx in RAM2 high
 	STA.Z	VR9 1			; store back
 	LDA.I	HW_RAM1 HW_RAM2HI	; load hardware toggle for RAM2 high
 	STA.Z	VR10			; store in VR10/1
 	BRA	_PAGE_MAP_SWAP_START	; start swapping
 >_PAGE_MAP_SWAP_RAM2L
-	SEC				; sec for sbc
+	SEC				; SEC for SBC
 	SBC.I	PAGE_COUNT_RAM1 - 0X40	; translate to physical idx in RAM2 low
 	STA.Z	VR9 1			; store back
 	LDA.I	HW_RAM1 HW_RAM2LO	; load hardware toggle for RAM2 low
@@ -416,21 +416,21 @@
 	CMP.I	PAGE_COUNT_RAM1		; test if in RAM2 low range
 	BGE	_PAGE_LOAD_DAP_RAM2L	; set up for RAM2 low if so
 	; RAM1
-	CLC				; clc for adc
+	CLC				; CLC for ADC
 	ADC.I	PAGE_MAP_RAM_BASE	; translate to physical idx in RAM1
 	STA.Z	VR8 1			; store back
 	LDA.I	HW_RAM1			; load hardware toggle for RAM1
 	STA.Z	VR10			; store in VR10/1
 	BRA	_PAGE_LOAD_DAP_START	; start load
 >_PAGE_LOAD_DAP_RAM2H
-	SEC				; sec for sbc
+	SEC				; SEC for SBC
 	SBC.I	PAGE_COUNT_RAM1		; translate to physical idx in RAM2 high
 	STA.Z	VR8 1			; store back
 	LDA.I	HW_RAM1 HW_RAM2HI	; load hardware toggle for RAM2 high
 	STA.Z	VR10			; store in VR10/1
 	BRA	_PAGE_LOAD_DAP_START	; start load
 >_PAGE_LOAD_DAP_RAM2L
-	SEC				; sec for sbc
+	SEC				; SEC for SBC
 	SBC.I	PAGE_COUNT_RAM1 - 0X40	; translate to physical idx in RAM2 low
 	STA.Z	VR8 1			; store back
 	LDA.I	HW_RAM1 HW_RAM2LO	; load hardware toggle for RAM2 low
@@ -469,21 +469,21 @@
 	CMP.I	PAGE_COUNT_RAM1		; test if in RAM2 low range
 	BGE	_PAGE_STORE_DAP_RAM2L	; set up for RAM2 low if so
 	; RAM1
-	CLC				; clc for adc
+	CLC				; CLC for ADC
 	ADC.I	PAGE_MAP_RAM_BASE	; translate to physical idx in RAM1
 	STA.Z	VR8 1			; store back
 	LDA.I	HW_RAM1			; load hardware toggle for RAM1
 	STA.Z	VR10			; store in VR10/1
 	BRA	_PAGE_STORE_DAP_START	; start load
 >_PAGE_STORE_DAP_RAM2H
-	SEC				; sec for sbc
+	SEC				; SEC for SBC
 	SBC.I	PAGE_COUNT_RAM1		; translate to physical idx in RAM2 high
 	STA.Z	VR8 1			; store back
 	LDA.I	HW_RAM1 HW_RAM2HI	; load hardware toggle for RAM2 high
 	STA.Z	VR10			; store in VR10/1
 	BRA	_PAGE_STORE_DAP_START	; start load
 >_PAGE_STORE_DAP_RAM2L
-	SEC				; sec for sbc
+	SEC				; SEC for SBC
 	SBC.I	PAGE_COUNT_RAM1 - 0X40	; translate to physical idx in RAM2 low
 	STA.Z	VR8 1			; store back
 	LDA.I	HW_RAM1 HW_RAM2LO	; load hardware toggle for RAM2 low

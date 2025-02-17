@@ -71,6 +71,7 @@ extra/chartest.cvm
 extra/error.cvm
 extra/math16.cvm
 extra/memory.cvm
+extra/nullcheck.cvm
 extra/print.cvm
 extra/standard.cvm
 extra/string.cvm

@@ -1,0 +1,70 @@
+; NULLCHECK* family
+; R --- A: boolean result B
+; checks if the targeted 16-bit pointer in one of the 12 virtual registers is a null pointer
+; NULLCHECK uses a VRI held in X to test one of the VRs
+; B = TRUE if the pointer is a null pointer, FALSE if not
+
+>NULLCHECK0
+	PHX			; store X
+	LDX.I	VRI_0		; load VRI for VR0
+	BRA	_NULLCHECK	; go to check code
+>NULLCHECK1
+	PHX			; store X
+	LDX.I	VRI_1		; load VRI for VR1
+	BRA	_NULLCHECK	; go to check code
+>NULLCHECK2
+	PHX			; store X
+	LDX.I	VRI_2		; load VRI for VR2
+	BRA	_NULLCHECK	; go to check code
+>NULLCHECK3
+	PHX			; store X
+	LDX.I	VRI_3		; load VRI for VR3
+	BRA	_NULLCHECK	; go to check code
+>NULLCHECK4
+	PHX			; store X
+	LDX.I	VRI_4		; load VRI for VR4
+	BRA	_NULLCHECK	; go to check code
+>NULLCHECK5
+	PHX			; store X
+	LDX.I	VRI_5		; load VRI for VR5
+	BRA	_NULLCHECK	; go to check code
+>NULLCHECK6
+	PHX			; store X
+	LDX.I	VRI_6		; load VRI for VR6
+	BRA	_NULLCHECK	; go to check code
+>NULLCHECK7
+	PHX			; store X
+	LDX.I	VRI_7		; load VRI for VR7
+	BRA	_NULLCHECK	; go to check code
+>NULLCHECK8
+	PHX			; store X
+	LDX.I	VRI_8		; load VRI for VR8
+	BRA	_NULLCHECK	; go to check code
+>NULLCHECK9
+	PHX			; store X
+	LDX.I	VRI_9		; load VRI for VR9
+	BRA	_NULLCHECK	; go to check code
+>NULLCHECK10
+	PHX			; store X
+	LDX.I	VRI_10		; load VRI for VR10
+	BRA	_NULLCHECK	; go to check code
+>NULLCHECK11
+	PHX			; store X
+	LDX.I	VRI_11		; load VRI for VR11
+	BRA	_NULLCHECK	; go to check code
+>NULLCHECK
+	PHX			; store X
+>_NULLCHECK
+	LDA.ZX	VRB		; load low byte of pointer
+	CMP.I	NULLPTR		; compare with low byte of null pointer value
+	BNE	_NULLCHECK_FALSE	; if not equal return false
+	LDA.ZX	VRB 1		; load high byte of pointer
+	CMP.I	NULLPTR	> 8	; compare with high byte of null pointer value
+	BNE	_NULLCHECK_FALSE	; if not equal return false
+	LDA.I	TRUE		; load true
+	PLX			; restore X
+	RTS			; return
+>_NULLCHECK_FALSE
+	LDA.I	FALSE		; load false
+	PLX			; restore X
+	RTS			; return

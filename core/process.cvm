@@ -230,7 +230,7 @@
 ; uses the adjustment pointers from A with the assembled location L to manually edit pointer values in instructions in code C
 ; only affects instructions that use abosulute addresses
 ; relative pointer values in A should reference the start of a 2-byte address, not an instruction
-; A array should end with a value of 0X0000
+; A array should end with a value of 0xFFFF (null pointer)
 
 >PROGRAM_ADJUST
 	PHA			; store A
@@ -247,8 +247,8 @@
 	LDA.ZPY	VR8
 	STA.Z	VR9 1
 
-	LDA.Z	VR9		; check if pointer value is 0X0000
-	ORA.Z	VR9 1
+	JSR	NULLCHECK9	; check if pointer value is null
+	CMP.I	TRUE
 	BEQ	_PROGRAM_ADJUST_LOOP_EXIT	; exit loop if so
 
 	CLC			; CLC for ADC

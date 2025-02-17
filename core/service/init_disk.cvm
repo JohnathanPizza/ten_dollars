@@ -9,13 +9,13 @@
 ; sector after last code page: start of adjustment pages
 ; adjustment page format:
 ; can have a maximum of 127 pointers
-; must have a trailing 0x0000 value at the end of the pointers for each page
+; must have a trailing 0xFFFF (nullptr) value at the end of the pointers for each page
 ; with 127 pointers (max)
 ; bytes 0-253: XX
-; bytes 254, 255: 00 00
+; bytes 254, 255: FF FF
 ; with N ptrs
 ; bytes [0,2N-1]: XX
-; bytes [2N,2N+1]: 00 00
+; bytes [2N,2N+1]: FF FF
 
 >SERVICE_INIT_DISK
 	LDY	PROC_ACTIVE_ID		; load process ID

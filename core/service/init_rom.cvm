@@ -1,10 +1,10 @@
-; gets a process into a runnable state at the start of the given program
+; gets a process into a runnable state at the start of the given ROM program
+; process A register = program ID to load
 
 >SERVICE_INIT_ROM
-	; comes with process A = program id to load
-	LDX	PROC_ACTIVE_ID		; load process id
-	LDA.X	PROC_A			; load program id
-	ASL				; id * 2 to get ptr offset
+	LDX	PROC_ACTIVE_ID		; load process ID
+	LDA.X	PROC_A			; load program ID
+	ASL				; ID * 2 to get ptr offset
 	TAX				; move offset to X
 	; calculate (length - 1) >> 8
 	LDA.X	ROM_PROGRAM_LENGTH	; load first byte of program length
@@ -22,28 +22,28 @@
 >_SERVICE_INIT_ROM_CONT
 	; get data pages
 	JSR	PAGE_TABLE_GET		; get a vacant page
-	TAY				; move page id to Y
-	LDA	PROC_ACTIVE_ID		; load process id
-	STA.Y	PAGE_TABLE_PROCID	; store process id in page row
+	TAY				; move page ID to Y
+	LDA	PROC_ACTIVE_ID		; load process ID
+	STA.Y	PAGE_TABLE_PROCID	; store process ID in page row
 	LDA.I	0X80			; load home value for ZP
 	STA.Y	PAGE_TABLE_HOME		; store in page row
-	PHY				; save page id
+	PHY				; save page ID
 	JSR	PAGE_MAP_GET_BACK	; get empty map idx from back
 	TAY				; move to Y
-	PLA				; pull page id
-	STA.Y	PAGE_MAP		; store page id in map at idx
+	PLA				; pull page ID
+	STA.Y	PAGE_MAP		; store page ID in map at idx
 	
 	JSR	PAGE_TABLE_GET		; get a vacant page
-	TAY				; move page id to Y
-	LDA	PROC_ACTIVE_ID		; load process id
-	STA.Y	PAGE_TABLE_PROCID	; store process id in page row
+	TAY				; move page ID to Y
+	LDA	PROC_ACTIVE_ID		; load process ID
+	STA.Y	PAGE_TABLE_PROCID	; store process ID in page row
 	LDA.I	0X81			; load home value for stack
 	STA.Y	PAGE_TABLE_HOME		; store in page row
-	PHY				; save page id
+	PHY				; save page ID
 	JSR	PAGE_MAP_GET_BACK	; get empty map idx from back
 	TAY				; move to Y
-	PLA				; pull page id
-	STA.Y	PAGE_MAP		; store page id in map at idx
+	PLA				; pull page ID
+	STA.Y	PAGE_MAP		; store page ID in map at idx
 	
 	DEC.Z	VR7			; needed - 1
 	DEC.Z	VR7			; needed - 2 because zp and stack pages claimed
@@ -63,14 +63,14 @@
 	JSR	PAGE_MAP_SWAP		; swap empty map idx at back with current map idx
 >_SERVICE_INIT_ROM_LOOP_SKIP
 	JSR	PAGE_TABLE_GET		; get empty page table row
-	TAY				; move page id to Y
-	LDA	PROC_ACTIVE_ID		; load process id
-	STA.Y	PAGE_TABLE_PROCID	; store process id in page row
+	TAY				; move page ID to Y
+	LDA	PROC_ACTIVE_ID		; load process ID
+	STA.Y	PAGE_TABLE_PROCID	; store process ID in page row
 	LDA.Z	VR7 1			; load current map idx
 	STA.Y	PAGE_TABLE_HOME		; store in home value
-	TYA				; move page id to A
+	TYA				; move page ID to A
 	LDY.Z	VR7 1			; load map idx in Y
-	STA.Y	PAGE_MAP		; store page id in map idx
+	STA.Y	PAGE_MAP		; store page ID in map idx
 	INC.Z	VR7 1			; inc map idx to go to next one
 	DEC.Z	VR7			; dec the number of needed pages
 	BNE	_SERVICE_INIT_ROM_LOOP	; loop if needed page count is not 0
@@ -81,9 +81,9 @@
 	ADC.I	PAGE_MAP_RAM_BASE	; load pointer to start of code pages in VR1
 	STA.Z	VR1 1
 	STZ.Z	VR1
-	LDX	PROC_ACTIVE_ID		; load process id
-	LDA.X	PROC_A			; get rom program id from A like earlier
-	ASL				; id * 2 for offset again
+	LDX	PROC_ACTIVE_ID		; load process ID
+	LDA.X	PROC_A			; get rom program ID from A like earlier
+	ASL				; ID * 2 for offset again
 	TAX				; move offset to X
 	LDA.X	ROM_PROGRAM_START	; load pointer to program code in VR0
 	STA.Z	VR0
@@ -111,7 +111,7 @@
 	JSR	PROGRAM_ADJUST		; adjust code in RAM
 
 	; calc ptroff
-	LDA	PROC_ACTIVE_ID		; load process id
+	LDA	PROC_ACTIVE_ID		; load process ID
 	ASL				; *2 for offset
 	TAY				; move offset to Y
 	SEC				; SEC for SBC
@@ -127,7 +127,7 @@
 	STA.Y	PROC_PC
 	LDA.Z	VR0 1
 	STA.Y	PROC_PC 1
-	LDY	PROC_ACTIVE_ID		; load process active id
+	LDY	PROC_ACTIVE_ID		; load process active ID
 	LDA.I	0XFF			; load initial value for stack pointer
 	STA.Y	PROC_S			; set stack
 	LDA.I	0B00100000		; load initial value for processor flags
@@ -142,22 +142,22 @@
 	STA.Y	PROC_FLAGS		; set no flags
 
 	; set name
-	LDX	PROC_ACTIVE_ID		; get process id
-	LDA.X	PROC_A			; get rom program id
+	LDX	PROC_ACTIVE_ID		; get process ID
+	LDA.X	PROC_A			; get rom program ID
 	ASL				; * 2 for pointer width
 	TAX				; move to X for indexing
 	LDA.X	ROM_PROGRAM_NAME	; move rom program name pointer to VR0
 	STA.Z	VR0
 	LDA.X	ROM_PROGRAM_NAME 1
 	STA.Z	VR0 1
-	LDA	PROC_ACTIVE_ID		; get process id again
+	LDA	PROC_ACTIVE_ID		; get process ID again
 	ASL				; * 16 for pointer offset in name page
 	ASL
 	ASL
 	ASL
 	STA.Z	VR1			; set low byte of pointer for strncpy
 	LDA.I	PROC_NAME > 8		; load name page number
-	ADC.I	0			; add carry which is now bit 5 of process id to get correct page
+	ADC.I	0			; add carry which is now bit 5 of process ID to get correct page
 	STA.Z	VR1 1			; set high byte of pointer
 	LDY.I	15			; load 15 to write nul char at the end
 	LDA.I	0			; nul char value

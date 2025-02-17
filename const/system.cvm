@@ -3,7 +3,7 @@
 =PAGE_MAP_RAM_BASE	0X10	; pages used for OS + program stuff, before paged region
 =PAGE_COUNT_RAM1	0X70	; avail pages in device RAM1
 =PAGE_COUNT_TOTAL	0XF0	; avail pages in devices RAM1 and RAM2, 0x80 + 0x70
-=PROC_COUNT		32	; max number of running procs
+=PROC_COUNT		32	; max number of running processes
 
 =PROC_STATE_NULL	0	; no process
 =PROC_STATE_INIT_ROM	1	; process is being loaded from ROM code

@@ -41,7 +41,7 @@
 	STZ.Z	VR5
 	JSR	MEMSET			; clear 0x200 to 0xFFF
 	
-	LDA.I	PAGE_TABLE_PROCID	; set page procids to 0xFF
+	LDA.I	PAGE_TABLE_PROCID	; set page process IDs to 0xFF
 	STA.Z	VR0
 	LDA.I	PAGE_TABLE_PROCID > 8
 	STA.Z	VR0 1
@@ -74,7 +74,7 @@
 	STA.Z	VR5
 	JSR	MEMSET
 	
-	LDA.I	IPC_TARGET		; set ipc targets to 0xFF
+	LDA.I	IPC_TARGET		; set IPC targets to 0xFF
 	STA.Z	VR0
 	LDA.I	IPC_TARGET > 8
 	STA.Z	VR0 1
@@ -86,7 +86,7 @@
 	JSR	MEMSET
 
 	LDA.I	0XFF
-	STA	PROC_ACTIVE_ID		; no process active id at first
+	STA	PROC_ACTIVE_ID		; no process active ID at first
 	STA	IO_FILE_CLAIM		; clear file claim
 
 	; init finished

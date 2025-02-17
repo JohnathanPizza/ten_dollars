@@ -12,6 +12,6 @@
 	INC	IO_READ_STATUS		; increment status to signal another process is reading
 	JSR	PROC_LEAVE		; save process to suspend it while waiting for read to complete
 	LDA.I	PROC_STATE_IO_READ	; load new process state for reading
-	LDY	PROC_ACTIVE_ID		; load process id
+	LDY	PROC_ACTIVE_ID		; load process ID
 	STA.Y	PROC_STATE		; update process state
 	JMP	SERVICE_CYCLE_BEGIN	; start new cycle

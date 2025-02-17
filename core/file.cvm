@@ -13,7 +13,7 @@
 ;==================================================
 
 ; FILE_ENABLE
-; P --- A: file id F
+; P --- A: file ID F
 ; R --- A: success value R
 ; marks the indicator byte for F as in use
 ; R = 0 if the operation finished
@@ -56,13 +56,13 @@
 	LDA.Z	VR11			; load return code
 	RTS				; return
 >_FILE_ENABLE_ID
-	LDA.I	FILE_ERROR_ID		; load bad file id error value
+	LDA.I	FILE_ERROR_ID		; load bad file ID error value
 	RTS				; return
 
 ;==================================================
 
 ; FILE_DISABLE
-; P --- A: file id F
+; P --- A: file ID F
 ; R --- A: success value R
 ; marks the indicator byte for F as not used
 ; R = 0 if the operation finished
@@ -105,14 +105,14 @@
 	LDA.Z	VR11			; load return code
 	RTS				; return
 >_FILE_DISABLE_ID
-	LDA.I	FILE_ERROR_ID		; load bad file id error value
+	LDA.I	FILE_ERROR_ID		; load bad file ID error value
 	RTS				; return
 
 ;==================================================
 
 ; FILE_SET_NAME
 ; P --- VR0: file name N
-;	A: file id F
+;	A: file ID F
 ; R --- A: success value R
 ; sets the name of file F to N
 ; maximum length of N is 15 ( + nul character)
@@ -179,14 +179,14 @@
 	LDA.Z	VR8			; load R
 	RTS				; return
 >_FILE_SET_NAME_ID
-	LDA.I	FILE_ERROR_ID		; load file id error value
+	LDA.I	FILE_ERROR_ID		; load file ID error value
 	RTS				; return
 
 ;==================================================
 
 ; FILE_SPACE
 ; R --- A: return value R
-;	VR11/1: unused filed id F
+;	VR11/1: unused filed ID F
 ; returns a file ID of an unused file on the disk
 ; R = 0 if the function succeeded / F should be used
 ; otherwise R = either a floppy error code or file error code and F should not be used
@@ -210,7 +210,7 @@
 	LDA.Z	VR8			; load return value
 	BNE	_FILE_SPACE_ERROR	; fail on error
 	PHX				; store X
-	LDX.I	0			; set file id index to 0
+	LDX.I	0			; set file ID index to 0
 >_FILE_SPACE_LOOP
 	LDA.X	FLOPPY_PAGE		; load indicator byte
 	BEQ	_FILE_SPACE_LOOP_END	; exit loop if not occupied
@@ -305,7 +305,7 @@
 ; otherwise R = either a floppy error code or file error code
 
 >FILE_FLUSH_A
-	LDA	IO_FILE_A_ID		; load file id
+	LDA	IO_FILE_A_ID		; load file ID
 	BEQ	_FILE_FLUSH_A_END	; just return if no file
 	LDA	IO_FILE_A_DIRTY		; load file dirty
 	BEQ	_FILE_FLUSH_A_END	; just return if no modification
@@ -326,8 +326,8 @@
 	PHA
 	LDA.Z	VR4 1
 	PHA
-	LDA	IO_FILE_A_ID		; load file id
-	STA.Z	VR4			; set track based on file id
+	LDA	IO_FILE_A_ID		; load file ID
+	STA.Z	VR4			; set track based on file ID
 	LDA	IO_FILE_A_POS 1		; load high byte of file pos
 	INC				; inc to get corresponding sector number
 	STA.Z	VR4 1			; set sector
@@ -354,7 +354,7 @@
 ; otherwise R = either a floppy error code or file error code
 
 >FILE_FLUSH_B
-	LDA	IO_FILE_B_ID		; load file id
+	LDA	IO_FILE_B_ID		; load file ID
 	BEQ	_FILE_FLUSH_B_END	; just return if no file
 	LDA	IO_FILE_B_DIRTY		; load file dirty
 	BEQ	_FILE_FLUSH_B_END	; just return if no modification
@@ -375,8 +375,8 @@
 	PHA
 	LDA.Z	VR4 1
 	PHA
-	LDA	IO_FILE_B_ID		; load file id
-	STA.Z	VR4			; set track based on file id
+	LDA	IO_FILE_B_ID		; load file ID
+	STA.Z	VR4			; set track based on file ID
 	LDA	IO_FILE_B_POS 1		; load high byte of file pos
 	INC				; inc to get corresponding sector number
 	STA.Z	VR4 1			; set sector
@@ -403,14 +403,14 @@
 ; otherwise R = either a floppy error code or file error code
 
 >FILE_LOAD_A
-	LDA	IO_FILE_A_ID		; load file id
+	LDA	IO_FILE_A_ID		; load file ID
 	BEQ	_FILE_LOAD_A_END	; just return if no file
 	LDA.Z	VR4			; store VR4
 	PHA
 	LDA.Z	VR4 1
 	PHA
-	LDA	IO_FILE_A_ID		; load file id
-	STA.Z	VR4			; set track based on file id
+	LDA	IO_FILE_A_ID		; load file ID
+	STA.Z	VR4			; set track based on file ID
 	LDA	IO_FILE_A_POS 1		; load high byte of file pos
 	INC				; inc to get corresponding sector number
 	STA.Z	VR4 1			; set sector
@@ -451,14 +451,14 @@
 ; otherwise R = either a floppy error code or file error code
 
 >FILE_LOAD_B
-	LDA	IO_FILE_B_ID		; load file id
+	LDA	IO_FILE_B_ID		; load file ID
 	BEQ	_FILE_LOAD_B_END	; just return if no file
 	LDA.Z	VR4			; store VR4
 	PHA
 	LDA.Z	VR4 1
 	PHA
-	LDA	IO_FILE_B_ID		; load file id
-	STA.Z	VR4			; set track based on file id
+	LDA	IO_FILE_B_ID		; load file ID
+	STA.Z	VR4			; set track based on file ID
 	LDA	IO_FILE_B_POS 1		; load high byte of file pos
 	INC				; inc to get corresponding sector number
 	STA.Z	VR4 1			; set sector

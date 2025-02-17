@@ -425,7 +425,7 @@ $_SHELL_POKE_FUNC
 >_SHELL_SYS_FUNC_DEFAULT_LOOP_GOOD
 	INC.Z	VR3
 	; print this process
-	TXA		; print process id
+	TXA		; print process ID
 	JSR	PRINTH
 	LDA.I	ASCII_SPACE
 	JSR	PRINTC

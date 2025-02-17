@@ -6,5 +6,5 @@
 =FILE_ERROR_DISKFULL	5	; no more room for new files on disk
 =FILE_ERROR_NOFILE	6	; file with given name does not exist
 =FILE_ERROR_INUSE	7	; file already opened and in use
-=FILE_ERROR_ID		8	; file id not in valid range
+=FILE_ERROR_ID		8	; file ID not in valid range
 =FILE_ERROR_OPEN	9	; no file is open

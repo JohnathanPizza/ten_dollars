@@ -8,7 +8,7 @@
 	JSR	PAGE_TABLE_GET_DATA	; try to find in map
 	CMP.I	PAGE_COUNT_TOTAL	; test if found
 	BEQ	_BRK_DATA_RELEASE_FAIL	; return if not a real page
-	TAY				; move page id to Y
+	TAY				; move page ID to Y
 	LDA.I	0XFF			; load null procid value
 	STA.Y	PAGE_TABLE_PROCID	; store in page owner ID to release it
 	TYA				; move page it to A

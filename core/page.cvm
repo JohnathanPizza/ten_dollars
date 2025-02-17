@@ -29,7 +29,7 @@
 	LDA.I	0XFF			; load null value to compare against process ids
 	LDX.I	0			; set page table index to 0
 >_PAGE_TABLE_VACANT_LOOP
-	CMP.X	PAGE_TABLE_PROCID	; test if this page has a null value for process id
+	CMP.X	PAGE_TABLE_PROCID	; test if this page has a null value for process ID
 	BNE	_PAGE_TABLE_VACANT_OCC	; if not equal then this page is being used
 	INY				; else increment N
 >_PAGE_TABLE_VACANT_OCC
@@ -44,8 +44,8 @@
 ;==================================================
 
 ; PAGE_TABLE_GET
-; R --- A: page id P
-; returns the page id of some vacant page in the page table
+; R --- A: page ID P
+; returns the page ID of some vacant page in the page table
 ; can then be claimed by some process
 ; if P is PAGE_COUNT_TOTAL then no pages are vacant
 
@@ -54,8 +54,8 @@
 	LDA.I	0XFF			; load null value to compare against process ids
 	LDX.I	0			; set page table index to 0
 >_PAGE_TABLE_GET_LOOP
-	CMP.X	PAGE_TABLE_PROCID	; test if this page has a null value for process id
-	BEQ	_PAGE_TABLE_GET_FOUND	; if equal then return this page id
+	CMP.X	PAGE_TABLE_PROCID	; test if this page has a null value for process ID
+	BEQ	_PAGE_TABLE_GET_FOUND	; if equal then return this page ID
 	INX				; else increment page table index
 	CPX.I	PAGE_COUNT_TOTAL	; test if index is at the end
 	BNE	_PAGE_TABLE_GET_LOOP	; loop if not last index
@@ -67,9 +67,9 @@
 ;==================================================
 
 ; PAGE_TABLE_TEST
-; P --- A: page id P
+; P --- A: page ID P
 ; R --- A: page type T
-; returns information about what the page holds relative to the active process id
+; returns information about what the page holds relative to the active process ID
 ; if T is 0xFF then the page does not belong to the active process
 ; if T is 0XFE then the page is a code page for the active process
 ; otherwise T is the index of the data page for the active process (0 being ZP, 1 being stack, 2+ data)
@@ -78,7 +78,7 @@
 	PHX				; store X
 	TAX				; move P to X
 	LDA.X	PAGE_TABLE_PROCID	; get the process owner of P
-	CMP	PROC_ACTIVE_ID		; compare to active process id
+	CMP	PROC_ACTIVE_ID		; compare to active process ID
 	BNE	_PAGE_TABLE_TEST_DIFF	; if not equal then this page is not owned by current process
 	LDA.X	PAGE_TABLE_HOME		; load home value to test for page type
 	CMP.I	0X80			; test home >= 0x80
@@ -87,7 +87,7 @@
 	BRA	_PAGE_TABLE_TEST_RET	; return
 >_PAGE_TABLE_TEST_DATA
 	SEC				; SEC for SBC
-	SBC.I	0X80			; subtract 0x80 to get the data page id
+	SBC.I	0X80			; subtract 0x80 to get the data page ID
 	BRA	_PAGE_TABLE_TEST_RET	; return
 >_PAGE_TABLE_TEST_DIFF
 	LDA.I	0XFF			; load value for different owner
@@ -98,8 +98,8 @@
 ;==================================================
 
 ; PAGE_TABLE_GET_ZP
-; R --- A: page id P
-; returns the page id of the ZP page for the current active process
+; R --- A: page ID P
+; returns the page ID of the ZP page for the current active process
 ; if P is PAGE_COUNT_TOTAL then the process has no ZP page
 
 >PAGE_TABLE_GET_ZP
@@ -121,8 +121,8 @@
 ;==================================================
 
 ; PAGE_TABLE_GET_STACK
-; R --- A: page id P
-; returns the page id of the stack page for the current active process
+; R --- A: page ID P
+; returns the page ID of the stack page for the current active process
 ; if P is PAGE_COUNT_TOTAL then the process has no stack page
 
 >PAGE_TABLE_GET_STACK
@@ -381,7 +381,7 @@
 ;==================================================
 
 ; PAGE_MAP_FIND
-; P --- A: page id P
+; P --- A: page ID P
 ; R --- A: map idx I
 ; returns the map idx I of where page P is located
 ; if I = PAGE_COUNT_TOTAL then not found
@@ -509,7 +509,7 @@
 ;==================================================
 
 ; PAGE_MAP_HOME_SWAP
-; P --- A: page id P
+; P --- A: page ID P
 ; swaps page P with its current map idx and its home map idx
 
 >PAGE_MAP_HOME_SWAP
@@ -533,9 +533,9 @@
 ;==================================================
 
 ; PAGE_TABLE_GET_DATA
-; P --- A: relative data page id D
-; R --- A: page id P
-; returns the page id of the Dth user data page (start from 0) for the active process
+; P --- A: relative data page ID D
+; R --- A: page ID P
+; returns the page ID of the Dth user data page (start from 0) for the active process
 ; if P is PAGE_COUNT_TOTAL then the data page doesnt actually exist for that process
 
 >PAGE_TABLE_GET_DATA
@@ -564,22 +564,22 @@
 ;==================================================
 
 ; PAGE_TABLE_NEXT_DATA
-; R --- A: relative data page id D
-; returns the id that the next data page for the active process should use when allocating
+; R --- A: relative data page ID D
+; returns the ID that the next data page for the active process should use when allocating
 
 >PAGE_TABLE_NEXT_DATA
 	PHX				; store X
 	LDA.Z	VR7			; load VR7/1
 	PHA				; store
-	LDA.I	2			; load inital id to check
+	LDA.I	2			; load inital ID to check
 	STA.Z	VR7			; store in VR7/1
 	LDX.I	0			; set page idx to 0
 >_PAGE_TABLE_NEXT_DATA_LOOP
 	TXA				; move idx to A
 	JSR	PAGE_TABLE_TEST		; test current page idx
-	CMP.Z	VR7			; test if this page is a data page with the current test id
-	BNE	_PAGE_TABLE_NEXT_DATA_SKIP	; if id is different then dont increment test id
-	INC.Z	VR7			; increment test id
+	CMP.Z	VR7			; test if this page is a data page with the current test ID
+	BNE	_PAGE_TABLE_NEXT_DATA_SKIP	; if ID is different then dont increment test ID
+	INC.Z	VR7			; increment test ID
 	LDX.I	0XFF			; restart page idx
 >_PAGE_TABLE_NEXT_DATA_SKIP
 	INX				; increment page idx

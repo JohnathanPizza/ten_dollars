@@ -379,9 +379,9 @@ $_FM_COPY_FUNC
 	CMP.I	0						; test if length is 0
 	BEQ	_FM_LIST_FUNC_LOOP2_ZERO			; skip file incrementing if so
 	INC.Z	VR7						; increment file count
-	STZ.Z	VR4 1						; load file id to VR4 to print it
+	STZ.Z	VR4 1						; load file ID to VR4 to print it
 	STX.Z	VR4
-	JSR	PRINTDU16					; print file id
+	JSR	PRINTDU16					; print file ID
 	LDA.I	ASCII_COLON					; print colon
 	JSR	PRINTC
 	LDA.I	ASCII_SPACE					; print space
@@ -392,7 +392,7 @@ $_FM_COPY_FUNC
 	CLC
 	ADC.I	16
 	STA.Z	VR0
-	INX							; increment file id
+	INX							; increment file ID
 	CPX.I	79 + 1						; test if all files have been tested
 	BEQ	_FM_LIST_FUNC_END				; print results if so
 	LDA.Z	VR0						; test if pointer rolled over

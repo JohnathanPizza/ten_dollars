@@ -351,7 +351,7 @@
 	STA	VIA_FLOPPY_DATA_PORT	; store to data port, resets WAI
 	WAI				; wait for it to write
 
-	; sector id
+	; sector ID
 	LDA	FLOPPY_SEC_ID		; load sector ID
 	ASL				; first encoded value
 	ORA.I	0B01010101
@@ -414,7 +414,7 @@
 	JSR	FLOPPY_CALIBRATE_TRACK	; calibrate so that at track 0 on side A
 	STZ.Z	VR8			; initialize track counter to 0
 >_FLOPPY_FORMAT_TRACK_LOOP
-	LDA.Z	VR8			; load track id
+	LDA.Z	VR8			; load track ID
 	JSR	FLOPPY_SET_TRACK	; go to next track
 	JSR	FLOPPY_SIDE_A		; go to side A
 >_FLOPPY_FORMAT_SIDE_LOOP
@@ -432,7 +432,7 @@
 	AND.I	0B11101111		; turn off write bit
 	STA	VIA_FLOPPY_CONTROL_PORT	; store back
 
-	STZ	FLOPPY_SEC_ID		; zero the sector id
+	STZ	FLOPPY_SEC_ID		; zero the sector ID
 >_FLOPPY_FORMAT_SECTOR_LOOP
 	; using a 5 byte spacing between sector caps
 	LDA	VIA_FLOPPY_DATA_PORT	; load data port to clear WAI
@@ -444,8 +444,8 @@
 	LDA	VIA_FLOPPY_DATA_PORT	; load data port to clear WAI
 	WAI				; byte 4 of gap
 	JSR	FLOPPY_WRITE_SECTOR	; on the 5th byte of gap, write sector
-	INC	FLOPPY_SEC_ID		; inc floppy sector id
-	LDA.I	20			; load 20 to compare last sector id
+	INC	FLOPPY_SEC_ID		; inc floppy sector ID
+	LDA.I	20			; load 20 to compare last sector ID
 	CMP	FLOPPY_SEC_ID		; compare
 	BNE	_FLOPPY_FORMAT_SECTOR_LOOP	; loop to write the next sector if 20 have not been written yet
 
@@ -456,7 +456,7 @@
 	
 	INC.Z	VR8			; increment track counter
 	LDA.Z	VR8			; load value of next track
-	CMP.I	40			; load 40 to compare to last track id
+	CMP.I	40			; load 40 to compare to last track ID
 	BNE	_FLOPPY_FORMAT_TRACK_LOOP	; loop if not done with the 40 tracks
 
 	JSR	FLOPPY_EXIT		; done with it all, can exit floppy mode
@@ -579,14 +579,14 @@
 	
 	; aligned and validated, collect sector data
 	WAI				; wait for next byte
-	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of sector id
+	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of sector ID
 	SEC				; SEC for ROR
 	ROR				; shift right so odd bits are data and even are 1
 	WAI				; wait for next byte
-	AND	VIA_FLOPPY_DATA_PORT	; AND second encoded value to get decoded sector id
-	CMP.Z	VR4 1			; compare sector id to S
+	AND	VIA_FLOPPY_DATA_PORT	; AND second encoded value to get decoded sector ID
+	CMP.Z	VR4 1			; compare sector ID to S
 	BNE	_FLOPPY_READ_ALIGN	; skip this sector if not S
-	STA	FLOPPY_SEC_ID		; otherwise update sector id
+	STA	FLOPPY_SEC_ID		; otherwise update sector ID
 	
 	; get data
 	LDX.I	0			; set byte counter to 0
@@ -713,13 +713,13 @@
 	
 	; aligned and validated, collect sector data
 	WAI				; wait for next byte
-	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of sector id
+	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of sector ID
 	SEC				; SEC for ROR
 	ROR				; shift right so odd bits are data and even are 1
 	WAI				; wait for next byte
-	AND	VIA_FLOPPY_DATA_PORT	; AND second encoded value to get decoded sector id
+	AND	VIA_FLOPPY_DATA_PORT	; AND second encoded value to get decoded sector ID
 	INC				; increment value by 1 because we want to find S - 1
-	CMP.Z	VR4 1			; compare sector id to S
+	CMP.Z	VR4 1			; compare sector ID to S
 	BNE	_FLOPPY_WRITE_ALIGN	; skip this sector if not S
 	
 	; get data

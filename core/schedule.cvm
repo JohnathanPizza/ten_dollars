@@ -6,26 +6,26 @@
 ;==================================================
 
 ; SCHEDULER_SELECT
-; R --- VR11/1: selected process id P
-; returns the process id that should be serviced next P
+; R --- VR11/1: selected process ID P
+; returns the process ID that should be serviced next P
 
 >SCHEDULER_SELECT
 	PHA				; store A
 	PHX				; store X
 	STZ.Z	VR8			; set high count to 0
-	STZ.Z	VR11			; set high process id to 0
+	STZ.Z	VR11			; set high process ID to 0
 	LDX.I	0			; set process idx to 0
 >_SCHEDULER_SELECT_LOOP
 	LDA.Z	VR8			; get the high count
-	CMP.X	PROC_SCHEDULE_COUNT	; compare high count to this procs count
+	CMP.X	PROC_SCHEDULE_COUNT	; compare high count to this process' count
 	BGE	_SCHEDULER_SELECT_LOOP_CONT	; if the high count >= this process count skip
-	STX.Z	VR11			; else update highest process id
+	STX.Z	VR11			; else update highest process ID
 	LDA.X	PROC_SCHEDULE_COUNT	; get this count
 	STA.Z	VR8			; update high count
 >_SCHEDULER_SELECT_LOOP_CONT
 	INX				; inc process index
-	CPX.I	PROC_COUNT		; compare to num of procs
-	BNE	_SCHEDULER_SELECT_LOOP	; loop if not done all procs
+	CPX.I	PROC_COUNT		; compare to num of processes
+	BNE	_SCHEDULER_SELECT_LOOP	; loop if not done all processes
 	PLX				; restore X
 	PLA				; restore A
 	RTS				; return
@@ -48,7 +48,7 @@
 >_SCHEDULER_INCREMENT_LOOP_CONT
 	STA.X	PROC_SCHEDULE_COUNT		; store value back into counter
 	INX					; inc process index
-	CPX.I	PROC_COUNT			; compare process index to max procs
+	CPX.I	PROC_COUNT			; compare process index to max processes
 	BNE	_SCHEDULER_INCREMENT_LOOP	; loop if not done all
 	PLX					; restore X
 	PLA					; restore A

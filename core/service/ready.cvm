@@ -1,10 +1,10 @@
-; loads the process code and data and stuff and enters it
+; loads process' code pages, data pages, and enters it
 
 >SERVICE_READY
-	JSR	PROC_LOAD		; load all related process resources into memory
-	LDA.I	0XFF			; load max value for T2
-	STA	HW_ENABLE_ADDR HW_RAM1 HW_VIA ; turn on VIA
-	STA	VIA_T2L			; load T2 low latches
-	STA	VIA_T2HC		; load T2 high counter, starting the countdown
-	STA	HW_ENABLE_ADDR HW_RAM1  ; turn off VIA
-	JMP	PROC_UNPAUSE		; enter process
+	JSR	PROC_LOAD			; load all related process resources into memory
+	LDA.I	0XFF				; load max value for T2 preemption timer
+	STA	HW_ENABLE_ADDR HW_RAM1 HW_VIA 	; turn on VIA
+	STA	VIA_T2L				; load T2 low latches
+	STA	VIA_T2HC			; load T2 high counter, starting the countdown
+	STA	HW_ENABLE_ADDR HW_RAM1  	; turn off VIA
+	JMP	PROC_UNPAUSE			; enter process

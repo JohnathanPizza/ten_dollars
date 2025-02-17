@@ -59,6 +59,6 @@ $FM_NAME
 	PLA
 	STA.Z	VR1
 	TXA				; move id*2 to A
-	LSR				; set A to id
+	LSR				; set A to ID
 	PLX				; restore X
 	RTS				; return

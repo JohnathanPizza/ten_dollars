@@ -1,82 +1,86 @@
-; cleans up all process resources and returns the process id to an open state
+; cleans up all process resources and returns the process ID to null state
+
+; any child processes or grandchild processes have their states set to the exit state
+; if this process, child processes, or grandchild processes have system resources (IO_READ_FOCUS and IO_FILE_CLAIM), this process' parent gets them
+; if this process has no parent, they are freed to the OS for other processes to claim
 
 >SERVICE_EXIT
 	; free pages
-	LDY.I	0			; set page table index to 0
+	LDY.I	0				; set page table index to 0
 >_SERVICE_EXIT_LOOP
-	TYA				; move index to A
-	JSR	PAGE_TABLE_TEST		; test page
-	CMP.I	0XFF			; test if page belongs to process
-	BEQ	_SERVICE_EXIT_SKIP	; skip this page if it doesnt belong to process
-	TYA				; move index to A
-	JSR	PAGE_MAP_FIND		; find map idx
-	TAX				; move map idx to X
-	LDA.I	0XFF			; load map null value
-	STA.X	PAGE_MAP		; store in map
-	STA.Y	PAGE_TABLE_PROCID	; store null value in page table procid
+	TYA					; move index to A
+	JSR	PAGE_TABLE_TEST			; test page
+	CMP.I	0XFF				; test if page belongs to process
+	BEQ	_SERVICE_EXIT_SKIP		; skip this page if it doesnt belong to process
+	TYA					; move index to A
+	JSR	PAGE_MAP_FIND			; find map idx
+	TAX					; move map idx to X
+	LDA.I	0XFF				; load map null value
+	STA.X	PAGE_MAP			; store in map
+	STA.Y	PAGE_TABLE_PROCID		; store null value in page table procid
 >_SERVICE_EXIT_SKIP
-	INY				; inc index
-	CPY.I	PAGE_COUNT_TOTAL	; test if last index
-	BNE	_SERVICE_EXIT_LOOP	; loop if not done
+	INY					; inc index
+	CPY.I	PAGE_COUNT_TOTAL		; test if last index
+	BNE	_SERVICE_EXIT_LOOP		; loop if not done
 
 	; free resources
-	LDY	PROC_ACTIVE_ID		; load process id
-	LDA	IO_FILE_CLAIM		; load the process id with file access
+	LDY	PROC_ACTIVE_ID			; load process ID
+	LDA	IO_FILE_CLAIM			; load the process ID with file access
 	JSR	_SERVICE_EXIT_PARENT_PATH	; test if this process is on its path
-	CMP.I	FALSE			; test if not on path and can be skipped
+	CMP.I	FALSE				; test if not on path and can be skipped
 	BEQ	_SERVICE_EXIT_FILE_CLAIM_SKIP	; skip if not on path
-	LDA.I	0XFF			; else this process is on path, want to reset file claim to nobody
-	STA	IO_FILE_CLAIM		; set nobody owning file claim
-	STZ	IO_FILE_A_ID		; reset file A id
-	STZ	IO_FILE_B_ID		; reset file B id
+	LDA.I	0XFF				; else this process is on path, want to reset file claim to nobody
+	STA	IO_FILE_CLAIM			; set nobody owning file claim
+	STZ	IO_FILE_A_ID			; reset file A ID
+	STZ	IO_FILE_B_ID			; reset file B ID
 	; note that the pages arent flushed to disk^
 >_SERVICE_EXIT_FILE_CLAIM_SKIP
-	LDA	IO_READ_FOCUS		; load the process id with read focus
+	LDA	IO_READ_FOCUS			; load the process ID with read focus
 	JSR	_SERVICE_EXIT_PARENT_PATH	; test if this process is on its path
-	CMP.I	FALSE			; test if not on path and can be skipped
+	CMP.I	FALSE				; test if not on path and can be skipped
 	BEQ	_SERVICE_EXIT_READ_FOCUS_SKIP	; skip if not on path
-	LDA.Y	PROC_PARENT		; else this process is on path, reuse active id in Y from above, get this procs parent
-	STA	IO_READ_FOCUS		; set this procs parent to be the new owner of read focus
+	LDA.Y	PROC_PARENT			; else this process is on path, reuse active ID in Y from above, get this process' parent
+	STA	IO_READ_FOCUS			; set this process' parent to be the new owner of read focus
 >_SERVICE_EXIT_READ_FOCUS_SKIP
 
 	; kill children
-	LDY.I	0			; set index for counting procs
+	LDY.I	0				; set index for counting processes
 >_SERVICE_EXIT_CHILDREN_LOOP
-	TYA				; move current process id to A
+	TYA					; move current process ID to A
 	JSR	_SERVICE_EXIT_PARENT_PATH	; test if on parent path
-	CMP.I	FALSE			; test if not on path
+	CMP.I	FALSE				; test if not on path
 	BEQ	_SERVICE_EXIT_CHILDREN_LOOP_SKIP	; skip exit if not on path
-	LDA.I	PROC_STATE_EXIT		; load exit state
-	STA.Y	PROC_STATE		; make child exit too
-	LDA.I	0XFF			; load no parent id
-	STA.Y	PROC_PARENT		; update process to have no parent, this is ok because shared resources were already transferred from children
+	LDA.I	PROC_STATE_EXIT			; load exit state
+	STA.Y	PROC_STATE			; make child exit too
+	LDA.I	0XFF				; load no parent ID
+	STA.Y	PROC_PARENT			; update process to have no parent, this is ok because shared resources were already transferred from children
 	; this will also reset the currently exiting process parent since a process is on its own parent path
 >_SERVICE_EXIT_CHILDREN_LOOP_SKIP
-	INY				; inc process
-	CPY.I	PROC_COUNT		; test if done with all procs
+	INY					; inc process
+	CPY.I	PROC_COUNT			; test if done with all processes
 	BNE	_SERVICE_EXIT_CHILDREN_LOOP	; loop if not
 
-	; cancel ipc messages
-	LDX.I	0
+	; cancel IPC messages
+	LDX.I	0				; set process ID loop counter to 0
 >_SERVICE_EXIT_IPC_LOOP
-	LDA.X	IPC_TARGET
-	CMP	PROC_ACTIVE_ID
-	BNE	_SERVICE_EXIT_IPC_LOOP_SKIP
-	LDA.I	0XFF
-	STA.X	IPC_TARGET
+	LDA.X	IPC_TARGET			; load IPC target of process
+	CMP	PROC_ACTIVE_ID			; test if target is this exiting process
+	BNE	_SERVICE_EXIT_IPC_LOOP_SKIP	; if not then continue looping
+	LDA.I	0XFF				; load null target value
+	STA.X	IPC_TARGET			; set in process' target value to cancel send
 >_SERVICE_EXIT_IPC_LOOP_SKIP
-	INX
-	CPX.I	PROC_COUNT
-	BNE	_SERVICE_EXIT_IPC_LOOP
+	INX					; increment counter
+	CPX.I	PROC_COUNT			; test if done with all processes
+	BNE	_SERVICE_EXIT_IPC_LOOP		; loop if not done
 
 	; free process
-	LDY	PROC_ACTIVE_ID		; load process id
-	LDA.I	PROC_STATE_NULL		; load null state value
-	STA.Y	PROC_STATE		; update process state
+	LDY	PROC_ACTIVE_ID			; load process ID
+	LDA.I	PROC_STATE_NULL			; load null state value
+	STA.Y	PROC_STATE			; update process state
 
-	JMP	SERVICE_CYCLE_BEGIN	; start next cycle
+	JMP	SERVICE_CYCLE_BEGIN		; start next cycle
 
-; takes a process id in A and tests if the current process is in the ancestral path to that process
+; takes a process ID in A and tests if the current process is in the ancestral path to that process
 ; sets A = TRUE if the current process is on the path, FALSE otherwise
 >_SERVICE_EXIT_PARENT_PATH
 	CMP	PROC_ACTIVE_ID			; if the current process is found to be the next parent id, then the original process is on the parent path

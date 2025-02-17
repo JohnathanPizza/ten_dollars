@@ -748,7 +748,7 @@ $_BRK_FILE_OP_DISK_TEST
 ; returns the current file ID of file A
 
 >_BRK_FILE_OP_GETID_A
-	LDA	IO_FILE_A_ID			; get file A id
+	LDA	IO_FILE_A_ID			; get file A ID
 	STA.Z	VR10				; store
 	JMP	_BRK_FILE_OP_QUICK_END		; return
 
@@ -759,7 +759,7 @@ $_BRK_FILE_OP_DISK_TEST
 ; returns the current file ID of file B
 
 >_BRK_FILE_OP_GETID_B
-	LDA	IO_FILE_B_ID			; get file B id
+	LDA	IO_FILE_B_ID			; get file B ID
 	STA.Z	VR10				; store
 	JMP	_BRK_FILE_OP_QUICK_END		; return
 

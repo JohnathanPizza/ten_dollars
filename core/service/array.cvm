@@ -1,3 +1,5 @@
+; pointer array to service functions
+
 >SERVICE_ARRAY
 $SERVICE_NULL		; 0
 $SERVICE_INIT_ROM	; 1

@@ -1,57 +1,62 @@
-; EXEC FILE FORMAT:
-; byte 254 sec 19: code pages
-; byte 255 sec 19: adjust pages
-; sec 1: program code
-; sec after last prog code: adjustment pointers
+; gets a process into a runnable state at the start of the given disk program
 
-; adjust page ex:
-; with 127 ptrs (max)
-; 0-253: XXXX
-; 254-255: 0000
+; process A register = file ID of program to load
+
+; file format for programs:
+; byte 254 sector 19 (0x12FE): number of code pages
+; byte 255 sector 19 (0x12FF): number of adjustment pages
+; sector 1: first code page
+; sector after last code page: start of adjustment pages
+; adjustment page format:
+; can have a maximum of 127 pointers
+; must have a trailing 0x0000 value at the end of the pointers for each page
+; with 127 pointers (max)
+; bytes 0-253: XX
+; bytes 254, 255: 00 00
 ; with N ptrs
-; [0,2N-1]: XXXX
-; [2N,2N+1]: 0000
+; bytes [0,2N-1]: XX
+; bytes [2N,2N+1]: 00 00
 
 >SERVICE_INIT_DISK
-	LDY	PROC_ACTIVE_ID		; load process id
-	LDA.Y	PROC_A			; load file id from A
-	DEC
+	LDY	PROC_ACTIVE_ID		; load process ID
+	LDA.Y	PROC_A			; load file ID from A
+	DEC				; dec to turn it into a file idx
+	LSR				; / 16 to get sector offest for file name
 	LSR
 	LSR
 	LSR
-	LSR
+	INC				; + 2 to get sector number on track 0
 	INC
-	INC
-	STA.Z	VR4 1
-	STZ.Z	VR4
-	JSR	RETRY_FLOPPY_READ
-	CMP.I	0
-	BEQ	_SERVICE_INIT_DISK_NAME
+	STA.Z	VR4 1			; set sector
+	STZ.Z	VR4			; set track to 0
+	JSR	RETRY_FLOPPY_READ	; read sector
+	CMP.I	0			; test if success
+	BEQ	_SERVICE_INIT_DISK_NAME	; continue if success
 	JMP	_SERVICE_INIT_DISK_FAIL	; else fail
 >_SERVICE_INIT_DISK_NAME
-	LDA.Y	PROC_A
-	DEC
+	LDA.Y	PROC_A			; load file ID again
+	DEC				; dec to turn it into a file idx
+	ASL				; * 16 to get file name string offset in sector
 	ASL
 	ASL
 	ASL
-	ASL
-	STA.Z	VR0
-	LDA.I	FLOPPY_PAGE > 8
-	STA.Z	VR0 1
-	TYA
-	ASL
-	ASL
+	STA.Z	VR0			; store sector offset
+	LDA.I	FLOPPY_PAGE > 8		; load floppy page number where sector is in RAM
+	STA.Z	VR0 1			; store
+	TYA				; get process ID
+	ASL				; * 16 to get file name offset in process control variables in RAM
 	ASL
 	ASL
-	STA.Z	VR1
-	LDA.I	PROC_NAME > 8
-	ADC.I	0			; 5th bit in carry for 0-15 and 16-31
-	STA.Z	VR1 1
-	LDA.I	16
-	STA.Z	VR4
-	JSR	STRNCPY
+	ASL
+	STA.Z	VR1			; store offset to proces name string start
+	LDA.I	PROC_NAME > 8		; load process string page number
+	ADC.I	0			; 5th bit in carry for process IDs 0-15 vs 16-31
+	STA.Z	VR1 1			; store page number
+	LDA.I	16			; load length of file name and process name strings
+	STA.Z	VR4			; store
+	JSR	STRNCPY			; copy file name to be process name
 
-	LDA.Y	PROC_A			; load file id from A
+	LDA.Y	PROC_A			; load file ID from A
 	STA.Z	VR4			; set file track
 	LDA.I	19			; load 19 for sector
 	STA.Z	VR4 1			; set last sector of file
@@ -73,28 +78,28 @@
 >_SERVICE_INIT_DISK_CONT2
 	; get data pages
 	JSR	PAGE_TABLE_GET		; get a vacant page
-	TAY				; move page id to Y
-	LDA	PROC_ACTIVE_ID		; load process id
-	STA.Y	PAGE_TABLE_PROCID	; store process id in page row
+	TAY				; move page ID to Y
+	LDA	PROC_ACTIVE_ID		; load process ID
+	STA.Y	PAGE_TABLE_PROCID	; store process ID in page row
 	LDA.I	0X80			; load home value for ZP
 	STA.Y	PAGE_TABLE_HOME		; store in page row
-	PHY				; save page id
+	PHY				; save page ID
 	JSR	PAGE_MAP_GET_BACK	; get empty map idx from back
 	TAY				; move to Y
-	PLA				; pull page id
-	STA.Y	PAGE_MAP		; store page id in map at idx
+	PLA				; pull page ID
+	STA.Y	PAGE_MAP		; store page ID in map at idx
 	
 	JSR	PAGE_TABLE_GET		; get a vacant page
-	TAY				; move page id to Y
-	LDA	PROC_ACTIVE_ID		; load process id
-	STA.Y	PAGE_TABLE_PROCID	; store process id in page row
+	TAY				; move page ID to Y
+	LDA	PROC_ACTIVE_ID		; load process ID
+	STA.Y	PAGE_TABLE_PROCID	; store process ID in page row
 	LDA.I	0X81			; load home value for stack
 	STA.Y	PAGE_TABLE_HOME		; store in page row
-	PHY				; save page id
+	PHY				; save page ID
 	JSR	PAGE_MAP_GET_BACK	; get empty map idx from back
 	TAY				; move to Y
-	PLA				; pull page id
-	STA.Y	PAGE_MAP		; store page id in map at idx
+	PLA				; pull page ID
+	STA.Y	PAGE_MAP		; store page ID in map at idx
 	
 	DEC.Z	VR7			; needed - 1
 	DEC.Z	VR7			; needed - 2 because zp and stack pages claimed
@@ -115,14 +120,14 @@
 	JSR	PAGE_MAP_SWAP		; swap empty map idx at back with current map idx
 >_SERVICE_INIT_DISK_LOOP_SKIP
 	JSR	PAGE_TABLE_GET		; get empty page table row
-	TAY				; move page id to Y
-	LDA	PROC_ACTIVE_ID		; load process id
-	STA.Y	PAGE_TABLE_PROCID	; store process id in page row
+	TAY				; move page ID to Y
+	LDA	PROC_ACTIVE_ID		; load process ID
+	STA.Y	PAGE_TABLE_PROCID	; store process ID in page row
 	LDA.Z	VR7 1			; load current map idx
 	STA.Y	PAGE_TABLE_HOME		; store in home value
-	TYA				; move page id to A
+	TYA				; move page ID to A
 	LDY.Z	VR7 1			; load map idx in Y
-	STA.Y	PAGE_MAP		; store page id in map idx
+	STA.Y	PAGE_MAP		; store page ID in map idx
 	INC.Z	VR7 1			; inc map idx to go to next one
 	DEC.Z	VR7			; dec the number of needed pages
 	BNE	_SERVICE_INIT_DISK_LOOP	; loop if needed page count is not 0
@@ -134,8 +139,8 @@
 	STA.Z	VR1 1
 	LDA.I	FLOPPY_PAGE > 8		; load page of floppy page for pagecpy
 	STA.Z	VR0 1
-	LDX	PROC_ACTIVE_ID		; load process id
-	LDA.X	PROC_A			; get file id again
+	LDX	PROC_ACTIVE_ID		; load process ID
+	LDA.X	PROC_A			; get file ID again
 	STA.Z	VR4			; set file track
 	PLA				; get number of code pages
 	STA.Z	VR7			; store again
@@ -154,12 +159,12 @@
 	BNE	_SERVICE_INIT_DISK_CODE_LOOP	; loop if not done
 
 	; adjust
-	; vr4 still has track and vr4 1 has first adjust sector
+	; VR4 still has track and VR4 1 has first adjust sector
 	LDA.Z	VR6			; get first page idx
 	STA.Z	VR0 1			; set pointer to code in VR0
 	STZ.Z	VR0
 	LDA.I	FLOPPY_PAGE > 8		; get floppy page idx
-	STA.Z	VR1 1			; store as pointer to adjustments in vr1
+	STA.Z	VR1 1			; store as pointer to adjustments in VR1
 	STZ.Z	VR1
 	LDA.Z	VR4			; save track
 	STA.Z	VR6
@@ -181,7 +186,7 @@
 	BNE	_SERVICE_INIT_DISK_ADJUST_LOOP	; loop if not done
 
 	; set vars
-	LDA	PROC_ACTIVE_ID		; load process id
+	LDA	PROC_ACTIVE_ID		; load process ID
 	ASL				; *2 for offset
 	TAY				; set in Y
 	LDA.Z	VR0 1			; load code location
@@ -192,7 +197,7 @@
 	STA.Y	PROC_PC 1
 	LDA.I	0
 	STA.Y	PROC_PC
-	LDY	PROC_ACTIVE_ID		; load process active id
+	LDY	PROC_ACTIVE_ID		; load process active ID
 	LDA.I	0XFF			; load initial value for stack pointer
 	STA.Y	PROC_S			; set stack
 	LDA.I	0B00100000		; load initial value for processor flags
@@ -205,8 +210,8 @@
 	STA.Y	PROC_ACTIVE_DAP_ID	; store in DAP
 	JMP	SERVICE_CYCLE_BEGIN	; start new cycle
 >_SERVICE_INIT_DISK_FAIL
-	LDA.I	PROC_STATE_EXIT
-	LDY	PROC_ACTIVE_ID
-	STA.Y	PROC_STATE
+	LDA.I	PROC_STATE_EXIT		; load exit state value
+	LDY	PROC_ACTIVE_ID		; load process ID
+	STA.Y	PROC_STATE		; set process state to exit
 >_SERVICE_INIT_DISK_PAGES
-	JMP	SERVICE_CYCLE_BEGIN
+	JMP	SERVICE_CYCLE_BEGIN	; start new cycle

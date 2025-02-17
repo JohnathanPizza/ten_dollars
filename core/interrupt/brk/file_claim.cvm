@@ -1,19 +1,22 @@
-; attmepts to claim file control for the current process
-; success in vr11/1
+; BRK_FILE_CLAIM
+; R --- VR11/1: success value S
+; tries to claim the file system access resource for the process
+; S = TRUE if the process claimed the resource and has file access
+; S = FALSE if the process did not claim the resource, no file access
 
 >BRK_FILE_CLAIM
 	LDA.I	FALSE			; load initial false return value
-	STA.Z	VR11			; store
+	STA.Z	VR11			; store in S
 	LDA	IO_FILE_CLAIM		; load value of file claim
 	CMP	PROC_ACTIVE_ID		; test if this proc already claimed
 	BEQ	_BRK_FILE_CLAIM_SKIP	; return if already claimed
 	CMP.I	0XFF			; test if null
 	BNE	_BRK_FILE_CLAIM_FAIL	; if not null then fail
-	LDA	PROC_ACTIVE_ID		; else it is ok to claim, load current proc id
+	LDA	PROC_ACTIVE_ID		; else it is ok to claim, load current proc ID
 	STA	IO_FILE_CLAIM		; store in file claim
 >_BRK_FILE_CLAIM_SKIP
 	LDA.I	TRUE			; load success value
-	STA.Z	VR11			; store in return val
+	STA.Z	VR11			; store in S
 >_BRK_FILE_CLAIM_FAIL
 	JSR	PROC_UNPAUSE		; return to process
 

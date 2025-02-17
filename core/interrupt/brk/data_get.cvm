@@ -1,27 +1,29 @@
-; tries to claim a new data page for the process and returns the new data page ID in VR11/1
-; if the page ID is 0xFF then no page could be allocated
+; BRK_DATA_GET
+; R --- VR11/1: data page ID P
+; tries to claim a new data page for the process and returns the new data page ID as P
+; if P = 0xFF then no page could be allocated
 
 >BRK_DATA_GET
 	JSR	PAGE_TABLE_GET		; get a page in the page table
 	CMP.I	PAGE_COUNT_TOTAL	; test if none vacant
 	BEQ	_BRK_DATA_GET_FAIL	; fail if none vacant
-	TAY				; move page id to Y
-	LDA	PROC_ACTIVE_ID		; load proc id
-	STA.Y	PAGE_TABLE_PROCID	; store proc id into page row
-	JSR	PAGE_TABLE_NEXT_DATA	; get the data id to use for this data page
-	STA.Z	VR11			; store data page id
+	TAY				; move page ID to Y
+	LDA	PROC_ACTIVE_ID		; load proc ID
+	STA.Y	PAGE_TABLE_PROCID	; store proc ID into page row
+	JSR	PAGE_TABLE_NEXT_DATA	; get the data ID to use for this data page
+	STA.Z	VR11			; store data page ID in P
 	CLC				; CLC for ADC
-	ADC.I	0X82			; add 0x82 to the data id to create home value
+	ADC.I	0X82			; add 0x82 to the data ID to create home value
 	STA.Y	PAGE_TABLE_HOME		; store home value in page row
-	PHY				; push page id
+	PHY				; push page ID
 	JSR	PAGE_MAP_GET_BACK	; find map idx starting from back
 	TAY				; move map idx to Y
-	PLA				; pull page id to A
-	STA.Y	PAGE_MAP		; store page id at map idx
+	PLA				; pull page ID to A
+	STA.Y	PAGE_MAP		; store page ID at map idx
 	JMP	PROC_UNPAUSE		; return to proc
 >_BRK_DATA_GET_FAIL
 	LDA.I	0XFF			; load fail value
-	STA.Z	VR11			; store fail value
+	STA.Z	VR11			; store fail value in P
 	JMP	PROC_UNPAUSE		; return to proc
 
 

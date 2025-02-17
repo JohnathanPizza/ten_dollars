@@ -1,29 +1,31 @@
-; receive next message if any in vr10
-; sender proc id in vr11/1
-; sender is 0xff if no message received
-; else got a message
+; BRK_RECEIVE
+; P --- VR10: message M
+;	VR11/1: sender process ID S
+; try to receive a message from other processes
+; if no message was being sent to this process, S = 0xFF
+; otherwise S = the process ID of who sent a message, and M = the message
 
 >BRK_RECEIVE
-	LDX.I	0
+	LDX.I	0			; set loop process ID to 0 first
 >_BRK_RECEIVE_LOOP
-	LDA.X	IPC_TARGET
-	CMP	PROC_ACTIVE_ID
-	BEQ	_BRK_RECEIVE_FOUND
-	INX
-	CPX.I	PROC_COUNT
-	BNE	_BRK_RECEIVE_LOOP
-	LDA.I	0XFF
-	STA.Z	VR11
-	JMP	PROC_UNPAUSE
+	LDA.X	IPC_TARGET		; load process X's target
+	CMP	PROC_ACTIVE_ID		; test if this process is the target
+	BEQ	_BRK_RECEIVE_FOUND	; if so then return its message
+	INX				; increment process ID to check
+	CPX.I	PROC_COUNT		; test if searched through all processes
+	BNE	_BRK_RECEIVE_LOOP	; if not then loop
+	LDA.I	0XFF			; load no message value
+	STA.Z	VR11			; store in S
+	JMP	PROC_UNPAUSE		; return to proc
 >_BRK_RECEIVE_FOUND
-	LDA.I	0XFF
-	STA.X	IPC_TARGET
-	STX.Z	VR11
-	TXA
-	ASL
-	TAX
-	LDA.X	IPC_DATA
-	STA.Z	VR10
-	LDA.X	IPC_DATA 1
-	STA.Z	VR10 1
-	JMP	PROC_UNPAUSE
+	LDA.I	0XFF			; load null target value
+	STA.X	IPC_TARGET		; reset sender target value
+	STX.Z	VR11			; set S to found process ID
+	TXA				; move found process ID to A
+	ASL				; *2 for pointer offset into message
+	TAX				; offset to X
+	LDA.X	IPC_DATA		; load low byte of message
+	STA.Z	VR10			; store in M
+	LDA.X	IPC_DATA 1		; load high byte of message
+	STA.Z	VR10 1			; store in M
+	JMP	PROC_UNPAUSE		; return to proc

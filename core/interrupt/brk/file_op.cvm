@@ -1,39 +1,14 @@
-; specify op in vr6/1
-; ret error in vr11/1 (0 = good)
+; BRK_FILE_OP
+; P --- VR6/1: file operation code F
+; R --- VR11/1: return value R
+; executes the file operation function specified by F
+; R = 0 if the function executed successfully, otherwise R = a system error code found in const/error.cvm
+; see functions below for function specific information like parameters and return values
+; file operation codes can be found in const/fileop.cvm
 
-; create - vr0 name
-; open - vr0 name
-; close
-; destroy
-; rename - vr0 name
-; jump - vr4 position
-; read - ret vr10/1 value
-; write - vr7/1 value
-; getpos - vr10 ret pos
-; getid - vr10/1 current file id
-; exist - vr0 name vr10/1 exist (0 = not exist)
-; info - vr1 ptr to str buffer (16) if 0 str len then no file, vr4/1 file id
-; format
-; diskname - vr1 ptr to str buffer (16)
-; diskrename - vr0 ptr to string
-; disktest
+;==========
 
->BRK_FILE_OP
-	LDA	IO_FILE_CLAIM		; load file claim to check permission
-	CMP	PROC_ACTIVE_ID		; compare to current proc id
-	BNE	_BRK_FILE_OP_NOPERM	; if not equal then fail
-	LDA.Z	VR6			; load file op code
-	ASL				; *2 for pointer offset
-	TAX				; move pointer offset to X
-	JMP.XP	_BRK_FILE_OP_ARR	; jump to correct function for file op
->_BRK_FILE_OP_NOPERM
-	LDA.I	0			; load return value
-	STA.Z	VR11			; store in VR11/1
->_BRK_FILE_OP_QUICK_END
-	JMP	PROC_UNPAUSE		; return to proc
->_BRK_FILE_OP_END
-	JSR	PROC_LEAVE		; save proc
-	JMP	SERVICE_CYCLE_BEGIN	; start new cycle
+; array of function pointers for each file operation
 
 >_BRK_FILE_OP_ARR
 $_BRK_FILE_OP_CREATE
@@ -62,6 +37,26 @@ $_BRK_FILE_OP_DISK_NAME
 $_BRK_FILE_OP_DISK_RENAME
 $_BRK_FILE_OP_DISK_TEST
 
+;==========
+
+>BRK_FILE_OP
+	LDA	IO_FILE_CLAIM		; load file claim to check permission
+	CMP	PROC_ACTIVE_ID		; compare to current proc ID
+	BNE	_BRK_FILE_OP_NOPERM	; if not equal then fail
+	LDA.Z	VR6			; load file op code
+	ASL				; *2 for pointer offset
+	TAX				; move pointer offset to X
+	JMP.XP	_BRK_FILE_OP_ARR	; jump to correct function for file op
+>_BRK_FILE_OP_NOPERM
+	LDA.I	0			; load return value
+	STA.Z	VR11			; store in VR11/1
+>_BRK_FILE_OP_QUICK_END
+	JMP	PROC_UNPAUSE		; return to proc
+>_BRK_FILE_OP_END
+	JSR	PROC_LEAVE		; save proc
+	JMP	SERVICE_CYCLE_BEGIN	; start new cycle
+
+
 ;==================================================
 
 ; _BRK_FILE_OP_CREATE
@@ -81,27 +76,27 @@ $_BRK_FILE_OP_DISK_TEST
 	JSR	FILE_FIND			; try to find a file with the same name on disk
 	CMP.I	0				; test if error
 	BNE	_BRK_FILE_OP_CREATE_END		; fail on error
-	LDA.Z	VR11				; load matching file id
+	LDA.Z	VR11				; load matching file ID
 	BEQ	_BRK_FILE_OP_CREATE_UNIQUE	; continue if name not used
 	LDA.I	FILE_ERROR_DUPNAME		; else load duplicate name code
 	BRA	_BRK_FILE_OP_CREATE_END		; return
 >_BRK_FILE_OP_CREATE_UNIQUE
-	JSR	FILE_SPACE			; try to get an unused file id
+	JSR	FILE_SPACE			; try to get an unused file ID
 	CMP.I	0				; test if error
 	BNE	_BRK_FILE_OP_CREATE_END		; fail on error
-	LDA.Z	VR11				; load empty file id
-	BNE	_BRK_FILE_OP_CREATE_SPACE	; continue if a file id is available
+	LDA.Z	VR11				; load empty file ID
+	BNE	_BRK_FILE_OP_CREATE_SPACE	; continue if a file ID is available
 	LDA.I	FILE_ERROR_DISKFULL		; else load disk full code
 	BRA	_BRK_FILE_OP_CREATE_END		; return
 >_BRK_FILE_OP_CREATE_SPACE
-	PHA					; store file id
+	PHA					; store file ID
 	JSR	FILE_ENABLE			; try to enable the file
 	STA.Z	VR8 1				; save return code
-	PLA					; load file id
+	PLA					; load file ID
 	STA.Z	VR8				; store
 	LDA.Z	VR8 1				; load return code again
 	BNE	_BRK_FILE_OP_CREATE_END		; fail on error
-	LDA.Z	VR8				; get file id
+	LDA.Z	VR8				; get file ID
 	JSR	FILE_SET_NAME			; set file name to N
 >_BRK_FILE_OP_CREATE_END
 	STA.Z	VR11				; set error code
@@ -118,7 +113,7 @@ $_BRK_FILE_OP_DISK_TEST
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_OPEN_A
-	LDA	IO_FILE_A_ID			; load file id
+	LDA	IO_FILE_A_ID			; load file ID
 	BEQ	_BRK_FILE_OP_OPEN_A_EMPTY	; if 0, not open, continue
 	LDA.I	FILE_ERROR_INUSE		; load in use code
 	BRA	_BRK_FILE_OP_OPEN_A_END		; return
@@ -126,25 +121,25 @@ $_BRK_FILE_OP_DISK_TEST
 	JSR	FILE_FIND			; try to find file on disk
 	CMP.I	0				; test if error
 	BNE	_BRK_FILE_OP_OPEN_A_END		; fail on error
-	LDA.Z	VR11				; load returned file id
+	LDA.Z	VR11				; load returned file ID
 	BNE	_BRK_FILE_OP_OPEN_A_FOUND	; continue if found
 	LDA.I	FILE_ERROR_NOFILE		; load no file found error
 	BRA	_BRK_FILE_OP_OPEN_A_END		; return
 >_BRK_FILE_OP_OPEN_A_FOUND
 	STZ	IO_FILE_A_POS			; zero out file position
 	STZ	IO_FILE_A_POS 1
-	PHA					; push file id
-	STA	IO_FILE_A_ID			; temporarily set file id
+	PHA					; push file ID
+	STA	IO_FILE_A_ID			; temporarily set file ID
 	JSR	FILE_LOAD_A			; load the first page of file
-	STZ	IO_FILE_A_ID			; reset file id
+	STZ	IO_FILE_A_ID			; reset file ID
 	; want to clear the stack
 	STA.Z	VR8 1				; store return value
-	PLA					; load file id
-	STA.Z	VR8				; store file id
+	PLA					; load file ID
+	STA.Z	VR8				; store file ID
 	LDA.Z	VR8 1				; load return value
 	BNE	_BRK_FILE_OP_OPEN_A_END		; fail on error
-	LDA.Z	VR8				; load file id
-	STA	IO_FILE_A_ID			; finally update the file id in mem
+	LDA.Z	VR8				; load file ID
+	STA	IO_FILE_A_ID			; finally update the file ID in mem
 	LDA.I	0				; load success code
 >_BRK_FILE_OP_OPEN_A_END
 	STA.Z	VR11				; set as error code
@@ -161,7 +156,7 @@ $_BRK_FILE_OP_DISK_TEST
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_OPEN_B
-	LDA	IO_FILE_B_ID			; load file id
+	LDA	IO_FILE_B_ID			; load file ID
 	BEQ	_BRK_FILE_OP_OPEN_B_EMPTY	; if 0, not open, continue
 	LDA.I	FILE_ERROR_INUSE		; load in use code
 	BRA	_BRK_FILE_OP_OPEN_B_END		; return
@@ -169,25 +164,25 @@ $_BRK_FILE_OP_DISK_TEST
 	JSR	FILE_FIND			; try to find file on disk
 	CMP.I	0				; test if error
 	BNE	_BRK_FILE_OP_OPEN_B_END		; fail on error
-	LDA.Z	VR11				; load returned file id
+	LDA.Z	VR11				; load returned file ID
 	BNE	_BRK_FILE_OP_OPEN_B_FOUND	; continue if found
 	LDA.I	FILE_ERROR_NOFILE		; load no file found error
 	BRA	_BRK_FILE_OP_OPEN_B_END		; return
 >_BRK_FILE_OP_OPEN_B_FOUND
 	STZ	IO_FILE_B_POS			; zero out file position
 	STZ	IO_FILE_B_POS 1
-	PHA					; push file id
-	STA	IO_FILE_B_ID			; temporarily set file id
+	PHA					; push file ID
+	STA	IO_FILE_B_ID			; temporarily set file ID
 	JSR	FILE_LOAD_B			; load the first page of file
-	STZ	IO_FILE_B_ID			; reset file id
+	STZ	IO_FILE_B_ID			; reset file ID
 	; want to clear the stack
 	STA.Z	VR8 1				; store return value
-	PLA					; load file id
-	STA.Z	VR8				; store file id
+	PLA					; load file ID
+	STA.Z	VR8				; store file ID
 	LDA.Z	VR8 1				; load return value
 	BNE	_BRK_FILE_OP_OPEN_B_END		; fail on error
-	LDA.Z	VR8				; load file id
-	STA	IO_FILE_B_ID			; finally update the file id in mem
+	LDA.Z	VR8				; load file ID
+	STA	IO_FILE_B_ID			; finally update the file ID in mem
 	LDA.I	0				; load success code
 >_BRK_FILE_OP_OPEN_B_END
 	STA.Z	VR11				; set as error code
@@ -206,7 +201,7 @@ $_BRK_FILE_OP_DISK_TEST
 	JSR	FILE_FLUSH_A			; flush current page
 	CMP.I	0				; test if success
 	BNE	_BRK_FILE_OP_CLOSE_A_END	; fail on error
-	STZ	IO_FILE_A_ID			; reset file id to indicate no file open
+	STZ	IO_FILE_A_ID			; reset file ID to indicate no file open
 >_BRK_FILE_OP_CLOSE_A_END
 	STA.Z	VR11				; set error code
 	JMP	_BRK_FILE_OP_END		; return
@@ -224,7 +219,7 @@ $_BRK_FILE_OP_DISK_TEST
 	JSR	FILE_FLUSH_B			; flush current page
 	CMP.I	0				; test if success
 	BNE	_BRK_FILE_OP_CLOSE_B_END	; fail on error
-	STZ	IO_FILE_B_ID			; reset file id to indicate no file open
+	STZ	IO_FILE_B_ID			; reset file ID to indicate no file open
 >_BRK_FILE_OP_CLOSE_B_END
 	STA.Z	VR11				; set error code
 	JMP	_BRK_FILE_OP_END		; return
@@ -239,7 +234,7 @@ $_BRK_FILE_OP_DISK_TEST
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_DESTROY_A
-	LDA	IO_FILE_A_ID			; load file id
+	LDA	IO_FILE_A_ID			; load file ID
 	BNE	_BRK_FILE_OP_DESTROY_A_OPEN	; continue if file open
 	LDA.I	FILE_ERROR_OPEN			; load no file open error
 	BRA	_BRK_FILE_OP_DESTROY_A_END	; return
@@ -255,7 +250,7 @@ $_BRK_FILE_OP_DISK_TEST
 	LDA.I	VR0 1				; load address of VR0/2
 	STA.Z	VR0				; store
 	; ^want to write nul char, use the zero part of the pointer which points to itself
-	LDA	IO_FILE_A_ID			; load file id
+	LDA	IO_FILE_A_ID			; load file ID
 	JSR	FILE_SET_NAME			; set name
 	STA.Z	VR8				; store return value
 	PLA					; restore VR0
@@ -264,7 +259,7 @@ $_BRK_FILE_OP_DISK_TEST
 	STA.Z	VR0
 	LDA.Z	VR8				; load return value
 	BNE	_BRK_FILE_OP_DESTROY_A_END	; fail on error
-	STZ	IO_FILE_A_ID			; reset file id to indicate no file open
+	STZ	IO_FILE_A_ID			; reset file ID to indicate no file open
 >_BRK_FILE_OP_DESTROY_A_END
 	STA.Z	VR11				; set error code
 	JMP	_BRK_FILE_OP_END		; return
@@ -279,7 +274,7 @@ $_BRK_FILE_OP_DISK_TEST
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_DESTROY_B
-	LDA	IO_FILE_B_ID			; load file id
+	LDA	IO_FILE_B_ID			; load file ID
 	BNE	_BRK_FILE_OP_DESTROY_B_OPEN	; continue if file open
 	LDA.I	FILE_ERROR_OPEN			; load no file open error
 	BRA	_BRK_FILE_OP_DESTROY_B_END	; return
@@ -295,7 +290,7 @@ $_BRK_FILE_OP_DISK_TEST
 	LDA.I	VR0 1				; load address of VR0/2
 	STA.Z	VR0				; store
 	; ^want to write nul char, use the zero part of the pointer which points to itself
-	LDA	IO_FILE_B_ID			; load file id
+	LDA	IO_FILE_B_ID			; load file ID
 	JSR	FILE_SET_NAME			; set name
 	STA.Z	VR8				; store return value
 	PLA					; restore VR0
@@ -304,7 +299,7 @@ $_BRK_FILE_OP_DISK_TEST
 	STA.Z	VR0
 	LDA.Z	VR8				; load return value
 	BNE	_BRK_FILE_OP_DESTROY_B_END	; fail on error
-	STZ	IO_FILE_B_ID			; reset file id to indicate no file open
+	STZ	IO_FILE_B_ID			; reset file ID to indicate no file open
 >_BRK_FILE_OP_DESTROY_B_END
 	STA.Z	VR11				; set error code
 	JMP	_BRK_FILE_OP_END		; return
@@ -320,7 +315,7 @@ $_BRK_FILE_OP_DISK_TEST
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_RENAME_A
-	LDA	IO_FILE_A_ID			; load file id
+	LDA	IO_FILE_A_ID			; load file ID
 	BNE	_BRK_FILE_OP_RENAME_A_OPEN	; continue if file open
 	LDA.I	FILE_ERROR_OPEN			; load no file open error
 	BRA	_BRK_FILE_OP_RENAME_A_END	; retun
@@ -334,12 +329,12 @@ $_BRK_FILE_OP_DISK_TEST
 	JSR	FILE_FIND			; test if a file with name N already exists
 	CMP.I	0				; test if fail
 	BNE	_BRK_FILE_OP_RENAME_A_END	; fail on error
-	LDA.Z	VR11				; load returned file id
+	LDA.Z	VR11				; load returned file ID
 	BEQ	_BRK_FILE_OP_RENAME_A_UNIQUE	; continue if no file
 	LDA.I	FILE_ERROR_DUPNAME		; load duplicate name error
 	BRA	_BRK_FILE_OP_RENAME_A_END	; return
 >_BRK_FILE_OP_RENAME_A_UNIQUE	
-	LDA	IO_FILE_A_ID			; load file id
+	LDA	IO_FILE_A_ID			; load file ID
 	JSR	FILE_SET_NAME			; set name to N
 >_BRK_FILE_OP_RENAME_A_END
 	STA.Z	VR11				; set error code
@@ -356,7 +351,7 @@ $_BRK_FILE_OP_DISK_TEST
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_RENAME_B
-	LDA	IO_FILE_B_ID			; load file id
+	LDA	IO_FILE_B_ID			; load file ID
 	BNE	_BRK_FILE_OP_RENAME_B_OPEN	; continue if file open
 	LDA.I	FILE_ERROR_OPEN			; load no file open error
 	BRA	_BRK_FILE_OP_RENAME_B_END	; return
@@ -370,12 +365,12 @@ $_BRK_FILE_OP_DISK_TEST
 	JSR	FILE_FIND			; test if a file with name N already exists
 	CMP.I	0				; test if fail
 	BNE	_BRK_FILE_OP_RENAME_B_END	; fail on error
-	LDA.Z	VR11				; load returned file id
+	LDA.Z	VR11				; load returned file ID
 	BEQ	_BRK_FILE_OP_RENAME_B_UNIQUE	; continue if no file
 	LDA.I	FILE_ERROR_DUPNAME		; load duplicate name error
 	BRA	_BRK_FILE_OP_RENAME_B_END	; return
 >_BRK_FILE_OP_RENAME_B_UNIQUE	
-	LDA	IO_FILE_B_ID			; load file id
+	LDA	IO_FILE_B_ID			; load file ID
 	JSR	FILE_SET_NAME			; set name to N
 >_BRK_FILE_OP_RENAME_B_END
 	STA.Z	VR11				; set error code
@@ -393,7 +388,7 @@ $_BRK_FILE_OP_DISK_TEST
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_JUMP_A
-	LDA	IO_FILE_A_ID			; load file id
+	LDA	IO_FILE_A_ID			; load file ID
 	BNE	_BRK_FILE_OP_JUMP_A_OPEN	; continue if file open
 	LDA.I	FILE_ERROR_OPEN			; load no file open error
 	BRA	_BRK_FILE_OP_JUMP_A_END		; return
@@ -451,7 +446,7 @@ $_BRK_FILE_OP_DISK_TEST
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_JUMP_B
-	LDA	IO_FILE_B_ID			; load file id
+	LDA	IO_FILE_B_ID			; load file ID
 	BNE	_BRK_FILE_OP_JUMP_B_OPEN	; continue if file open
 	LDA.I	FILE_ERROR_OPEN			; load no file open error
 	BRA	_BRK_FILE_OP_JUMP_B_END		; return
@@ -511,7 +506,7 @@ $_BRK_FILE_OP_DISK_TEST
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_READ_A
-	LDA	IO_FILE_A_ID			; load file id
+	LDA	IO_FILE_A_ID			; load file ID
 	BNE	_BRK_FILE_OP_READ_A_OPEN	; continue if file open
 	LDA.I	FILE_ERROR_OPEN			; load no file open error
 	BRA	_BRK_FILE_OP_READ_A_END		; return
@@ -571,7 +566,7 @@ $_BRK_FILE_OP_DISK_TEST
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_READ_B
-	LDA	IO_FILE_B_ID			; load file id
+	LDA	IO_FILE_B_ID			; load file ID
 	BNE	_BRK_FILE_OP_READ_B_OPEN	; continue if file open
 	LDA.I	FILE_ERROR_OPEN			; load no file open error
 	BRA	_BRK_FILE_OP_READ_B_END		; return
@@ -630,7 +625,7 @@ $_BRK_FILE_OP_DISK_TEST
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_WRITE_A
-	LDA	IO_FILE_A_ID			; load file id
+	LDA	IO_FILE_A_ID			; load file ID
 	BNE	_BRK_FILE_OP_WRITE_A_OPEN	; continue if file open
 	LDA.I	FILE_ERROR_OPEN			; load no file open error
 	BRA	_BRK_FILE_OP_WRITE_A_END	; return
@@ -682,7 +677,7 @@ $_BRK_FILE_OP_DISK_TEST
 ; otherwise R = either a floppy error code or file error code
 
 >_BRK_FILE_OP_WRITE_B
-	LDA	IO_FILE_B_ID			; load file id
+	LDA	IO_FILE_B_ID			; load file ID
 	BNE	_BRK_FILE_OP_WRITE_B_OPEN	; continue if file open
 	LDA.I	FILE_ERROR_OPEN			; load no file open error
 	BRA	_BRK_FILE_OP_WRITE_B_END	; return
@@ -749,7 +744,7 @@ $_BRK_FILE_OP_DISK_TEST
 ;==================================================
 
 ; _BRK_FILE_OP_GETID_A
-; R --- VR10/1: id I
+; R --- VR10/1: file ID I
 ; returns the current file ID of file A
 
 >_BRK_FILE_OP_GETID_A
@@ -760,7 +755,7 @@ $_BRK_FILE_OP_DISK_TEST
 ;==================================================
 
 ; _BRK_FILE_OP_GETID_B
-; R --- VR10/1: id I
+; R --- VR10/1: file ID I
 ; returns the current file ID of file B
 
 >_BRK_FILE_OP_GETID_B
@@ -805,7 +800,7 @@ $_BRK_FILE_OP_DISK_TEST
 	DEC					; decrement to make file index
 	CMP.I	FILE_COUNT_MAX			; test if in range
 	BLS	_BRK_FILE_OP_INFO_ID		; continue if so
-	LDA.I	FILE_ERROR_ID			; load file id error value
+	LDA.I	FILE_ERROR_ID			; load file ID error value
 	BRA	_BRK_FILE_OP_INFO_END		; return
 >_BRK_FILE_OP_INFO_ID
 	LDA.Z	VR0				; store VR0

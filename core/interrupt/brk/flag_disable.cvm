@@ -1,9 +1,11 @@
-; clears flags for the current process using the flag bitmask in VR4/1
+; BRK_FLAG_DISABLE
+; P --- VR4/1: bit flags B
+; clears process flags specified by 1s in B
 
 >BRK_FLAG_DISABLE
-	LDA.Z	VR4		; load flag mask
+	LDA.Z	VR4		; load mask B
 	EOR.I	0XFF		; invert mask for clearing
-	LDY	PROC_ACTIVE_ID	; load proc id
+	LDY	PROC_ACTIVE_ID	; load proc ID
 	AND.Y	PROC_FLAGS	; AND with proc flags to clear
 	STA.Y	PROC_FLAGS	; store back
 	JMP	PROC_UNPAUSE	; return to proc

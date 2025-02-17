@@ -1,7 +1,13 @@
-; updates current process priority value to value given in VR4/1
+; BRK_PRIORITY
+; P --- VR4/1: priority P
+; updates process' priority value to P
+; setting a process' priority to 0 effectively suspends it forever
+; lower numbers are lower priority, higher numbers are higher priority
+; essentially the priority value is how frequent a process is selected for service in relation to the priority values of every other process
+; higher priority values cause a process to be serviced more often
 
 >BRK_PRIORITY
-	LDA.Z	VR4			; load new priority
-	LDY	PROC_ACTIVE_ID		; load proc id
+	LDA.Z	VR4			; load new priority P
+	LDY	PROC_ACTIVE_ID		; load proc ID
 	STA.Y	PROC_SCHEDULE_PRIORITY	; update proc priority
 	JMP	PROC_UNPAUSE		; return to proc

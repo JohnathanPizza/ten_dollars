@@ -1,7 +1,11 @@
-; returns status of write buffer in vr11/1
-; while returning true then caller should keep waiting for buffer to empty
+; BRK_WRITE_WAIT
+; R --- VR11/1: bool write buffer status S
+; returns status of the system write buffer in S
+; if S = TRUE then the write buffer has data waiting to be written out
+; if S = FALSE then the write buffer is completely empty, all data has been written out
+; while S = TRUE the process should keep waiting for buffer to empty
 
 >BRK_WRITE_WAIT
-	LDA	IO_WRITE_STATUS
-	STA.Z	VR11
-	JSR	PROC_UNPAUSE
+	LDA	IO_WRITE_STATUS	; get system write buffer status
+	STA.Z	VR11		; store in S
+	JSR	PROC_UNPAUSE	; return to proc

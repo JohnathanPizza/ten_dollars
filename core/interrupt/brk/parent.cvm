@@ -1,4 +1,6 @@
-; returns the parent process id in VR11
+; BRK_PARENT
+; R --- VR11/1: parent process ID P
+; returns the process' parent process ID in P
 
 >BRK_PARENT
 	LDY	PROC_ACTIVE_ID	; load proc id

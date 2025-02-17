@@ -1,9 +1,10 @@
-; signals the process is done and should go to the exit state for destruction
+; BRK_EXIT
+; sets process' state so that it is marked as completed to kill the process
 
 >BRK_EXIT
-	LDY	PROC_ACTIVE_ID		; load proc id
+	LDY	PROC_ACTIVE_ID		; load proc ID
 	LDA.I	PROC_STATE_EXIT		; load exit state value
 	STA.Y	PROC_STATE		; update state
 	; no need to unload the process since it is done with its work and will not ever return
-	; all its data pages, DAP, stack, and zp dont need to be saved since they will just be forgotten in the exit service function anyways
+	; all its data pages, DAP, stack, and ZP dont need to be saved since they will just be forgotten in the exit service function anyways
 	JMP	SERVICE_CYCLE_BEGIN	; start new cycle

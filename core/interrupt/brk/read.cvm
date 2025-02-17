@@ -1,5 +1,8 @@
-; starts a new reading operation for the proc
-; pointer to the reading buffer supplied in VR0 and then buffer length in VR4/1
+; BRK_READ
+; P --- VR0: pointer to read buffer B
+;	VR4/1: size of buffer S
+; starts a new reading operation for the process and suspends the process until the read request is completed
+; at most S - 1 characters will be read from input and placed at B with a trailing nul character added
 
 >BRK_READ
 	LDA	IO_READ_STATUS		; load reading status

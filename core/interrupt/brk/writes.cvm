@@ -1,5 +1,9 @@
-; writes the string given by a pointer in VR0 to to the write buffer and starts a write operation
-; returns the number of characters written to the buffer in VR11/1
+; BRK_WRITES
+; P --- VR0: pointer to string buffer S
+; R --- VR11/1: number of characters written C
+; writes the string at S to to the write buffer and starts a write operation if not in progress already
+; returns the number of characters written to the buffer from S in C
+; until C = len(S), caller should increment S by C and retry later
 
 >BRK_WRITES
 	STA	HW_ENABLE_ADDR HW_RAM1 HW_VIA	; turn on VIA
@@ -10,7 +14,7 @@
 	STA	IO_WRITE_STATUS		; update status
 	LDY.I	0			; set string index to 0
 >_BRK_WRITES_LOOP
-	LDA.ZPY	VR0			; load character from string
+	LDA.ZPY	VR0			; load character from S
 	BEQ	_BRK_WRITES_LOOP_END	; if nul char then stop writing
 	LDA	IO_WRITE_BUFFER_HEAD	; load head idx
 	INC				; inc
@@ -18,11 +22,11 @@
 	BEQ	_BRK_WRITES_LOOP_END	; if equal, no more space in buffer, return
 	DEC				; dec to get head idx value again
 	TAX				; move head idx value to X
-	LDA.ZPY	VR0			; load character from string again
+	LDA.ZPY	VR0			; load character from S
 	STA.X	IO_WRITE_BUFFER		; store in buffer at head idx
 	INC	IO_WRITE_BUFFER_HEAD	; inc head idx
 	INY				; inc string idx
 	BNE	_BRK_WRITES_LOOP	; if string idx not over 255 then loop
 >_BRK_WRITES_LOOP_END
-	STY.Z	VR11			; store num characters written in VR11/1
+	STY.Z	VR11			; store num characters written in C
 	JMP	PROC_UNPAUSE		; return to proc

@@ -29,4 +29,4 @@
 	BNE	_BRK_WRITES_LOOP	; if string idx not over 255 then loop
 >_BRK_WRITES_LOOP_END
 	STY.Z	VR11			; store num characters written in C
-	JMP	PROC_UNPAUSE		; return to proc
+	JMP	PROC_UNPAUSE		; return to process

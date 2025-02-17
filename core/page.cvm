@@ -79,7 +79,7 @@
 	TAX				; move P to X
 	LDA.X	PAGE_TABLE_PROCID	; get the process owner of P
 	CMP	PROC_ACTIVE_ID		; compare to active process id
-	BNE	_PAGE_TABLE_TEST_DIFF	; if not equal then this page is not owned by current proc
+	BNE	_PAGE_TABLE_TEST_DIFF	; if not equal then this page is not owned by current process
 	LDA.X	PAGE_TABLE_HOME		; load home value to test for page type
 	CMP.I	0X80			; test home >= 0x80
 	BGE	_PAGE_TABLE_TEST_DATA	; if greater then it is a data page
@@ -536,7 +536,7 @@
 ; P --- A: relative data page id D
 ; R --- A: page id P
 ; returns the page id of the Dth user data page (start from 0) for the active process
-; if P is PAGE_COUNT_TOTAL then the data page doesnt actually exist for that proc
+; if P is PAGE_COUNT_TOTAL then the data page doesnt actually exist for that process
 
 >PAGE_TABLE_GET_DATA
 	PHX				; store X

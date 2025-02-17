@@ -1,7 +1,7 @@
 ; entrypoint into interrupt handling code when hardware or software interrupt happens
 
 >INTERRUPT
-	; save volatile register variables from the proc immediately
+	; save volatile register variables from the process immediately
 	STA	PROC_PAUSE_A	; save A
 	STX	PROC_PAUSE_X	; save X
 	STY	PROC_PAUSE_Y	; save Y

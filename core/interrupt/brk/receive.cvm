@@ -16,7 +16,7 @@
 	BNE	_BRK_RECEIVE_LOOP	; if not then loop
 	LDA.I	0XFF			; load no message value
 	STA.Z	VR11			; store in S
-	JMP	PROC_UNPAUSE		; return to proc
+	JMP	PROC_UNPAUSE		; return to process
 >_BRK_RECEIVE_FOUND
 	LDA.I	0XFF			; load null target value
 	STA.X	IPC_TARGET		; reset sender target value
@@ -28,4 +28,4 @@
 	STA.Z	VR10			; store in M
 	LDA.X	IPC_DATA 1		; load high byte of message
 	STA.Z	VR10 1			; store in M
-	JMP	PROC_UNPAUSE		; return to proc
+	JMP	PROC_UNPAUSE		; return to process

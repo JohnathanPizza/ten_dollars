@@ -2,9 +2,9 @@
 ; buffer pointer is in VR0 and buffer length is in VR4/1
 
 >SERVICE_IO_READ
-	; check if this proc has focus
-	LDA	IO_READ_FOCUS		; load focus proc id
-	CMP	PROC_ACTIVE_ID		; compare to current proc id
+	; check if this process has focus
+	LDA	IO_READ_FOCUS		; load focus process id
+	CMP	PROC_ACTIVE_ID		; compare to current process id
 	BNE	_SERVICE_IO_READ_FAIL	; if not focused then fail and keep suspended
 	LDA	IO_READ_VALID		; load valid status
 	BEQ	_SERVICE_IO_READ_FAIL	; if valid status = 0 then no data, keep suspended
@@ -29,7 +29,7 @@
 	STA.ZPY	VR0			; store nul char
 	JSR	PROC_LEAVE		; save process
 	LDA.I	PROC_STATE_READY	; load ready state
-	LDY	PROC_ACTIVE_ID		; load proc id
-	STA.Y	PROC_STATE		; update proc state
+	LDY	PROC_ACTIVE_ID		; load process id
+	STA.Y	PROC_STATE		; update process state
 >_SERVICE_IO_READ_FAIL
 	JMP	SERVICE_CYCLE_BEGIN	; start new cycle

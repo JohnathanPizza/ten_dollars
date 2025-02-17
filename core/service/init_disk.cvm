@@ -13,7 +13,7 @@
 ; [2N,2N+1]: 0000
 
 >SERVICE_INIT_DISK
-	LDY	PROC_ACTIVE_ID		; load proc id
+	LDY	PROC_ACTIVE_ID		; load process id
 	LDA.Y	PROC_A			; load file id from A
 	DEC
 	LSR
@@ -74,8 +74,8 @@
 	; get data pages
 	JSR	PAGE_TABLE_GET		; get a vacant page
 	TAY				; move page id to Y
-	LDA	PROC_ACTIVE_ID		; load proc id
-	STA.Y	PAGE_TABLE_PROCID	; store proc id in page row
+	LDA	PROC_ACTIVE_ID		; load process id
+	STA.Y	PAGE_TABLE_PROCID	; store process id in page row
 	LDA.I	0X80			; load home value for ZP
 	STA.Y	PAGE_TABLE_HOME		; store in page row
 	PHY				; save page id
@@ -86,8 +86,8 @@
 	
 	JSR	PAGE_TABLE_GET		; get a vacant page
 	TAY				; move page id to Y
-	LDA	PROC_ACTIVE_ID		; load proc id
-	STA.Y	PAGE_TABLE_PROCID	; store proc id in page row
+	LDA	PROC_ACTIVE_ID		; load process id
+	STA.Y	PAGE_TABLE_PROCID	; store process id in page row
 	LDA.I	0X81			; load home value for stack
 	STA.Y	PAGE_TABLE_HOME		; store in page row
 	PHY				; save page id
@@ -116,8 +116,8 @@
 >_SERVICE_INIT_DISK_LOOP_SKIP
 	JSR	PAGE_TABLE_GET		; get empty page table row
 	TAY				; move page id to Y
-	LDA	PROC_ACTIVE_ID		; load proc id
-	STA.Y	PAGE_TABLE_PROCID	; store proc id in page row
+	LDA	PROC_ACTIVE_ID		; load process id
+	STA.Y	PAGE_TABLE_PROCID	; store process id in page row
 	LDA.Z	VR7 1			; load current map idx
 	STA.Y	PAGE_TABLE_HOME		; store in home value
 	TYA				; move page id to A
@@ -134,7 +134,7 @@
 	STA.Z	VR1 1
 	LDA.I	FLOPPY_PAGE > 8		; load page of floppy page for pagecpy
 	STA.Z	VR0 1
-	LDX	PROC_ACTIVE_ID		; load proc id
+	LDX	PROC_ACTIVE_ID		; load process id
 	LDA.X	PROC_A			; get file id again
 	STA.Z	VR4			; set file track
 	PLA				; get number of code pages
@@ -181,7 +181,7 @@
 	BNE	_SERVICE_INIT_DISK_ADJUST_LOOP	; loop if not done
 
 	; set vars
-	LDA	PROC_ACTIVE_ID		; load proc id
+	LDA	PROC_ACTIVE_ID		; load process id
 	ASL				; *2 for offset
 	TAY				; set in Y
 	LDA.Z	VR0 1			; load code location
@@ -192,7 +192,7 @@
 	STA.Y	PROC_PC 1
 	LDA.I	0
 	STA.Y	PROC_PC
-	LDY	PROC_ACTIVE_ID		; load proc active id
+	LDY	PROC_ACTIVE_ID		; load process active id
 	LDA.I	0XFF			; load initial value for stack pointer
 	STA.Y	PROC_S			; set stack
 	LDA.I	0B00100000		; load initial value for processor flags

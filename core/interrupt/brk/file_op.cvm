@@ -41,7 +41,7 @@ $_BRK_FILE_OP_DISK_TEST
 
 >BRK_FILE_OP
 	LDA	IO_FILE_CLAIM		; load file claim to check permission
-	CMP	PROC_ACTIVE_ID		; compare to current proc ID
+	CMP	PROC_ACTIVE_ID		; compare to current process ID
 	BNE	_BRK_FILE_OP_NOPERM	; if not equal then fail
 	LDA.Z	VR6			; load file op code
 	ASL				; *2 for pointer offset
@@ -51,9 +51,9 @@ $_BRK_FILE_OP_DISK_TEST
 	LDA.I	0			; load return value
 	STA.Z	VR11			; store in VR11/1
 >_BRK_FILE_OP_QUICK_END
-	JMP	PROC_UNPAUSE		; return to proc
+	JMP	PROC_UNPAUSE		; return to process
 >_BRK_FILE_OP_END
-	JSR	PROC_LEAVE		; save proc
+	JSR	PROC_LEAVE		; save process
 	JMP	SERVICE_CYCLE_BEGIN	; start new cycle
 
 

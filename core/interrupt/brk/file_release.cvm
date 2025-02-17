@@ -4,11 +4,11 @@
 
 >BRK_FILE_RELEASE
 	LDA	IO_FILE_CLAIM		; load file claim value
-	CMP	PROC_ACTIVE_ID		; compare to current proc ID
+	CMP	PROC_ACTIVE_ID		; compare to current process ID
 	BNE	_BRK_FILE_RELEASE_FAIL	; if not equal then just return
 	LDA.I	0XFF			; load null value
 	STA	IO_FILE_CLAIM		; store in file claim
 	STZ	IO_FILE_A_ID		; zero out existing IDs
 	STZ	IO_FILE_B_ID
 >_BRK_FILE_RELEASE_FAIL
-	JMP	PROC_UNPAUSE		; return to proc
+	JMP	PROC_UNPAUSE		; return to process

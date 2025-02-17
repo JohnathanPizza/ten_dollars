@@ -5,7 +5,7 @@
 >BRK_FLAG_DISABLE
 	LDA.Z	VR4		; load mask B
 	EOR.I	0XFF		; invert mask for clearing
-	LDY	PROC_ACTIVE_ID	; load proc ID
-	AND.Y	PROC_FLAGS	; AND with proc flags to clear
+	LDY	PROC_ACTIVE_ID	; load process ID
+	AND.Y	PROC_FLAGS	; AND with process flags to clear
 	STA.Y	PROC_FLAGS	; store back
-	JMP	PROC_UNPAUSE	; return to proc
+	JMP	PROC_UNPAUSE	; return to process

@@ -13,4 +13,4 @@
 	STA.Z	VR11				; store random sum to N
 	STA	HW_ENABLE_ADDR HW_RAM1		; turn off VIA
 	PLP					; restore P after critical section is done
-	JMP PROC_UNPAUSE			; return to proc
+	JMP PROC_UNPAUSE			; return to process

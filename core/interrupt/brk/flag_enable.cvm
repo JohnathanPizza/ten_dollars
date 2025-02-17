@@ -4,7 +4,7 @@
 
 >BRK_FLAG_ENABLE
 	LDA.Z	VR4		; load mask B
-	LDY	PROC_ACTIVE_ID	; load proc ID
-	ORA.Y	PROC_FLAGS	; OR with proc flags to set
+	LDY	PROC_ACTIVE_ID	; load process ID
+	ORA.Y	PROC_FLAGS	; OR with process flags to set
 	STA.Y	PROC_FLAGS	; store back
-	JMP	PROC_UNPAUSE	; return to proc
+	JMP	PROC_UNPAUSE	; return to process

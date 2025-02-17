@@ -8,4 +8,4 @@
 >BRK_WRITE_WAIT
 	LDA	IO_WRITE_STATUS	; get system write buffer status
 	STA.Z	VR11		; store in S
-	JSR	PROC_UNPAUSE	; return to proc
+	JSR	PROC_UNPAUSE	; return to process

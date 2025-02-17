@@ -8,11 +8,11 @@
 	LDA.I	FALSE			; load initial false return value
 	STA.Z	VR11			; store in S
 	LDA	IO_FILE_CLAIM		; load value of file claim
-	CMP	PROC_ACTIVE_ID		; test if this proc already claimed
+	CMP	PROC_ACTIVE_ID		; test if this process already claimed
 	BEQ	_BRK_FILE_CLAIM_SKIP	; return if already claimed
 	CMP.I	0XFF			; test if null
 	BNE	_BRK_FILE_CLAIM_FAIL	; if not null then fail
-	LDA	PROC_ACTIVE_ID		; else it is ok to claim, load current proc ID
+	LDA	PROC_ACTIVE_ID		; else it is ok to claim, load current process ID
 	STA	IO_FILE_CLAIM		; store in file claim
 >_BRK_FILE_CLAIM_SKIP
 	LDA.I	TRUE			; load success value

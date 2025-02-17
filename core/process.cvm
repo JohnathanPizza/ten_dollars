@@ -15,11 +15,11 @@
 
 >PROC_GET
 	PHX			; store X
-	LDX.I	0		; set proc index to 0
+	LDX.I	0		; set process index to 0
 >_PROC_GET_LOOP
 	LDA.X	PROC_STATE	; load process state at idx
 	CMP.I	PROC_STATE_NULL	; compare to null state
-	BEQ	_PROC_GET_FOUND	; if null state then return this proc id
+	BEQ	_PROC_GET_FOUND	; if null state then return this process id
 	INX			; increment idx
 	CPX.I	PROC_COUNT	; test if last idx
 	BNE	_PROC_GET_LOOP	; if not then loop
@@ -41,7 +41,7 @@
 >_PROC_LOAD_CODE_LOOP
 	TXA				; move page idx to A
 	JSR	PAGE_TABLE_TEST		; test current page
-	CMP.I	0XFE			; test if the page is a code page for the proc
+	CMP.I	0XFE			; test if the page is a code page for the process
 	BNE	_PROC_LOAD_CODE_LOOP_NEXT	; if not, skip to the next idx
 	TXA				; move page idx to A
 	JSR	PAGE_MAP_HOME_SWAP	; move page to its home location
@@ -57,7 +57,7 @@
 	STA.Z	VR0 1
 	
 	; now load the stack
-	JSR	PAGE_TABLE_GET_STACK	; get the stack page id for the current proc
+	JSR	PAGE_TABLE_GET_STACK	; get the stack page id for the current process
 	JSR	PAGE_MAP_FIND		; get map idx of the stack page
 	JSR	PAGE_LOAD_DAP		; load the map idx for the stack into the DAP
 	LDY	PROC_ACTIVE_ID		; load active id to get stack pointer
@@ -71,11 +71,11 @@
 >_PROC_LOAD_STACK_LOOP_CHECK
 	CPY.I	0XFF			; test if top at last stack idx
 	BNE	_PROC_LOAD_STACK_LOOP	; loop if not
-	LDY	PROC_ACTIVE_ID		; load proc id
-	LDX.Y	PROC_S			; get stack pointer for proc
+	LDY	PROC_ACTIVE_ID		; load process id
+	LDX.Y	PROC_S			; get stack pointer for process
 	TXS				; move stack pointer to stack register
 	
-	; in proc stack space now, can use it for function calls and stuff
+	; in process stack space now, can use it for function calls and stuff
 	; restore return pointer
 	LDA.Z	VR0 1
 	PHA
@@ -83,7 +83,7 @@
 	PHA
 	
 	; load zp
-	JSR	PAGE_TABLE_GET_ZP	; get the zp page id for the current proc
+	JSR	PAGE_TABLE_GET_ZP	; get the zp page id for the current process
 	JSR	PAGE_MAP_FIND		; get map idx of the stack page
 	JSR	PAGE_LOAD_DAP		; load the map idx for the zp into the DAP
 	LDX.I	0			; set copy idx to 0
@@ -94,8 +94,8 @@
 	BNE	_PROC_LOAD_ZP_LOOP	; loop if not done with the whole page
 	
 	; test and load DAP
-	LDX	PROC_ACTIVE_ID		; load proc id
-	LDA.X	PROC_ACTIVE_DAP_ID	; get proc active DAP id
+	LDX	PROC_ACTIVE_ID		; load process id
+	LDA.X	PROC_ACTIVE_DAP_ID	; get process active DAP id
 	JSR	PAGE_TABLE_GET_DATA	; try to find it in the page table
 	CMP.I	PAGE_COUNT_TOTAL	; test if actually found
 	BEQ	_PROC_LOAD_DAP_SKIP	; skip load if DAP not valid
@@ -111,7 +111,7 @@
 	STX.Z	VR8
 >_PROC_LOAD_DAP_SKIP
 	; setting PAUSE vars
-	LDY	PROC_ACTIVE_ID		; load proc id for getting values
+	LDY	PROC_ACTIVE_ID		; load process id for getting values
 	LDA.Y	PROC_A			; set A
 	STA	PROC_PAUSE_A
 	LDA.Y	PROC_X			; set X
@@ -122,8 +122,8 @@
 	STA	PROC_PAUSE_S
 	LDA.Y	PROC_P			; set P
 	STA	PROC_PAUSE_P
-	TYA				; move proc id to A
-	ASL				; proc id * 2
+	TYA				; move process id to A
+	ASL				; process id * 2
 	TAY				; back to Y
 	LDA.Y	PROC_PC			; load PC low
 	STA	PROC_PAUSE_PCL		; store
@@ -134,13 +134,13 @@
 ;==================================================
 
 ; PROC_LEAVE
-; performs writebacks for DAP, stack, and zp for the active proc
-; updates proc register values from PAUSE vars
+; performs writebacks for DAP, stack, and zp for the active process
+; updates process register values from PAUSE vars
 
 >PROC_LEAVE
 	; flush DAP back to memory
-	LDX	PROC_ACTIVE_ID		; load proc id
-	LDA.X	PROC_FLAGS		; load proc flags to see if read-only is on
+	LDX	PROC_ACTIVE_ID		; load process id
+	LDA.X	PROC_FLAGS		; load process flags to see if read-only is on
 	AND.I	PROC_FLAG_DAP_RDONLY	; mask read-only flag
 	BNE	_PROC_LEAVE_DAP_SKIP	; skip DAP writeback if read-only on
 	LDA.X	PROC_ACTIVE_DAP_ID	; load DAP id
@@ -184,7 +184,7 @@
 	JSR	PAGE_STORE_DAP		; store stack back to memory
 	
 	; update process registers from PAUSE vars
-	LDY	PROC_ACTIVE_ID		; load proc id
+	LDY	PROC_ACTIVE_ID		; load process id
 	LDA	PROC_PAUSE_A		; update A
 	STA.Y	PROC_A
 	LDA	PROC_PAUSE_X		; update X
@@ -195,8 +195,8 @@
 	STA.Y	PROC_S
 	LDA	PROC_PAUSE_P		; update P
 	STA.Y	PROC_P
-	TYA				; proc id to A
-	ASL				; proc id * 2
+	TYA				; process id to A
+	ASL				; process id * 2
 	TAY				; back to Y
 	LDA	PROC_PAUSE_PCL		; load PC low
 	STA.Y	PROC_PC			; update

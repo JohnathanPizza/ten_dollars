@@ -82,18 +82,18 @@
 	JSR	PROC_GET		; get open process id
 	CMP.I	PROC_COUNT		; test if failed
 	BEQ	_INTERRUPT_CA1_EXIT	; just return if no process open
-	TAY				; move good proc id to Y
+	TAY				; move good process id to Y
 	LDA.I	ROM_SHELL_ID		; load program id
 	STA.Y	PROC_A			; store in process A register
 	LDA.I	0XFF			; load base process id
 	STA.Y	PROC_PARENT		; store parent
 	LDA.I	PROC_STATE_INIT_ROM	; load init rom state
-	STA.Y	PROC_STATE		; store in proc state
+	STA.Y	PROC_STATE		; store in process state
 	LDA.I	1			; load 1 for low priority
 	STA.Y	PROC_SCHEDULE_PRIORITY	; store in process priority
 	LDA.I	0			; load 0 to reset schedule counter
 	STA.Y	PROC_SCHEDULE_COUNT	; reset counter
-	STY	IO_READ_FOCUS		; set new proc id as focus
+	STY	IO_READ_FOCUS		; set new process id as focus
 >_INTERRUPT_CA1_EXIT
 	STA	HW_ENABLE_ADDR HW_RAM1	; turn off VIA
 	JMP	PROC_UNPAUSE		; resume process

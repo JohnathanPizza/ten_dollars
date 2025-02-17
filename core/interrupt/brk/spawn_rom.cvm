@@ -16,16 +16,16 @@
 	CMP.I	PROC_COUNT		; test if failed
 	BEQ	_BRK_SPAWN_ROM_END	; just return if no process open
 	STA.Z	VR11			; store new process ID in N
-	TAY				; move new proc ID to Y
+	TAY				; move new process ID to Y
 	LDA.Z	VR4			; load C
 	STA.Y	PROC_A			; store in process A register
 	LDA	PROC_ACTIVE_ID		; load parent process ID
 	STA.Y	PROC_PARENT		; store parent
 	LDA.I	PROC_STATE_INIT_ROM	; load init rom state
-	STA.Y	PROC_STATE		; store in proc state
+	STA.Y	PROC_STATE		; store in process state
 	LDA.I	1			; load 1 for low priority
 	STA.Y	PROC_SCHEDULE_PRIORITY	; store in process priority
 	LDA.I	0			; load 0 to reset schedule counter
 	STA.Y	PROC_SCHEDULE_COUNT	; reset counter
 >_BRK_SPAWN_ROM_END
-	JMP	PROC_UNPAUSE		; return to proc
+	JMP	PROC_UNPAUSE		; return to process

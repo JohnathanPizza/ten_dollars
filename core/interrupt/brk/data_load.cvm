@@ -7,7 +7,7 @@
 
 >BRK_DATA_LOAD
 	; writeback for current DAP
-	LDY	PROC_ACTIVE_ID		; load proc ID
+	LDY	PROC_ACTIVE_ID		; load process ID
 	LDA.Y	PROC_ACTIVE_DAP_ID	; get DAP ID
 	JSR	PAGE_TABLE_GET_DATA	; try to find its page
 	CMP.I	PAGE_COUNT_TOTAL	; test if page count
@@ -25,10 +25,10 @@
 	STA.Y	PROC_ACTIVE_DAP_ID	; store in DAP ID
 	LDA.I	TRUE			; load success value
 	STA.Z	VR11			; store in S
-	JMP	PROC_UNPAUSE		; return to proc
+	JMP	PROC_UNPAUSE		; return to process
 >_BRK_DATA_LOAD_FAIL
 	LDA.I	0X80			; set active DAP ID null
 	STA.Y	PROC_ACTIVE_DAP_ID	; update DAP ID
 	LDA.I	FALSE			; load fail value
 	STA.Z	VR11			; store in S
-	JMP	PROC_UNPAUSE		; return to proc
+	JMP	PROC_UNPAUSE		; return to process

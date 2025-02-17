@@ -23,7 +23,7 @@
 	STA.Y	IPC_TARGET		; store T in this process' target
 	LDA.I	PROC_STATE_SEND		; load send state
 	STA.Y	PROC_STATE		; set this process' state to send state
-	JSR	PROC_LEAVE		; save proc
+	JSR	PROC_LEAVE		; save process
 	JMP	SERVICE_CYCLE_BEGIN	; start new cycle
 >_BRK_SEND_SKIP
-	JMP	PROC_UNPAUSE		; return to proc
+	JMP	PROC_UNPAUSE		; return to process

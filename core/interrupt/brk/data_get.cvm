@@ -8,8 +8,8 @@
 	CMP.I	PAGE_COUNT_TOTAL	; test if none vacant
 	BEQ	_BRK_DATA_GET_FAIL	; fail if none vacant
 	TAY				; move page ID to Y
-	LDA	PROC_ACTIVE_ID		; load proc ID
-	STA.Y	PAGE_TABLE_PROCID	; store proc ID into page row
+	LDA	PROC_ACTIVE_ID		; load process ID
+	STA.Y	PAGE_TABLE_PROCID	; store process ID into page row
 	JSR	PAGE_TABLE_NEXT_DATA	; get the data ID to use for this data page
 	STA.Z	VR11			; store data page ID in P
 	CLC				; CLC for ADC
@@ -20,10 +20,10 @@
 	TAY				; move map idx to Y
 	PLA				; pull page ID to A
 	STA.Y	PAGE_MAP		; store page ID at map idx
-	JMP	PROC_UNPAUSE		; return to proc
+	JMP	PROC_UNPAUSE		; return to process
 >_BRK_DATA_GET_FAIL
 	LDA.I	0XFF			; load fail value
 	STA.Z	VR11			; store fail value in P
-	JMP	PROC_UNPAUSE		; return to proc
+	JMP	PROC_UNPAUSE		; return to process
 
 

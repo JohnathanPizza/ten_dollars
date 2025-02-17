@@ -17,10 +17,10 @@
 	LDA.I	0XFF			; load map null value
 	STA.Y	PAGE_MAP		; store in map idx
 	LDA.Z	VR4			; load data page P that was released
-	LDY	PROC_ACTIVE_ID		; load proc ID
+	LDY	PROC_ACTIVE_ID		; load process ID
 	CMP.Y	PROC_ACTIVE_DAP_ID	; compare active DAP ID to released ID
 	BNE	_BRK_DATA_RELEASE_FAIL	; skip if not the same ID
 	LDA.I	0X80			; load DAP null value
 	STA.Y	PROC_ACTIVE_DAP_ID	; store into active DAP ID
 >_BRK_DATA_RELEASE_FAIL
-	JMP	PROC_UNPAUSE		; return to proc
+	JMP	PROC_UNPAUSE		; return to process

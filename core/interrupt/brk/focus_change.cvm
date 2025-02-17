@@ -3,21 +3,21 @@
 ; R --- VR11/1: success value S
 ; transfer the system IO_READ_FOCUS resource to process P
 ; if current process does not have IO_READ_FOCUS claimed, do nothing
-; if P is not a valid proc ID, do nothing
+; if P is not a valid process ID, do nothing
 ; if P is not alive, do nothing
-; S = TRUE if transfered successfully and proc P has read focus
-; otherwise S = FALSE and proc P can not be guaranteed to have read focus
+; S = TRUE if transfered successfully and process P has read focus
+; otherwise S = FALSE and process P can not be guaranteed to have read focus
 
 >BRK_FOCUS_CHANGE
 	LDA	IO_READ_FOCUS		; load current focus process ID
-	CMP	PROC_ACTIVE_ID		; test if this proc has it
-	BNE	_BRK_FOCUS_CHANGE_FAIL	; if this proc doesnt have it, fail
+	CMP	PROC_ACTIVE_ID		; test if this process has it
+	BNE	_BRK_FOCUS_CHANGE_FAIL	; if this process doesnt have it, fail
 	LDY.Z	VR4			; else load P
 	CPY.I	PROC_COUNT		; test if in range
 	BGE	_BRK_FOCUS_CHANGE_FAIL	; fail if out of range
-	LDA.Y	PROC_STATE		; load state of proc P
-	CMP.I	PROC_STATE_NULL		; test if proc even exists
-	BEQ	_BRK_FOCUS_CHANGE_FAIL	; fail if the proc doesnt exist
+	LDA.Y	PROC_STATE		; load state of process P
+	CMP.I	PROC_STATE_NULL		; test if process even exists
+	BEQ	_BRK_FOCUS_CHANGE_FAIL	; fail if the process doesnt exist
 	STY	IO_READ_FOCUS		; change read focus
 	LDA.I	TRUE			; load true
 	STA.Z	VR11			; store in S

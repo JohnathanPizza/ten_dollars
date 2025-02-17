@@ -2,7 +2,7 @@
 ; sets process' state so that it is marked as completed to kill the process
 
 >BRK_EXIT
-	LDY	PROC_ACTIVE_ID		; load proc ID
+	LDY	PROC_ACTIVE_ID		; load process ID
 	LDA.I	PROC_STATE_EXIT		; load exit state value
 	STA.Y	PROC_STATE		; update state
 	; no need to unload the process since it is done with its work and will not ever return

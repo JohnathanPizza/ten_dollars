@@ -23,8 +23,8 @@
 	INC	IO_WRITE_BUFFER_HEAD	; inc buffer head value
 	LDA.I	TRUE			; load success value
 	STA.Z	VR11			; store in S
-	JMP	PROC_UNPAUSE		; return to proc
+	JMP	PROC_UNPAUSE		; return to process
 >_BRK_WRITEC_FAIL
 	LDA.I	FALSE			; load fail value
 	STA.Z	VR11			; store in S
-	JMP	PROC_UNPAUSE		; return to proc
+	JMP	PROC_UNPAUSE		; return to process

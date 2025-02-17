@@ -5,12 +5,12 @@
 
 >BRK_KILL
 	LDY.Z	VR4			; load P
-	CPY.I	PROC_COUNT		; test if valid proc ID
+	CPY.I	PROC_COUNT		; test if valid process ID
 	BGE	_BRK_KILL_SKIP		; if not then just return
-	LDA.Y	PROC_STATE		; get proc P state
-	CMP.I	PROC_STATE_NULL		; test if proc P is in the null state
+	LDA.Y	PROC_STATE		; get process P state
+	CMP.I	PROC_STATE_NULL		; test if process P is in the null state
 	BEQ	_BRK_KILL_SKIP		; if so then skip killing, already dead
 	LDA.I	PROC_STATE_EXIT		; load exit state value
-	STA.Y	PROC_STATE		; set target proc state to exit next service cycle
+	STA.Y	PROC_STATE		; set target process state to exit next service cycle
 >_BRK_KILL_SKIP
 	JSR	PROC_UNPAUSE		; return to process

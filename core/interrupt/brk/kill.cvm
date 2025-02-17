@@ -1,9 +1,15 @@
-; kill proc id in vr4/1
+; BRK_KILL
+; P --- VR4/1: process ID P
+; kill process P by putting it in the exit state
+; do nothing if P is not a valid process ID or if P is in the null state already
 
 >BRK_KILL
-	LDY.Z	VR4			; load proc id to kill
-	CPY.I	PROC_COUNT		; test if valid proc id
+	LDY.Z	VR4			; load P
+	CPY.I	PROC_COUNT		; test if valid proc ID
 	BGE	_BRK_KILL_SKIP		; if not then just return
+	LDA.Y	PROC_STATE		; get proc P state
+	CMP.I	PROC_STATE_NULL		; test if proc P is in the null state
+	BEQ	_BRK_KILL_SKIP		; if so then skip killing, already dead
 	LDA.I	PROC_STATE_EXIT		; load exit state value
 	STA.Y	PROC_STATE		; set target proc state to exit next service cycle
 >_BRK_KILL_SKIP

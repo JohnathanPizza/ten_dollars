@@ -32,7 +32,11 @@
 	ADC.I	0
 	STA.Z	VR0 1
 	LDA.ZP	VR0		; load character from the new pointer
-	BNE	_PRINTS_LOOP	; if not the nul char, not at string end, print again
+	BEQ	_PRINTS_DONE	; if nul char, at string end, can exit
+	LDA.I	BC_SUSPEND	; load suspend code
+	BRK			; suspend process
+	BRA	_PRINTS_LOOP	; loop
+>_PRINTS_DONE
 	PLA			; copy back VR0
 	STA.Z	VR0 1
 	PLA

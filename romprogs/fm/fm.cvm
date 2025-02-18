@@ -68,12 +68,12 @@
 
 >_FM_LOOP
 
-	; signal for user for input with header
+	; signal for user input with header
 	LDA	_FM_HEADER_STR			; load header string
 	STA.Z	VR0
 	LDA	_FM_HEADER_STR 1
 	STA.Z	VR0 1
-	JSR	PRINTL				; print
+	JSR	PRINTS				; print
 
 	; get user input
 	LDA.I	_FM_INPUT_BUF			; load pointer to input buffer
@@ -84,7 +84,6 @@
 	LDA.I	BC_READ				; load read code
 	BRK					; get input
 	JSR	PRINTL				; reflect input
-	JSR	PRINT_WAIT			; wait
 
 	; set initial argument var values
 	JSR	STRLEAD				; trim leading whitespace in input to get first arg
@@ -233,7 +232,7 @@
 "Argument given is not a number\0
 
 >_FM_HEADER_STR_RAW
-"(fm) #\0
+"(fm) # \0
 
 ;==========
 

@@ -40,7 +40,7 @@
 >_INTERRUPT_CA1_LOOP_END
 	CPX.I	ASCII_BS		; compare against backspace character
 	BEQ	_INTERRUPT_CA1_BACK	; go to backspace code
-	
+
 	; treat as a normal ASCII character and add to the buffer
 	TXA				; move ASCII value to A
 	LDX	IO_READ_IDX		; load buffer write index

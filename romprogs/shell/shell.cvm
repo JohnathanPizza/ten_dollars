@@ -305,7 +305,7 @@ $_SHELL_POKE_FUNC
 	BRK
 	LDA.Z	VR11
 	BEQ	_SHELL_RUND_FUNC_FAIL
-	
+
 	LDA.Z	_SHELL_ARG_PTR					; load pointer to name arg
 	STA.Z	VR0						; set in VR0 for file open
 	STZ.Z	VR0 1

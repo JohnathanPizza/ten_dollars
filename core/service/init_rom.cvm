@@ -32,7 +32,7 @@
 	TAY				; move to Y
 	PLA				; pull page ID
 	STA.Y	PAGE_MAP		; store page ID in map at idx
-	
+
 	JSR	PAGE_TABLE_GET		; get a vacant page
 	TAY				; move page ID to Y
 	LDA	PROC_ACTIVE_ID		; load process ID
@@ -44,7 +44,7 @@
 	TAY				; move to Y
 	PLA				; pull page ID
 	STA.Y	PAGE_MAP		; store page ID in map at idx
-	
+
 	DEC.Z	VR7			; needed - 1
 	DEC.Z	VR7			; needed - 2 because zp and stack pages claimed
 
@@ -74,7 +74,7 @@
 	INC.Z	VR7 1			; inc map idx to go to next one
 	DEC.Z	VR7			; dec the number of needed pages
 	BNE	_SERVICE_INIT_ROM_LOOP	; loop if needed page count is not 0
-	
+
 	; copy code into pages
 	PLA				; pull starting map idx from earlier
 	CLC				; CLC for ADC

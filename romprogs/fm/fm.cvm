@@ -85,7 +85,7 @@
 	BRK					; get input
 	JSR	PRINTL				; reflect input
 	JSR	PRINT_WAIT			; wait
-	
+
 	; set initial argument var values
 	JSR	STRLEAD				; trim leading whitespace in input to get first arg
 	LDA.Z	VR11				; set argument pointer var
@@ -100,7 +100,7 @@
 	STA.Z	_FM_ARG_END			; set as argument ending char var
 	LDA.I	ASCII_NUL			; load nul char value
 	STA.ZPY	VR0				; set ending char as nul char for easy use of string functions later
-	
+
 	; search for given command
 	LDA.Z	_FM_ARG_PTR			; load pointer to the start of the first argument
 	STA.Z	VR1

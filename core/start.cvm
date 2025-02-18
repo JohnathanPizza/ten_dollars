@@ -3,7 +3,7 @@
 @0X8000
 >START
 	; hardware initialization
-	
+
 	; setting stack pointer
 	LDX.I	0XFF	; load stack pointer default value
 	TXS		; set stack pointer to 0x1FF
@@ -40,7 +40,7 @@
 	STA.Z	VR4 1
 	STZ.Z	VR5
 	JSR	MEMSET			; clear 0x200 to 0xFFF
-	
+
 	LDA.I	PAGE_TABLE_PROCID	; set page process IDs to 0xFF
 	STA.Z	VR0
 	LDA.I	PAGE_TABLE_PROCID > 8
@@ -73,7 +73,7 @@
 	LDA.I	0XFF
 	STA.Z	VR5
 	JSR	MEMSET
-	
+
 	LDA.I	IPC_TARGET		; set IPC targets to 0xFF
 	STA.Z	VR0
 	LDA.I	IPC_TARGET > 8
@@ -90,7 +90,7 @@
 	STA	IO_FILE_CLAIM		; clear file claim
 
 	; init finished
-	
+
 	LDA.I	ROM_SHELL_ID
 	STA.Z	VR4
 	LDA.I	BC_SPAWN_ROM

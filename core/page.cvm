@@ -229,7 +229,7 @@
 	CMP.Z	VR8			; test against N
 	BEQ	_PAGE_MAP_LARGEST_FITS	; if counted N vacant idxs then exit early with the current base
 	LDA.Z	VR10			; load the highest count
-	CMP.Z	VR9			; compare against current count 
+	CMP.Z	VR9			; compare against current count
 	BGE	_PAGE_MAP_LARGEST_NEXT	; if the high count is >= current count then skip update
 	LDA.Z	VR9			; load current count
 	STA.Z	VR10			; store in highest count
@@ -294,7 +294,7 @@
 	STA.X	PAGE_MAP		; store at idx A
 	PLA				; pull value from idx A
 	STA.Y	PAGE_MAP		; store at idx B
-	
+
 	; make pointer in VR8
 	LDA.Z	VR8 1			; load low map idx
 	CLC				; CLC for ADC

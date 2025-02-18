@@ -25,7 +25,7 @@
 	STA.Z	VR9
 	LDA.Z	VR4 1
 	STA.Z	VR9 1
-	
+
 	BRA	_MEMSET_LOOP_CHECK	; enter loop
 >_MEMSET_LOOP
 	LDA.Z	VR5		; load V
@@ -93,17 +93,17 @@
 	PHY			; store Y
 	LDA.Z	VR0		; save VR0/1 to stack
 	PHA
-	
-	STZ.Z	VR0		; make VR0 a pointer to the beginning of page P	
+
+	STZ.Z	VR0		; make VR0 a pointer to the beginning of page P
 	LDY.I	0		; set index to 0
 	LDA.Z	VR5		; load value to store
 >_PAGESET_LOOP
 	STA.ZPY	VR0		; store value at index
 	INY			; increment index
 	BNE	_PAGESET_LOOP	; loop if not 0 again
-	
+
 	PLA			; restore VR0/1
-	STA.Z	VR0	
+	STA.Z	VR0
 	PLY			; restore Y
 	PLA			; restore A
 	RTS			; return

@@ -26,7 +26,7 @@
 
 >FLOPPY_ENTER
 	SEI					; interrupts must be off for WAI abuse
-						; SEI used without PHP since floppy operations will be called in an interrupt enabled environemnt (during context switching) 
+						; SEI used without PHP since floppy operations will be called in an interrupt enabled environemnt (during context switching)
 	STA	HW_ENABLE_ADDR HW_RAM1 HW_VIA	; enable VIA
 
 	LDA	VIA_IER				; load existing values from IER
@@ -45,7 +45,7 @@
 	LDA	VIA_PCR				; load PCR to toggle the floppy enable line
 	ORA.I	0B00100000			; turn on enable line
 	STA	VIA_PCR				; store back
-	
+
 	RTS					; return
 
 ;==================================================
@@ -60,12 +60,12 @@
 	LDA	VIA_PCR				; load PCR to turn off floppy enable line
 	AND.I	0B11011111			; turn off
 	STA	VIA_PCR				; store back
-	
+
 	STZ	VIA_READ_PORT_DIR		; store zero to keyboard port so it is all input
 	STZ	VIA_WRITE_PORT			; set printer port output to zero
 	LDA.I	0XFF				; load value to set printer port to all output
 	STA	VIA_WRITE_PORT_DIR		; store
-	
+
 	LDA.I	VIA_IER_DISABLE VIA_IB_CA2	; load value to turn off floppy interrupt
 	STA	VIA_IER				; turn off
 	LDA	FLOPPY_IER_SAVE			; pull old IER
@@ -453,7 +453,7 @@
 	JSR	FLOPPY_SIDE_B		; change to side B by default
 	CMP.I	0			; test recent side with side A
 	BEQ	_FLOPPY_FORMAT_SIDE_LOOP	; if just did side A, do the side loop again but on side B
-	
+
 	INC.Z	VR8			; increment track counter
 	LDA.Z	VR8			; load value of next track
 	CMP.I	40			; load 40 to compare to last track ID
@@ -576,7 +576,7 @@
 	LDA	VIA_FLOPPY_DATA_PORT	; load byte
 	CMP.I	0B01010111		; test fourth byte
 	BNE	_FLOPPY_READ_ALIGN	; if not equal go back to alignment
-	
+
 	; aligned and validated, collect sector data
 	WAI				; wait for next byte
 	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of sector ID
@@ -587,7 +587,7 @@
 	CMP.Z	VR4 1			; compare sector ID to S
 	BNE	_FLOPPY_READ_ALIGN	; skip this sector if not S
 	STA	FLOPPY_SEC_ID		; otherwise update sector ID
-	
+
 	; get data
 	LDX.I	0			; set byte counter to 0
 >_FLOPPY_READ_DATA
@@ -625,7 +625,7 @@
 	JSR	FLOPPY_DISK_CHECK	; test for disk
 	CMP.I	0			; test if disk was found
 	BEQ	_FLOPPY_WRITE_DISK	; continue if disk found
-	
+
 	JSR	FLOPPY_EXIT		; exit floppy mode
 	LDA.I	FLOPPY_ERROR_NODISK	; load no disk error value
 	PLX				; restore X
@@ -635,7 +635,7 @@
 	BEQ	_FLOPPY_WRITE_BAD_VALUES	; just exit if S = 0
 	CMP.I	20				; compare with 20 to test range
 	BGE	_FLOPPY_WRITE_BAD_VALUES	; just exit if S >= 20
-	
+
 	JSR	FLOPPY_CALIBRATE_TRACK	; calibrate so that at track 0 on side A
 	LDA.Z	VR4			; load T
 	CMP.I	80			; compare with 80 to test range
@@ -710,7 +710,7 @@
 	LDA	VIA_FLOPPY_DATA_PORT	; load byte
 	CMP.I	0B01010111		; test fourth byte
 	BNE	_FLOPPY_WRITE_ALIGN	; if not equal go back to alignment
-	
+
 	; aligned and validated, collect sector data
 	WAI				; wait for next byte
 	LDA	VIA_FLOPPY_DATA_PORT	; load first encoded value of sector ID
@@ -721,7 +721,7 @@
 	INC				; increment value by 1 because we want to find S - 1
 	CMP.Z	VR4 1			; compare sector ID to S
 	BNE	_FLOPPY_WRITE_ALIGN	; skip this sector if not S
-	
+
 	; get data
 	LDX.I	0			; set byte counter to 0
 >_FLOPPY_WRITE_READ_LOOP

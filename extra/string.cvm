@@ -587,7 +587,7 @@
 	STA.Z	VR8
 	LDA.Z	VR0 1
 	STA.Z	VR8 1
-	STZ.Z	VR11			; set L to 0 
+	STZ.Z	VR11			; set L to 0
 	STZ.Z	VR11 1
 >_STRWORDLEN_LOOP
 	LDA.ZP	VR8			; load next character in string

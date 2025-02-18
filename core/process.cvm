@@ -55,7 +55,7 @@
 	STA.Z	VR0
 	PLA
 	STA.Z	VR0 1
-	
+
 	; now load the stack
 	JSR	PAGE_TABLE_GET_STACK	; get the stack page ID for the current process
 	JSR	PAGE_MAP_FIND		; get map idx of the stack page
@@ -74,14 +74,14 @@
 	LDY	PROC_ACTIVE_ID		; load process ID
 	LDX.Y	PROC_S			; get stack pointer for process
 	TXS				; move stack pointer to stack register
-	
+
 	; in process stack space now, can use it for function calls and stuff
 	; restore return pointer
 	LDA.Z	VR0 1
 	PHA
 	LDA.Z	VR0
 	PHA
-	
+
 	; load zp
 	JSR	PAGE_TABLE_GET_ZP	; get the zp page ID for the current process
 	JSR	PAGE_MAP_FIND		; get map idx of the stack page
@@ -92,7 +92,7 @@
 	STA.ZX	0			; store into ZP
 	INX				; inc idx
 	BNE	_PROC_LOAD_ZP_LOOP	; loop if not done with the whole page
-	
+
 	; test and load DAP
 	LDX	PROC_ACTIVE_ID		; load process ID
 	LDA.X	PROC_ACTIVE_DAP_ID	; get process active DAP ID
@@ -182,7 +182,7 @@
 	JSR	PAGE_TABLE_GET_STACK	; get stack page ID
 	JSR	PAGE_MAP_FIND		; get map idx of stack page
 	JSR	PAGE_STORE_DAP		; store stack back to memory
-	
+
 	; update process registers from PAUSE vars
 	LDY	PROC_ACTIVE_ID		; load process ID
 	LDA	PROC_PAUSE_A		; update A
@@ -258,7 +258,7 @@
 	LDA.Z	VR9 1
 	ADC.Z	VR0 1
 	STA.Z	VR9 1
-	
+
 	SEC			; SEC for SBC
 	LDA.ZP	VR9		; subtract L from the value in code at pointer location, forms relative pointer
 	SBC.Z	VR4

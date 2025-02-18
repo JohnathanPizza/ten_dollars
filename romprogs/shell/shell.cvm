@@ -5,26 +5,38 @@
 =_SHELL_INPUT_BUF_LEN	0X40
 
 >SHELL_START
-
+	
 	; get the process pointer offset to adjust strings
-	LDA.I	BC_PTROFF					; interrupt to get offset
+	LDA.I	BC_PTROFF			; interrupt to get offset in VR11
 	BRK
-	LDA.Z	VR11						; move offset to VR5 for adjust func
-	STA.Z	VR5
-	LDA.Z	VR11 1
-	STA.Z	VR5 1
-	LDA.I	_SHELL_PTR_ARRAY_END - _SHELL_PTR_ARRAY / 2	; load length of pointer array to adjust
-	STA.Z	VR4
+	LDA.I	_SHELL_PTR_ARRAY_END - _SHELL_PTR_ARRAY / 2	; load length of pointer array to adjust in VR8
+	STA.Z	VR8
 	LDA.I	_SHELL_PTR_ARRAY_END - _SHELL_PTR_ARRAY / 2 > 8
-	STA.Z	VR4 1
-	CLC							; add offset to pointer to array of string pointers to adjust
+	STA.Z	VR8 1
+	CLC					; add offset to pointer to array of string pointers to adjust and store in VR9
 	LDA.I	_SHELL_PTR_ARRAY
-	ADC.Z	VR5
-	STA.Z	VR0
+	ADC.Z	VR11
+	STA.Z	VR9
 	LDA.I	_SHELL_PTR_ARRAY > 8
-	ADC.Z	VR5 1
-	STA.Z	VR0 1
-	JSR	PROGRAM_POINTER_ADJUST				; adjust all string pointers
+	ADC.Z	VR11 1
+	STA.Z	VR9 1
+	LDY.I	1				; load 1 in Y for easy access to high byte without losing C flag during addition
+>_SHELL_PTR_ADJUST_LOOP
+	LDA.Z	VR8				; test if count is 0
+	ORA.Z	VR8 1
+	BRA	_SHELL_PTR_ADJUST_LOOP_DONE	; if so done adjusting
+	CLC					; add the next pointer in adjustment array with offset
+	LDA.ZP	VR9
+	ADC.Z	VR11
+	STA.ZP	VR9
+	LDA.ZPY	VR9
+	ADC.Z	VR11 1
+	STA.ZPY	VR9
+	JSR	INC9				; + 2 to get next pointer in array
+	JSR	INC9
+	JSR	DEC8				; dec count by 1
+	BRA	_SHELL_PTR_ADJUST_LOOP		; loop
+>_SHELL_PTR_ADJUST_LOOP_DONE
 
 >_SHELL_LOOP
 

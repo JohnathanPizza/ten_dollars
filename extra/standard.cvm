@@ -1,7 +1,6 @@
 ; STANDARD.CVM
 ; ===
 ; PROGRAM_GET_ARG
-; PROGRAM_POINTER_ADJUST
 
 ;==================================================
 
@@ -58,51 +57,3 @@
 >_PROGRAM_GET_ARG_NONE
 	LDA.I	FALSE			; load false value
 	RTS				; return
-
-;==================================================
-
-; PROGRAM_POINTER_ADJUST
-; P --- VR0: pointer to start of pointer array P
-;	VR4: number of pointers in array N
-;	VR5: program pointer offset O
-; adds O to every pointer in P to adjust absolute value pointer literals
-
->PROGRAM_POINTER_ADJUST
-	PHA			; store A
-	PHY			; store Y
-	LDA.Z	VR0		; store VR0
-	PHA
-	LDA.Z	VR0 1
-	PHA
-	LDA.Z	VR4		; store VR4
-	PHA
-	LDA.Z	VR4 1
-	PHA
-	LDY.I	1		; set Y to 1 for high byte access through pointer
->_PROGRAM_POINTER_ADJUST_LOOP
-	LDA.Z	VR4		; test if no more pointers left
-	ORA.Z	VR4 1
-	BEQ	_PROGRAM_POINTER_ADJUST_LOOP_DONE
-	CLC			; CLC for ADC
-	LDA.ZP	VR0		; load low byte of pointer
-	ADC.Z	VR5		; add low byte of O
-	STA.ZP	VR0		; store back
-	LDA.ZPY	VR0		; load high byte of pointer
-	ADC.Z	VR5 1		; add high byte of O
-	STA.ZPY	VR0		; store back
-	JSR	INC0		; add 2 to pointer for next pointer in p
-	JSR	INC0
-	JSR	DEC4		; sub 1 from number of pointers
-	BRA	_PROGRAM_POINTER_ADJUST_LOOP	; loop
->_PROGRAM_POINTER_ADJUST_LOOP_DONE
-	PLA			; restore VR4
-	STA.Z	VR4 1
-	PLA
-	STA.Z	VR4
-	PLA			; restore VR0
-	STA.Z	VR0 1
-	PLA
-	STA.Z	VR0
-	PLY			; restore Y
-	PLA			; restore A
-	RTS			; return

@@ -77,7 +77,7 @@ extra/standard.cvm
 extra/string.cvm
 extra/wait.cvm
 
-romprogs/array.cvm
+romprogs/info.cvm
 
 romprogs/shell/adj.cvm
 romprogs/shell/shell.cvm

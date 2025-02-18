@@ -7,10 +7,10 @@
 	ASL				; ID * 2 to get ptr offset
 	TAX				; move offset to X
 	; calculate (length - 1) >> 8
-	LDA.X	ROM_PROGRAM_LENGTH	; load first byte of program length
+	LDA.X	ROM_PROGRAM_LENGTHS	; load first byte of program length
 	SEC				; SEC for SBC
 	SBC.I	1			; subtract 1 to set appropriate carry
-	LDA.X	ROM_PROGRAM_LENGTH 1	; load second byte
+	LDA.X	ROM_PROGRAM_LENGTHS 1	; load second byte
 	SBC.I	0			; sub 0 + C
 	CLC				; CLC for ADC
 	ADC.I	3			; add 3 to the calculated number to get number of pages needed
@@ -85,13 +85,13 @@
 	LDA.X	PROC_A			; get rom program ID from A like earlier
 	ASL				; ID * 2 for offset again
 	TAX				; move offset to X
-	LDA.X	ROM_PROGRAM_START	; load pointer to program code in VR0
+	LDA.X	ROM_PROGRAM_START_PTRS	; load pointer to program code in VR0
 	STA.Z	VR0
-	LDA.X	ROM_PROGRAM_START 1
+	LDA.X	ROM_PROGRAM_START_PTRS 1
 	STA.Z	VR0 1
-	LDA.X	ROM_PROGRAM_LENGTH	; load length of program code in VR4
+	LDA.X	ROM_PROGRAM_LENGTHS	; load length of program code in VR4
 	STA.Z	VR4
-	LDA.X	ROM_PROGRAM_LENGTH 1
+	LDA.X	ROM_PROGRAM_LENGTHS 1
 	STA.Z	VR4 1
 	JSR	MEMCPY			; memcpy to RAM
 
@@ -104,9 +104,9 @@
 	STA.Z	VR0
 	LDA.Z	VR1 1
 	STA.Z	VR0 1
-	LDA.X	ROM_PROGRAM_ADJUST	; load pointer to adjustment array into VR1
+	LDA.X	ROM_PROGRAM_ADJUST_PTRS	; load pointer to adjustment array into VR1
 	STA.Z	VR1
-	LDA.X	ROM_PROGRAM_ADJUST 1
+	LDA.X	ROM_PROGRAM_ADJUST_PTRS 1
 	STA.Z	VR1 1
 	JSR	PROGRAM_ADJUST		; adjust code in RAM
 
@@ -146,9 +146,9 @@
 	LDA.X	PROC_A			; get rom program ID
 	ASL				; * 2 for pointer width
 	TAX				; move to X for indexing
-	LDA.X	ROM_PROGRAM_NAME	; move rom program name pointer to VR0
+	LDA.X	ROM_PROGRAM_NAME_STRS	; move rom program name pointer to VR0
 	STA.Z	VR0
-	LDA.X	ROM_PROGRAM_NAME 1
+	LDA.X	ROM_PROGRAM_NAME_STRS 1
 	STA.Z	VR0 1
 	LDA	PROC_ACTIVE_ID		; get process ID again
 	ASL				; * 16 for pointer offset in name page

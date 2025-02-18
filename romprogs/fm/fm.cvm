@@ -198,7 +198,7 @@
 "\n
 "open name - open a file on disk for editing\n
 "close - close the open file and save edits to file\n
-"r - read bytes from the file in order\n
+"r count - read a number of bytes from the file in order\n
 "w values... - write bytes to the file in order\n
 "j position - move the read/write position in the file\0
 
@@ -731,6 +731,32 @@ $_FM_COPY_FUNC
 ;==================================================
 
 >_FM_READ_FUNC
+	JSR	_FM_NEXT_ARG			; try to get number of bytes to read
+	CMP.I	0				; test if given arg
+	BNE	_FM_READ_FUNC_ARG		; continue if arg given
+	JMP	_FM_LOOP			; return to main loop, no error if no more args found
+>_FM_READ_FUNC_ARG
+	LDA.Z	_FM_ARG_PTR			; load pointer to value arg
+	STA.Z	VR0				; set in VR0 for STRTONUM
+	STZ.Z	VR0 1
+	JSR	STRTONUM			; get value of arg
+	CMP.I	TRUE				; test if succeeded
+	BEQ	_FM_READ_FUNC_VALUE		; continue if so
+	LDA	_FM_NUMBER_ERROR_STR		; print number error string
+	STA.Z	VR0
+	LDA	_FM_NUMBER_ERROR_STR 1
+	STA.Z	VR0 1
+	JSR	PRINTL
+	JMP	_FM_LOOP			; return to main loop
+>_FM_READ_FUNC_VALUE
+	LDA.Z	VR11				; move number of bytes to read to VR7
+	STA.Z	VR7
+	LDA.Z	VR11 1
+	STA.Z	VR7 1
+>_FM_READ_FUNC_LOOP
+	LDA.Z	VR7				; test if done reading bytes
+	ORA.Z	VR7
+	BEQ	_FM_READ_FUNC_DONE		; exit if so
 	LDA.I	FILE_OP_READ_B			; load file read op code
 	STA.Z	VR6
 	LDA.I	BC_FILE_OP			; read from file
@@ -765,13 +791,15 @@ $_FM_COPY_FUNC
 	JSR	PRINTH
 	LDA.I	ASCII_LF
 	JSR	PRINTC
-	JMP	_FM_LOOP			; return to main loop
+	JSR	DEC7				; decrement byte read count
+	BRA	_FM_READ_FUNC_LOOP		; loop
 >_FM_READ_FUNC_EOF
 	LDA	_FM_EOF_STR			; print eof string
 	STA.Z	VR0
 	LDA	_FM_EOF_STR 1
 	STA.Z	VR0 1
 	JSR	PRINTL
+>_FM_READ_FUNC_DONE
 	JMP	_FM_LOOP			; return to main loop
 
 ;==================================================
@@ -915,6 +943,9 @@ $_FM_COPY_FUNC
 	PHA
 	LDA.Z	VR0 1
 	PHA
+	LDA.Z	_FM_ARG_PTR			; load argument pointer
+	STA.Z	VR0				; store in VR0
+	STZ.Z	VR0 1
 	LDY.Z	_FM_ARG_LEN			; load current argument length into Y
 	LDA.Z	_FM_ARG_END			; load previously used word end character
 	STA.ZPY	VR0				; restore word end character

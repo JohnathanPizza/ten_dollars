@@ -1,3 +1,6 @@
+; FM file manager program
+; basic file manipulation functions and byte editing
+
 ; ZP map
 =_FM_ARG_PTR		0 ; 1
 =_FM_ARG_LEN		1 ; 1
@@ -5,88 +8,108 @@
 =_FM_INPUT_BUF		0X10	; 0x40
 =_FM_NAME_BUF		0X50	; 0x10
 
+; constants
 =_FM_INPUT_BUF_LEN	0X40
 =_FM_NAME_BUF_LEN	0X10
 
 >FM_START
 
 	; get the process pointer offset to adjust strings
-	LDA.I	BC_PTROFF					; interrupt to get offset
+	LDA.I	BC_PTROFF			; interrupt to get offset in VR11
 	BRK
-	LDA.Z	VR11						; move offset to VR5 for adjust func
-	STA.Z	VR5
-	LDA.Z	VR11 1
-	STA.Z	VR5 1
-	LDA.I	_FM_PTR_ARRAY_END - _FM_PTR_ARRAY / 2		; load length of pointer array to adjust
-	STA.Z	VR4
+	LDA.I	_FM_PTR_ARRAY_END - _FM_PTR_ARRAY / 2		; load length of pointer array to adjust in VR8
+	STA.Z	VR8
 	LDA.I	_FM_PTR_ARRAY_END - _FM_PTR_ARRAY / 2 > 8
-	STA.Z	VR4 1
-	CLC							; add offset to pointer to array of string pointers to adjust
+	STA.Z	VR8 1
+	CLC					; add offset to pointer to array of string pointers to adjust and store in VR9
 	LDA.I	_FM_PTR_ARRAY
-	ADC.Z	VR5
-	STA.Z	VR0
+	ADC.Z	VR11
+	STA.Z	VR9
 	LDA.I	_FM_PTR_ARRAY > 8
-	ADC.Z	VR5 1
-	STA.Z	VR0 1
-	JSR	PROGRAM_POINTER_ADJUST				; adjust all string pointers
+	ADC.Z	VR11 1
+	STA.Z	VR9 1
+	LDY.I	1				; load 1 in Y for easy access to high byte without losing C flag during addition
+>_FM_PTR_ADJUST_LOOP
+	LDA.Z	VR8				; test if count is 0
+	ORA.Z	VR8 1
+	BRA	_FM_PTR_ADJUST_LOOP_DONE	; if so done adjusting
+	CLC					; add the next pointer in adjustment array with offset
+	LDA.ZP	VR9
+	ADC.Z	VR11
+	STA.ZP	VR9
+	LDA.ZPY	VR9
+	ADC.Z	VR11 1
+	STA.ZPY	VR9
+	JSR	INC9				; + 2 to get next pointer in array
+	JSR	INC9
+	JSR	DEC8				; dec count by 1
+	BRA	_FM_PTR_ADJUST_LOOP		; loop
+>_FM_PTR_ADJUST_LOOP_DONE
 
 	; print the starting prompt
-	LDA	_FM_STR_PTR_ARRAY _FM_PROMPT_STR_ID		; load adjusted pointer from array
+	LDA	_FM_PROMPT_STR			; load prompt string
 	STA.Z	VR0
-	LDA	_FM_STR_PTR_ARRAY _FM_PROMPT_STR_ID 1
+	LDA	_FM_PROMPT_STR 1
 	STA.Z	VR0 1
-	JSR	PRINTL						; print
+	JSR	PRINTL				; print
 
 	; get file perms for the duration of program
-	LDA.I	BC_FILE_CLAIM					; try claiming file access
+	LDA.I	BC_FILE_CLAIM			; try claiming file access
 	BRK
-	LDA.Z	VR11						; test if file access claimed
+	LDA.Z	VR11				; test if file access claimed
 	CMP.I	TRUE
-	BEQ	_FM_LOOP					; continue if claimed
-	LDA	_FM_STR_PTR_ARRAY _FM_FILE_CLAIM_ERROR_STR_ID	; load file perm claim error string
+	BEQ	_FM_LOOP			; continue if claimed
+	LDA	_FM_FILE_CLAIM_ERROR_STR	; load file perm claim error string
 	STA.Z	VR0
-	LDA	_FM_STR_PTR_ARRAY _FM_FILE_CLAIM_ERROR_STR_ID 1
+	LDA	_FM_FILE_CLAIM_ERROR_STR 1
 	STA.Z	VR0 1
-	JSR	PRINTL						; print
-	JMP	_FM_EXIT_FUNC					; exit program
+	JSR	PRINTL				; print
+	JMP	_FM_EXIT_FUNC			; exit fm
 
 >_FM_LOOP
+
+	; signal for user for input with header
+	LDA	_FM_HEADER_STR			; load header string
+	STA.Z	VR0
+	LDA	_FM_HEADER_STR 1
+	STA.Z	VR0 1
+	JSR	PRINTL				; print
+	
 	; get user input
-	JSR	_FM_PRINT_HEADER				; print input header
-	JSR	_FM_GET_INPUT					; get input from user
-	JSR	_FM_NEXT_ARG					; grab first argument
-	CMP.I	FALSE						; test if there was no argument entered at all
-	BEQ	_FM_LOOP					; go back to main loop if not
+	JSR	_FM_GET_INPUT			; get input from user
+	JSR	_FM_NEXT_ARG			; grab first argument
+	CMP.I	FALSE				; test if there was no argument entered at all
+	BEQ	_FM_LOOP			; go back to main loop if not
 
 	; search for given command
-	LDA.Z	_FM_ARG_PTR					; load pointer to the start of the first argument
+	LDA.Z	_FM_ARG_PTR			; load pointer to the start of the first argument
 	STA.Z	VR1
-	STZ.Z	VR1 1						; zero here because the input buffer is in the zero page so the arg pointer must be too
-	LDA.Z	_FM_ARG_LEN					; load total length of argument for strncmp
+	STZ.Z	VR1 1				; zero here because the input buffer is in the zero page so the arg pointer must be too
+	LDA.Z	_FM_ARG_LEN			; load total length of argument for strncmp
 	STA.Z	VR4
-	LDX.I	0						; set array search index to 0
+	LDX.I	0				; set array search index to 0
 >_FM_SEARCH_LOOP
-	LDA.X	_FM_FUNC_STR_PTR_ARRAY				; load next command string pointer from array
+	LDA.X	_FM_FUNC_STR_PTR_ARRAY		; load next command string pointer from array
 	STA.Z	VR0
 	LDA.X	_FM_FUNC_STR_PTR_ARRAY 1
 	STA.Z	VR0 1
-	JSR	STRLEN						; get length of the command string
-	CMP.Z	VR4						; test if given argument and command are same length
-	BNE	_FM_SEARCH_LOOP_SKIP				; if not then go to next command
-	JSR	STRNCMP						; compare argument string to command string
-	CMP.I	0						; test if they were equal
-	BNE	_FM_SEARCH_LOOP_SKIP				; if not then go to next command
-	JMP.XP	_FM_FUNC_ARRAY					; use parallel function pointer array to call func corresponding to command string
+	JSR	STRLEN				; get length of the command string
+	CMP.Z	VR4				; test if given argument and command are same length
+	BNE	_FM_SEARCH_LOOP_SKIP		; if not then go to next command
+	JSR	STRNCMP				; compare argument string to command string
+	CMP.I	0				; test if they were equal
+	BNE	_FM_SEARCH_LOOP_SKIP		; if not then go to next command
+	JMP.XP	_FM_FUNC_ARRAY			; use parallel function pointer array to call func corresponding to command string
 >_FM_SEARCH_LOOP_SKIP
-	INX							; X + 2 to set at next command string
+	INX					; X + 2 to set at next command string
 	INX
 	CPX.I	_FM_FUNC_STR_PTR_ARRAY_END - _FM_FUNC_STR_PTR_ARRAY	; test if searched through all command strings
-	BNE	_FM_SEARCH_LOOP					; loop again on new command string if not
+	BNE	_FM_SEARCH_LOOP			; loop again on new command string if not
 
 	; no matching command string found
-	LDA.I	ASCII_QUOTE					; print " to wrap given command string
+	LDA.I	ASCII_QUOTE			; print " to wrap given command argument
 	JSR	PRINTC
-	LDA.Z	_FM_ARG_PTR					; load pointer to given command
+	LDA.Z	_FM_ARG_PTR			; load pointer to given command
 	STA.Z	VR0
 	STZ.Z	VR0 1
 	LDY.Z	_FM_ARG_LEN					; add nul char at the end of it incase there was stuff after in the input
@@ -95,12 +118,14 @@
 	JSR	PRINTS						; print given command
 	LDA.I	ASCII_QUOTE					; add another "
 	JSR	PRINTC
-	LDA	_FM_STR_PTR_ARRAY _FM_COMMAND_ERROR_STR_ID	; print the bad command error message
+	LDA	_FM_COMMAND_ERROR_STR		; load bad command error string
 	STA.Z	VR0
-	LDA	_FM_STR_PTR_ARRAY _FM_COMMAND_ERROR_STR_ID 1
+	LDA	_FM_COMMAND_ERROR_STR 1
 	STA.Z	VR0 1
-	JSR	PRINTL
-	JMP	_FM_LOOP					; go back to main loop and get new input
+	JSR	PRINTL				; print
+	JMP	_FM_LOOP			; go back to main loop and get new input
+
+;==========
 
 ; command strings
 
@@ -137,9 +162,11 @@
 >_FM_JUMP_STR
 "j\0
 
+;==========
+
 ; other strings
 
->_FM_HELP_OUT_STR
+>_FM_HELP_OUT_STR_RAW
 "help - this\n
 "disk - test if a disk is inserted and print disk name\n
 "format - format the inserted disk with a default name\n
@@ -158,38 +185,42 @@
 "w values... - write bytes to the file in order\n
 "j position - move the read/write position in the file\0
 
->_FM_PROMPT_STR
+>_FM_PROMPT_STR_RAW
 "File Manager - enter command or type "help" to see all commands\0
 
->_FM_COMMAND_ERROR_STR
+>_FM_COMMAND_ERROR_STR_RAW
 " is not a command\0
 
->_FM_FILE_CLAIM_ERROR_STR
+>_FM_FILE_CLAIM_ERROR_STR_RAW
 "Failed to claim file permission\0
 
->_FM_DISK_NAME_STR
+>_FM_DISK_NAME_STR_RAW
 "Disk name: \0
 
->_FM_FILE_COUNT_STR
+>_FM_FILE_COUNT_STR_RAW
 " file(s) found\0
 
->_FM_MISSING_ARG_STR
+>_FM_MISSING_ARG_STR_RAW
 "Missing argument(s)\0
 
->_FM_FILE_FOUND_STR
+>_FM_FILE_FOUND_STR_RAW
 "File found\0
 
->_FM_FILE_NOT_FOUND_STR
+>_FM_FILE_NOT_FOUND_STR_RAW
 "File not found\0
 
->_FM_EOF_STR
+>_FM_EOF_STR_RAW
 "Encountered end of file\0
 
->_FM_NUMBER_ERROR_STR
+>_FM_NUMBER_ERROR_STR_RAW
 "Argument given is not a number\0
 
->_FM_HEADER_STR
+>_FM_HEADER_STR_RAW
 "(fm) #\0
+
+;==========
+
+; array of all string pointers that need to be adjusted
 
 >_FM_PTR_ARRAY			; label for the array of all string pointers to adjust
 >_FM_FUNC_STR_PTR_ARRAY		; label for the subarray of command strings
@@ -211,40 +242,43 @@ $_FM_WRITE_STR
 $_FM_JUMP_STR
 $_FM_COPY_STR
 
->_FM_FUNC_STR_PTR_ARRAY_END	; end label for command string subarray
->_FM_STR_PTR_ARRAY		; label for the subarray of other strings
+>_FM_FUNC_STR_PTR_ARRAY_END	; end label for subarray of command strings
 
-$_FM_HELP_OUT_STR
-$_FM_PROMPT_STR
-$_FM_COMMAND_ERROR_STR
-$_FM_FILE_CLAIM_ERROR_STR
-$_FM_DISK_NAME_STR
-$_FM_FILE_COUNT_STR
-$_FM_MISSING_ARG_STR
-$_FM_FILE_FOUND_STR
-$_FM_FILE_NOT_FOUND_STR
-$_FM_EOF_STR
-$_FM_NUMBER_ERROR_STR
-$_FM_HEADER_STR
+; load these labels for strings instead of the raw labels where the strings are actually located
+; these labels point to the adjusted pointer value, so do LDA	_FM_HELP_OUT_STR and no adjustment is needed while still looking clean
+
+>_FM_HELP_OUT_STR
+$_FM_HELP_OUT_STR_RAW
+>_FM_PROMPT_STR
+$_FM_PROMPT_STR_RAW
+>_FM_COMMAND_ERROR_STR
+$_FM_COMMAND_ERROR_STR_RAW
+>_FM_FILE_CLAIM_ERROR_STR
+$_FM_FILE_CLAIM_ERROR_STR_RAW
+>_FM_DISK_NAME_STR
+$_FM_DISK_NAME_STR_RAW
+>_FM_FILE_COUNT_STR
+$_FM_FILE_COUNT_STR_RAW
+>_FM_MISSING_ARG_STR
+$_FM_MISSING_ARG_STR_RAW
+>_FM_FILE_FOUND_STR
+$_FM_FILE_FOUND_STR_RAW
+>_FM_FILE_NOT_FOUND_STR
+$_FM_FILE_NOT_FOUND_STR_RAW
+>_FM_EOF_STR
+$_FM_EOF_STR_RAW
+>_FM_NUMBER_ERROR_STR
+$_FM_NUMBER_ERROR_STR_RAW
+>_FM_HEADER_STR
+$_FM_HEADER_STR_RAW
 
 >_FM_PTR_ARRAY_END		; end label for array of all string pointers
 
-; string IDs (array indexes) for other strings
-=_FM_HELP_OUT_STR_ID		0
-=_FM_PROMPT_STR_ID		2
-=_FM_COMMAND_ERROR_STR_ID	4
-=_FM_FILE_CLAIM_ERROR_STR_ID	6
-=_FM_DISK_NAME_STR_ID		8
-=_FM_FILE_COUNT_STR_ID		10
-=_FM_MISSING_ARG_STR_ID		12
-=_FM_FILE_FOUND_STR_ID		14
-=_FM_FILE_NOT_FOUND_STR_ID	16
-=_FM_EOF_STR_ID			18
-=_FM_NUMBER_ERROR_STR_ID	20
-=_FM_HEADER_STR_ID		22
+;==========
 
 ; function pointer array for command functions
 ; parallel to command strings array
+
 >_FM_FUNC_ARRAY
 $_FM_HELP_FUNC
 $_FM_DISK_FUNC
@@ -263,14 +297,16 @@ $_FM_WRITE_FUNC
 $_FM_JUMP_FUNC
 $_FM_COPY_FUNC
 
+;==========
+
 ; command functions
 
 ;==================================================
 
 >_FM_HELP_FUNC
-	LDA	_FM_STR_PTR_ARRAY _FM_HELP_OUT_STR_ID		; load help message string
+	LDA	_FM_HELP_OUT_STR				; load help message string
 	STA.Z	VR0
-	LDA	_FM_STR_PTR_ARRAY _FM_HELP_OUT_STR_ID 1
+	LDA	_FM_HELP_OUT_STR 1
 	STA.Z	VR0 1
 	JSR	PRINTL						; print
 	JMP	_FM_LOOP					; return to main loop
@@ -292,9 +328,9 @@ $_FM_COPY_FUNC
 	JSR	PRINTC
 	JMP	_FM_LOOP					; return to main loop
 >_FM_DISK_FUNC_NAME
-	LDA	_FM_STR_PTR_ARRAY _FM_DISK_NAME_STR_ID		; load disk name leading string
+	LDA	_FM_DISK_NAME_STR				; load disk name leading string
 	STA.Z	VR0
-	LDA	_FM_STR_PTR_ARRAY _FM_DISK_NAME_STR_ID 1
+	LDA	_FM_DISK_NAME_STR 1
 	STA.Z	VR0 1
 	JSR	PRINTS						; print
 	LDA.I	_FM_NAME_BUF					; load disk name buffer address
@@ -403,9 +439,9 @@ $_FM_COPY_FUNC
 	STA.Z	VR4						; print
 	STZ.Z	VR4 1
 	JSR	PRINTDU16
-	LDA	_FM_STR_PTR_ARRAY _FM_FILE_COUNT_STR_ID		; print file count string
+	LDA	_FM_FILE_COUNT_STR				; print file count string
 	STA.Z	VR0
-	LDA	_FM_STR_PTR_ARRAY _FM_FILE_COUNT_STR_ID 1
+	LDA	_FM_FILE_COUNT_STR 1
 	STA.Z	VR0 1
 	JSR	PRINTL
 	JMP	_FM_LOOP					; return to main loop
@@ -438,16 +474,16 @@ $_FM_COPY_FUNC
 >_FM_FIND_FUNC_GOOD
 	LDA.Z	VR10						; load result of find op
 	BNE	_FM_FIND_FUNC_FOUND				; if not zero then the file was found
-	LDA	_FM_STR_PTR_ARRAY _FM_FILE_NOT_FOUND_STR_ID	; load file not found string
+	LDA	_FM_FILE_NOT_FOUND_STR				; load file not found string
 	STA.Z	VR0
-	LDA	_FM_STR_PTR_ARRAY _FM_FILE_NOT_FOUND_STR_ID 1
+	LDA	_FM_FILE_NOT_FOUND_STR 1
 	STA.Z	VR0 1
 	JSR	PRINTL						; print
 	JMP	_FM_LOOP					; return to main loop
 >_FM_FIND_FUNC_FOUND
-	LDA	_FM_STR_PTR_ARRAY _FM_FILE_FOUND_STR_ID		; load file found string
+	LDA	_FM_FILE_FOUND_STR				; load file found string
 	STA.Z	VR0
-	LDA	_FM_STR_PTR_ARRAY _FM_FILE_FOUND_STR_ID 1
+	LDA	_FM_FILE_FOUND_STR 1
 	STA.Z	VR0 1
 	JSR	PRINTL						; print
 	JMP	_FM_LOOP					; return to main loop
@@ -743,9 +779,9 @@ $_FM_COPY_FUNC
 	JSR	PRINTC
 	JMP	_FM_LOOP					; return to main loop
 >_FM_READ_FUNC_EOF
-	LDA	_FM_STR_PTR_ARRAY _FM_EOF_STR_ID		; print eof string
+	LDA	_FM_EOF_STR					; print eof string
 	STA.Z	VR0
-	LDA	_FM_STR_PTR_ARRAY _FM_EOF_STR_ID 1
+	LDA	_FM_EOF_STR 1
 	STA.Z	VR0 1
 	JSR	PRINTL
 	JMP	_FM_LOOP					; return to main loop
@@ -767,9 +803,9 @@ $_FM_COPY_FUNC
 	JSR	STRTONUM					; get value of arg
 	CMP.I	TRUE						; test if succeeded
 	BEQ	_FM_WRITE_FUNC_VALUE				; continue if so
-	LDA	_FM_STR_PTR_ARRAY _FM_NUMBER_ERROR_STR_ID	; print number error string
+	LDA	_FM_NUMBER_ERROR_STR				; print number error string
 	STA.Z	VR0
-	LDA	_FM_STR_PTR_ARRAY _FM_NUMBER_ERROR_STR_ID 1
+	LDA	_FM_NUMBER_ERROR_STR 1
 	STA.Z	VR0 1
 	JSR	PRINTL
 	JMP	_FM_LOOP					; return to main loop
@@ -811,9 +847,9 @@ $_FM_COPY_FUNC
 	JSR	_FM_ARG_RESTORE					; restore truncated byte
 	BRA	_FM_WRITE_FUNC					; go to next argument
 >_FM_WRITE_FUNC_EOF
-	LDA	_FM_STR_PTR_ARRAY _FM_EOF_STR_ID		; print eof string
+	LDA	_FM_EOF_STR					; print eof string
 	STA.Z	VR0
-	LDA	_FM_STR_PTR_ARRAY _FM_EOF_STR_ID 1
+	LDA	_FM_EOF_STR 1
 	STA.Z	VR0 1
 	JSR	PRINTL
 	JMP	_FM_LOOP					; return to main loop
@@ -836,9 +872,9 @@ $_FM_COPY_FUNC
 	JSR	STRTONUM					; get value of arg
 	CMP.I	TRUE						; test if succeeded
 	BEQ	_FM_JUMP_FUNC_VALUE				; continue if so
-	LDA	_FM_STR_PTR_ARRAY _FM_NUMBER_ERROR_STR_ID	; print number error string
+	LDA	_FM_NUMBER_ERROR_STR				; print number error string
 	STA.Z	VR0
-	LDA	_FM_STR_PTR_ARRAY _FM_NUMBER_ERROR_STR_ID 1
+	LDA	_FM_NUMBER_ERROR_STR 1
 	STA.Z	VR0 1
 	JSR	PRINTL
 	JMP	_FM_LOOP					; return to main loop
@@ -877,9 +913,9 @@ $_FM_COPY_FUNC
 ; prints the missing arg error string
 >_FM_MISSING_ARG_ERROR
 	PHA							; store A
-	LDA	_FM_STR_PTR_ARRAY _FM_MISSING_ARG_STR_ID	; load missing arg string
+	LDA	_FM_MISSING_ARG_STR				; load missing arg string
 	STA.Z	VR0
-	LDA	_FM_STR_PTR_ARRAY _FM_MISSING_ARG_STR_ID 1
+	LDA	_FM_MISSING_ARG_STR 1
 	STA.Z	VR0 1
 	JSR	PRINTL						; print
 	PLA							; restore A
@@ -959,17 +995,6 @@ $_FM_COPY_FUNC
 	STA.Z	VR0 1
 	PLA
 	STA.Z	VR0
-	PLA				; restore A
-	RTS				; return
-
-; print "(fm) #" line
->_FM_PRINT_HEADER
-	PHA				; store A
-	LDA	_FM_STR_PTR_ARRAY _FM_HEADER_STR_ID	; print header string
-	STA.Z	VR0
-	LDA	_FM_STR_PTR_ARRAY _FM_HEADER_STR_ID 1
-	STA.Z	VR0 1
-	JSR	PRINTL
 	PLA				; restore A
 	RTS				; return
 

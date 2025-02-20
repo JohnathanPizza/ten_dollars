@@ -69,26 +69,26 @@
 ; FROMHEX
 ; P --- A: hex character C
 ; R --- A: value V
-; converts hex char C into a number value 0-15 in V
+; converts hex character C into a number value 0-15 in V
 ; if C isnt hex then V = 0xFF
 
 >FROMHEX
 	PHA				; store C
-	JSR	ISHEX			; test if C is a hex char
+	JSR	ISHEX			; test if C is a hex character
 	CMP.I	FALSE			; if not hex
 	BEQ	_FROMHEX_FALSE		; then return the bad value
 	PLA				; get C
-	JSR	TOUPPER			; if the hex char is a letter just make it uppercase
+	JSR	TOUPPER			; if the hex character is a letter just make it uppercase
 	PHA				; store it
-	JSR	ISNUM			; test if the hex char is numerical
+	JSR	ISNUM			; test if the hex character is numerical
 	CMP.I	TRUE			; if numerical
 	BEQ	_FROMHEX_NUM		; then go to number code
-	PLA				; not number, get char
+	PLA				; not number, get character
 	CLC				; CLC for ADC
 	ADC.I	10 - ASCII_A		; convert letter to number value
 	RTS				; return
 >_FROMHEX_NUM
-	PLA				; get char
+	PLA				; get character
 	SEC				; SEC for SBC
 	SBC.I	ASCII_0			; convert digit to number value
 	RTS				; return

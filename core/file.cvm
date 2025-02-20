@@ -160,7 +160,7 @@
 	LDA.Z	VR8			; load F idx
 	LDA.I	15			; load 15 for STRNCPY value
 	STA.Z	VR4			; store
-	; null char not added since on format all data is 0 and if byte 16 is never touched then it will always be 0 / null char
+	; null character not added since on format all data is 0 and if byte 16 is never touched then it will always be 0 / null character
 	JSR	STRNCPY			; copy N to sector
 	STZ.Z	VR4			; set track 0 again
 	JSR	RETRY_FLOPPY_WRITE	; write sector

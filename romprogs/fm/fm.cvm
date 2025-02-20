@@ -94,11 +94,11 @@
 	LDA.Z	VR11				; test argument length
 	BEQ	_FM_LOOP			; go back to main loop if length is 0
 	STA.Z	_FM_ARG_LEN			; set argument length var
-	TAY					; move arg len to Y to access character that ends the argument (WS or null char)
-	LDA.ZPY	VR0				; load ending char
-	STA.Z	_FM_ARG_END			; set as argument ending char var
-	LDA.I	ASCII_NUL			; load null char value
-	STA.ZPY	VR0				; set ending char as null char for easy use of string functions later
+	TAY					; move arg len to Y to access character that ends the argument (WS or null character)
+	LDA.ZPY	VR0				; load ending character
+	STA.Z	_FM_ARG_END			; set as argument ending character var
+	LDA.I	ASCII_NUL			; load null character value
+	STA.ZPY	VR0				; set ending character as null character for easy use of string functions later
 
 	; search for given command
 	LDA.Z	_FM_ARG_PTR			; load pointer to the start of the first argument
@@ -186,12 +186,12 @@
 "help - this\n
 "disk - test if a disk is inserted and print disk name\n
 "format - format the inserted disk with a default name\n
-"dname name - rename the inserted disk (15 chars max)\n
+"dname name - rename the inserted disk (15 characters max)\n
 "list - list the names and file ids of all files on the inserted disk\n
 "find name - try to find a file by name on the inserted disk\n
 "create name - try to create a file by name on the inserted disk\n
 "destroy name - try to destroy a file by name on the inserted disk\n
-"fname oldname newname - try to rename file oldname to newname (15 chars max)\n
+"fname oldname newname - try to rename file oldname to newname (15 characters max)\n
 "copy src dest - copy file contents from existing file src to existing file dest\n
 "exit - exit File Manager\n
 "\n
@@ -963,8 +963,8 @@ $_FM_COPY_FUNC
 	TAY					; move new argument length to Y
 	LDA.ZPY	VR0				; load word end character of new argument
 	STA.Z	_FM_ARG_END			; store in argument end var
-	LDA.I	ASCII_NUL			; load null char value
-	STA.ZPY	VR0				; set word end of new argument to null char
+	LDA.I	ASCII_NUL			; load null character value
+	STA.ZPY	VR0				; set word end of new argument to null character
 	PLA					; restore VR0
 	STA.Z	VR0 1
 	PLA

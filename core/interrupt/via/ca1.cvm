@@ -64,8 +64,8 @@
 	BIT	IO_KEYBOARD_FLAGS	; test if flags are set
 	BPL	_INTERRUPT_CA1_EXIT	; if not set then end
 	STZ	IO_KEYBOARD_FLAGS	; reset flags
-	LDX	IO_READ_IDX		; load write index to write null char
-	STZ.X	IO_READ_BUFFER		; write null char
+	LDX	IO_READ_IDX		; load write index to write null character
+	STZ.X	IO_READ_BUFFER		; write null character
 	LDA.I	TRUE			; load true value
 	STA	IO_READ_VALID		; set valid to true since user hit enter to signal end of input
 	STZ	IO_READ_IDX		; reset write index to 0
@@ -73,7 +73,7 @@
 >_INTERRUPT_CA1_BACK
 	LDA	IO_READ_IDX		; load index to delete
 	BEQ	_INTERRUPT_CA1_EXIT	; if at 0 already, nothing to delete so return
-	DEC	IO_READ_IDX		; else decrement write index, effectively deleting char
+	DEC	IO_READ_IDX		; else decrement write index, effectively deleting character
 	BRA	_INTERRUPT_CA1_EXIT	; exit
 >_INTERRUPT_CA1_ESCAPE
 	BIT	IO_KEYBOARD_FLAGS	; test if flags are set

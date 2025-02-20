@@ -24,7 +24,7 @@
 >_PRINTS_LOOP
 	LDA.I	BC_WRITES
 	BRK			; call WRITES
-	LDA.Z	VR0		; add the number of chars written to pointer S
+	LDA.Z	VR0		; add the number of characters written to pointer S
 	CLC
 	ADC.Z	VR11
 	STA.Z	VR0
@@ -32,7 +32,7 @@
 	ADC.I	0
 	STA.Z	VR0 1
 	LDA.ZP	VR0		; load character from the new pointer
-	BEQ	_PRINTS_DONE	; if null char, at string end, can exit
+	BEQ	_PRINTS_DONE	; if null character, at string end, can exit
 	LDA.I	BC_SUSPEND	; load suspend code
 	BRK			; suspend process
 	BRA	_PRINTS_LOOP	; loop
@@ -80,7 +80,7 @@
 >_PRINTL_LOOP
 	LDA.I	BC_WRITES
 	BRK			; call WRITES
-	LDA.Z	VR0		; add the number of chars written to pointer S
+	LDA.Z	VR0		; add the number of characters written to pointer S
 	CLC
 	ADC.Z	VR11
 	STA.Z	VR0
@@ -88,8 +88,8 @@
 	ADC.I	0
 	STA.Z	VR0 1
 	LDA.ZP	VR0		; load character from the new pointer
-	BNE	_PRINTL_LOOP	; if not the null char, not at string end, print again
-	LDA.I	ASCII_LF	; load newline char
+	BNE	_PRINTL_LOOP	; if not the null character, not at string end, print again
+	LDA.I	ASCII_LF	; load newline character
 	JSR	PRINTC		; print
 	PLA			; copy back VR0
 	STA.Z	VR0 1

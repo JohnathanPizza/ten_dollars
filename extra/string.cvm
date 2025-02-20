@@ -33,7 +33,7 @@
 	STZ.Z	VR9		; set temp counter for L to 0
 >_STRLEN_LOOP
 	LDA.ZP	VR8		; load next character from S
-	BEQ	_STRLEN_END	; exit if null char
+	BEQ	_STRLEN_END	; exit if null character
 	JSR	INC8		; inc S
 	INC.Z	VR9		; inc L
 	LDA.I	0XFF		; load max value
@@ -171,7 +171,7 @@
 	SBC.ZP	VR9		; subtract value from character in B
 	BNE	_STRCMP_END	; if values not equal, return
 	LDA.ZP	VR8		; load value from A
-	BEQ	_STRCMP_END	; if null char, return
+	BEQ	_STRCMP_END	; if null character, return
 	JSR	INC8		; inc A
 	JSR	INC9		; inc B
 	BRA	_STRCMP_LOOP	; loop
@@ -209,7 +209,7 @@
 	SBC.ZP	VR9		; subtract value from character in B
 	BNE	_STRNCMP_END	; if values not equal, return
 	LDA.ZP	VR8		; load value from A
-	BEQ	_STRNCMP_END	; if null char, return
+	BEQ	_STRNCMP_END	; if null character, return
 	JSR	INC8		; inc A
 	JSR	INC9		; inc B
 	DEC.Z	VR10		; dec N
@@ -241,7 +241,7 @@
 	CMP.Z	VR8		; compare to C
 	BEQ	_STRCHR_END	; if equal, return at I
 	LDA.ZP	VR9		; load character from S again
-	BEQ	_STRCHR_FAIL	; if null char, return failure
+	BEQ	_STRCHR_FAIL	; if null character, return failure
 	INX			; inc I
 	CPX.I	0XFF		; compare I to max value 0xFF
 	BNE	_STRCHR_LOOP	; if not max, loop
@@ -278,7 +278,7 @@
 	STX.Z	VR10		; C is at this index, update most recent
 >_STRRCHR_LOOP_CONT
 	LDA.ZP	VR9		; load character from S again
-	BEQ	_STRRCHR_END	; if null char, return
+	BEQ	_STRRCHR_END	; if null character, return
 	INX			; inc index
 	CPX.I	0XFF		; compare index to max value 0xFF
 	BNE	_STRRCHR_LOOP	; if not max, loop
@@ -307,13 +307,13 @@
 	STA.Z	VR9 1
 >_STRCAT_LOOP1
 	LDA.ZP	VR8		; load character from B
-	BEQ	_STRCAT_LOOP2	; if null char, go to the next loop
+	BEQ	_STRCAT_LOOP2	; if null character, go to the next loop
 	JSR	INC8		; inc B
 	BRA	_STRCAT_LOOP1	; loop
 >_STRCAT_LOOP2
 	LDA.ZP	VR9		; load character from C
 	STA.ZP	VR8		; store in B
-	BEQ	_STRCAT_END	; if null char was stored, end
+	BEQ	_STRCAT_END	; if null character was stored, end
 	JSR	INC8		; inc B
 	JSR	INC9		; inc C
 	BRA	_STRCAT_LOOP2	; loop
@@ -346,13 +346,13 @@
 	STA.Z	VR10
 >_STRNCAT_LOOP1
 	LDA.ZP	VR8		; load character from B
-	BEQ	_STRNCAT_LOOP2_CHECK	; if null char, go to the next loop
+	BEQ	_STRNCAT_LOOP2_CHECK	; if null character, go to the next loop
 	JSR	INC8		; inc B
 	BRA	_STRNCAT_LOOP1	; loop
 >_STRNCAT_LOOP2
 	LDA.ZP	VR9		; load character from C
 	STA.ZP	VR8		; store in B
-	BEQ	_STRNCAT_END	; if null char was stored, end
+	BEQ	_STRNCAT_END	; if null character was stored, end
 	JSR	INC8		; inc B
 	JSR	INC9		; inc C
 	DEC.Z	VR10		; dec N
@@ -387,15 +387,15 @@
 	STA.Z	VR8 1
 >_STRTONUM_REDO_NEG
 	; get base and negative
-	LDA.ZP	VR8			; load first char in string
+	LDA.ZP	VR8			; load first character in string
 	JSR	TOUPPER			; make uppercase
-	CMP.I	ASCII_HYPHEN		; if first char is -, flip negative flag
+	CMP.I	ASCII_HYPHEN		; if first character is -, flip negative flag
 	BEQ	_STRTONUM_SET_NEG
-	CMP.I	ASCII_B			; if first char is B, use binary mode
+	CMP.I	ASCII_B			; if first character is B, use binary mode
 	BEQ	_STRTONUM_SET_BIN
-	CMP.I	ASCII_X			; if first char is X, use hex mode
+	CMP.I	ASCII_X			; if first character is X, use hex mode
 	BEQ	_STRTONUM_SET_HEX
-	JSR	ISNUM			; otherwise the first char should be 0-9, use decimal mode
+	JSR	ISNUM			; otherwise the first character should be 0-9, use decimal mode
 	CMP.I	TRUE
 	BEQ	_STRTONUM_SET_DEC
 	JMP	_STRTONUM_FAIL		; fail
@@ -411,12 +411,12 @@
 	INC.Z	VR10			; set base value to 1 for bin
 >_STRTONUM_LOOP
 	JSR	INC8			; increment string pointer
->_STRTONUM_SET_DEC	; dec label is here because first char is reused
-	LDA.ZP	VR8			; load next char
-	BNE	_STRTONUM_NOT_NUL	; continue if not null char
+>_STRTONUM_SET_DEC	; dec label is here because first character is reused
+	LDA.ZP	VR8			; load next character
+	BNE	_STRTONUM_NOT_NUL	; continue if not null character
 	JMP	_STRTONUM_END		; go to end code, number is done
 >_STRTONUM_NOT_NUL
-	JSR	ISSPACE			; test if space char
+	JSR	ISSPACE			; test if space character
 	CMP.I	FALSE
 	BEQ	_STRTONUM_NOT_SPACE	; continue if not space
 	JMP	_STRTONUM_END		; go to end code, number is done
@@ -434,15 +434,15 @@
 	ROL.Z	VR11 1
 	ASL.Z	VR11			; N * 16
 	ROL.Z	VR11 1
-	LDA.ZP	VR8			; load next char
+	LDA.ZP	VR8			; load next character
 	JSR	ISNUM			; test if number
 	CMP.I	TRUE
 	BEQ	_STRTONUM_HEX_SHORTCUT	; reuse dec code
-	LDA.ZP	VR8			; load char again
+	LDA.ZP	VR8			; load character again
 	JSR	ISHEX			; test if alpha hex because 0-9 already tested
 	CMP.I	FALSE
 	BEQ	_STRTONUM_FAIL		; fail if not
-	LDA.ZP	VR8			; load char again
+	LDA.ZP	VR8			; load character again
 	JSR	TOUPPER			; make uppercase
 	SEC				; subtract 'A' value and add 10 to get hex alpha value
 	SBC.I	ASCII_A
@@ -473,12 +473,12 @@
 	PLA
 	ADC.Z	VR11 1
 	STA.Z	VR11 1
-	LDA.ZP	VR8			; load next char
+	LDA.ZP	VR8			; load next character
 	JSR	ISNUM			; test if number
 	CMP.I	FALSE
 	BEQ	_STRTONUM_FAIL		; fail if not
 >_STRTONUM_HEX_SHORTCUT
-	LDA.ZP	VR8			; load char again
+	LDA.ZP	VR8			; load character again
 	SEC				; get dec value
 	SBC.I	ASCII_0
 	CLC				; add number to N
@@ -491,7 +491,7 @@
 >_STRTONUM_DO_BIN
 	ASL.Z	VR11			; N * 2
 	ROL.Z	VR11 1
-	LDA.ZP	VR8 			; load char
+	LDA.ZP	VR8 			; load character
 	CMP.I	ASCII_1			; if 1, set bit
 	BEQ	_STRTONUM_BIN_1
 	CMP.I	ASCII_0			; if 0, do nothing, so if NOT 0, fail
@@ -563,7 +563,7 @@
 	BEQ	_STRTRAIL_DONE		; return if the string is done
 	JSR	ISSPACE			; see if the character is a space
 	CMP.I	TRUE			; test if space
-	BEQ	_STRTRAIL_LOOP_END	; end loop and insert null char if space
+	BEQ	_STRTRAIL_LOOP_END	; end loop and insert null character if space
 	JSR	INC8			; increment VR8 to get next character
 	BRA	_STRTRAIL_LOOP		; loop
 >_STRTRAIL_LOOP_END
@@ -591,7 +591,7 @@
 	STZ.Z	VR11 1
 >_STRWORDLEN_LOOP
 	LDA.ZP	VR8			; load next character in string
-	BEQ	_STRWORDLEN_DONE	; if null char then return
+	BEQ	_STRWORDLEN_DONE	; if null character then return
 	JSR	ISSPACE			; test if character is space
 	CMP.I	TRUE
 	BEQ	_STRWORDLEN_DONE	; if space then return

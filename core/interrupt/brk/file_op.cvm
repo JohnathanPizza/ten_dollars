@@ -249,7 +249,7 @@ $_BRK_FILE_OP_DISK_TEST
 	STZ.Z	VR0 1				; will use pointer to VR0/2, set high to 0
 	LDA.I	VR0 1				; load address of VR0/2
 	STA.Z	VR0				; store
-	; ^want to write null char, use the zero part of the pointer which points to itself
+	; ^want to write null character, use the zero part of the pointer which points to itself
 	LDA	IO_FILE_A_ID			; load file ID
 	JSR	FILE_SET_NAME			; set name
 	STA.Z	VR8				; store return value
@@ -289,7 +289,7 @@ $_BRK_FILE_OP_DISK_TEST
 	STZ.Z	VR0 1				; will use pointer to VR0/2, set high to 0
 	LDA.I	VR0 1				; load address of VR0/2
 	STA.Z	VR0				; store
-	; ^want to write null char, use the zero part of the pointer which points to itself
+	; ^want to write null character, use the zero part of the pointer which points to itself
 	LDA	IO_FILE_B_ID			; load file ID
 	JSR	FILE_SET_NAME			; set name
 	STA.Z	VR8				; store return value
@@ -834,7 +834,7 @@ $_BRK_FILE_OP_DISK_TEST
 	JSR	RETRY_FLOPPY_READ		; read sector
 	CMP.I	0				; test if success
 	BNE	_BRK_FILE_OP_INFO_CLEAN		; clear stack if not
-	LDA.I	16				; load 16 char max for copy
+	LDA.I	16				; load 16 character max for copy
 	STA.Z	VR4
 	JSR	STRNCPY				; copy name to P
 	LDA.I	0				; load success value
@@ -894,7 +894,7 @@ $_BRK_FILE_OP_DISK_TEST
 	STZ.Z	VR0				; set VR0 to pointer to name string in floppy page
 	LDA.I	FLOPPY_PAGE > 8
 	STA.Z	VR0 1
-	LDA.I	16				; load 16 char max for copy
+	LDA.I	16				; load 16 character max for copy
 	STA.Z	VR4
 	JSR	STRNCPY				; copy disk name string to P
 	PLA					; restore VR0
@@ -942,7 +942,7 @@ $_BRK_FILE_OP_DISK_TEST
 	LDA.I	FLOPPY_PAGE > 8
 	STA.Z	VR1 1
 	JSR	STRNCPY				; copy N to sector
-	; null char not added since on format all data is 0 and if byte 16 is never touched then it will always be 0 / null char
+	; null character not added since on format all data is 0 and if byte 16 is never touched then it will always be 0 / null character
 	STZ.Z	VR4				; set track 0
 	JSR	RETRY_FLOPPY_WRITE		; write sector
 >_BRK_FILE_OP_DISK_RENAME_END

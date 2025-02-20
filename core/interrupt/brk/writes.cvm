@@ -15,7 +15,7 @@
 	LDY.I	0			; set string index to 0
 >_BRK_WRITES_LOOP
 	LDA.ZPY	VR0			; load character from S
-	BEQ	_BRK_WRITES_LOOP_END	; if null char then stop writing
+	BEQ	_BRK_WRITES_LOOP_END	; if null character then stop writing
 	LDA	IO_WRITE_BUFFER_HEAD	; load head idx
 	INC				; inc
 	CMP	IO_WRITE_BUFFER_TAIL	; test head + 1 against tail idx

@@ -62,7 +62,8 @@
 	LDA.I	BC_READ				; load read code
 	BRK					; get input
 	JSR	PRINTL				; reflect input
-	
+	JSR	PRINT_WAIT			; wait for reflection to output
+
 	; set initial argument var values
 	JSR	STRLEAD				; trim leading whitespace in input to get first arg
 	LDA.Z	VR11				; set argument pointer var
@@ -118,7 +119,7 @@
 	STA.Z	VR0 1
 	JSR	PRINTL				; print
 	JMP	_SHELL_LOOP			; go back to main loop and get new input
-	
+
 ;==========
 
 ; command strings
@@ -170,6 +171,18 @@
 >_SHELL_SYS_OUT5_RAW
 "PAGEID PID HOME MAP\0	; header for page information
 
+>_SHELL_PROC_STR_RAW
+"No processes available\0
+
+>_SHELL_FILE_CLAIM_STR_RAW
+"Could not get file system permission\0
+
+>_SHELL_ROM_NAME_STR_RAW
+"No ROM program with given name\0
+
+>_SHELL_NUMBER_STR_RAW
+"Number conversion failed\0
+
 ;==========
 
 ; array of all string pointers that need to be adjusted
@@ -191,7 +204,6 @@ $_SHELL_POKE_STR
 
 ; load these labels for strings instead of the raw labels where the strings are actually located
 ; these labels point to the adjusted pointer value, so do LDA	_SHELL_MISSING_ARG_STR and no adjustment is needed while still looking clean
-;Jaking it to Ryan, so good
 
 >_SHELL_MISSING_ARG_STR
 $_SHELL_MISSING_ARG_STR_RAW
@@ -209,6 +221,14 @@ $_SHELL_SYS_OUT3_RAW
 $_SHELL_SYS_OUT4_RAW
 >_SHELL_SYS_OUT5
 $_SHELL_SYS_OUT5_RAW
+>_SHELL_PROC_STR
+$_SHELL_PROC_STR_RAW
+>_SHELL_FILE_CLAIM_STR
+$_SHELL_FILE_CLAIM_STR_RAW
+>_SHELL_ROM_NAME_STR
+$_SHELL_ROM_NAME_STR_RAW
+>_SHELL_NUMBER_STR
+$_SHELL_NUMBER_STR_RAW
 
 >_SHELL_PTR_ARRAY_END
 
@@ -235,361 +255,434 @@ $_SHELL_POKE_FUNC
 ;==================================================
 
 >_SHELL_RUN_FUNC
-	JSR	_SHELL_NEXT_ARG
-	CMP.I	0
-	BNE	_SHELL_RUN_FUNC_ARG
-	JSR	_SHELL_MISSING_ARG_ERROR
-	JMP	_SHELL_LOOP
+	JSR	_SHELL_NEXT_ARG			; try to get name arg
+	CMP.I	0				; test if got arg
+	BNE	_SHELL_RUN_FUNC_ARG		; continue if so
+	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing arg error
+	JMP	_SHELL_LOOP			; return to main loop
 >_SHELL_RUN_FUNC_ARG
-	LDA.Z	_SHELL_ARG_PTR					; load pointer to name arg
-	STA.Z	VR0						; set in VR0 for ROM name finder
+	LDA.Z	_SHELL_ARG_PTR			; load pointer to arg in VR0
+	STA.Z	VR0
 	STZ.Z	VR0 1
-	JSR	ROM_PROGRAM_GET
-	CMP.I	0XFF
-	BEQ	_SHELL_RUN_FUNC_FAIL
-	STA.Z	VR4
-	LDA.I	BC_SPAWN_ROM
-	BRK
-	LDA.Z	VR11
-	STA.Z	VR4
-	LDA.I	BC_FOCUS_CHANGE
-	BRK
-	LDA.I	BC_WAIT_FOCUS
-	BRK
->_SHELL_RUN_FUNC_FAIL
-	JMP	_SHELL_LOOP
+	JSR	ROM_PROGRAM_GET			; try to get ROM program ID from name
+	CMP.I	0XFF				; test if ID found
+	BNE	_SHELL_RUN_FUNC_NAME		; continue if found
+	LDA	_SHELL_ROM_NAME_STR		; load no ROM name string
+	STA.Z	VR0
+	LDA	_SHELL_ROM_NAME_STR 1
+	STA.Z	VR0 1
+	JSR	PRINTL				; print
+	JMP	_SHELL_LOOP			; return to main loop
+>_SHELL_RUN_FUNC_NAME
+	STA.Z	VR4				; store ROM program ID in VR4/1
+	LDA.I	BC_SPAWN_ROM			; load spawn ROM code
+	BRK					; spawn new program
+	LDA.Z	VR11				; load process ID
+	CMP.I	0XFF				; test if no process allocated
+	BNE	_SHELL_RUN_FUNC_PROC		; continue if process allocated
+	LDA	_SHELL_PROC_STR			; load no process string
+	STA.Z	VR0
+	LDA	_SHELL_PROC_STR 1
+	STA.Z	VR0 1
+	JSR	PRINTL				; print
+	JMP	_SHELL_LOOP			; return to main loop
+>_SHELL_RUN_FUNC_PROC
+	STA.Z	VR4				; store new process ID in VR4/1
+	LDA.I	BC_FOCUS_CHANGE			; load focus change code
+	BRK					; change focus
+	LDA.I	BC_WAIT_FOCUS			; load wait focus code
+	BRK					; wait
+	JMP	_SHELL_LOOP			; return to main loop
+
+;==================================================
 
 >_SHELL_RUND_FUNC
-	JSR	_SHELL_NEXT_ARG
-	CMP.I	0
-	BNE	_SHELL_RUND_FUNC_ARG
-	JSR	_SHELL_MISSING_ARG_ERROR
-	JMP	_SHELL_LOOP
+	JSR	_SHELL_NEXT_ARG			; try to get name arg
+	CMP.I	0				; test if got arg
+	BNE	_SHELL_RUND_FUNC_ARG		; continue if so
+	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing arg error
+	JMP	_SHELL_LOOP			; return to main loop
 >_SHELL_RUND_FUNC_ARG
-	LDA.I	BC_FILE_CLAIM
-	BRK
-	LDA.Z	VR11
-	BEQ	_SHELL_RUND_FUNC_FAIL
-	LDA.Z	_SHELL_ARG_PTR					; load pointer to name arg
-	STA.Z	VR0						; set in VR0 for file open
-	STZ.Z	VR0 1
-	LDA.I	FILE_OP_OPEN_A					; *change to find and pass file id?
-	STA.Z	VR6
-	LDA.I	BC_FILE_OP
-	BRK
-	LDA.Z	VR11
-	BNE	_SHELL_RUND_FUNC_FAIL
-	LDA.I	BC_SPAWN_DISK
-	BRK
-	LDA.Z	VR11
-	STA.Z	VR4
-	LDA.I	BC_FILE_RELEASE
-	BRK
-	LDA.I	BC_FOCUS_CHANGE
-	BRK
-	LDA.I	BC_WAIT_FOCUS
-	BRK
->_SHELL_RUND_FUNC_FAIL
-	JMP	_SHELL_LOOP
-
->_SHELL_EXIT_FUNC
-	LDA.I	BC_EXIT
-	BRK
-
->_SHELL_CF_FUNC
-	JSR	_SHELL_NEXT_ARG
-	CMP.I	0
-	BNE	_SHELL_CF_FUNC_ARG
-	JSR	_SHELL_MISSING_ARG_ERROR
-	JMP	_SHELL_LOOP
->_SHELL_CF_FUNC_ARG
-	LDA.Z	_SHELL_ARG_PTR
+	LDA.I	BC_FILE_CLAIM			; load file claim code
+	BRK					; try to claim file perms
+	LDA.Z	VR11				; load success value
+	BNE	_SHELL_RUND_FUNC_CLAIM		; continue if claimed
+	LDA	_SHELL_FILE_CLAIM_STR		; load no file claim string
+	STA.Z	VR0
+	LDA	_SHELL_FILE_CLAIM_STR 1
+	STA.Z	VR0 1
+	JSR	PRINTL				; print
+	JMP	_SHELL_LOOP			; return to main loop
+>_SHELL_RUND_FUNC_CLAIM
+	LDA.Z	_SHELL_ARG_PTR			; load pointer to arg in VR0
 	STA.Z	VR0
 	STZ.Z	VR0 1
-	JSR	STRTONUM
-	CMP.I	FALSE
-	BEQ	_SHELL_CF_FUNC_FAIL
-	LDA.Z	VR11
-	STA.Z	VR4
-	LDA.I	BC_FOCUS_CHANGE
-	BRK
-	LDA.I	BC_WAIT_FOCUS
-	BRK
->_SHELL_CF_FUNC_FAIL
-	JMP	_SHELL_LOOP
-
->_SHELL_ME_FUNC
-	LDA	PROC_ACTIVE_ID
-	JSR	PRINTH
+	LDA.I	FILE_OP_OPEN_A			; load file open A code
+	STA.Z	VR6				; store
+	LDA.I	BC_FILE_OP			; load file op code
+	BRK					; open file A from given name
+	LDA.Z	VR11				; load success value
+	BEQ	_SHELL_RUND_FUNC_FILE		; continue if opened
+	JSR	PRINT_ERROR			; print error
 	LDA.I	ASCII_LF
 	JSR	PRINTC
-	JMP	_SHELL_LOOP
+	JMP	_SHELL_LOOP			; return to main loop
+>_SHELL_RUND_FUNC_FILE
+	LDA.I	BC_SPAWN_DISK			; load spawn disk code
+	BRK					; spawn new program from disk
+	LDA.Z	VR11				; load process ID
+	CMP.I	0XFF				; test if no process allocated
+	BNE	_SHELL_RUND_FUNC_PROC		; continue if process allocated
+	LDA	_SHELL_PROC_STR			; load no process string
+	STA.Z	VR0
+	LDA	_SHELL_PROC_STR 1
+	STA.Z	VR0 1
+	JSR	PRINTL				; print
+	JMP	_SHELL_LOOP			; return to main loop
+>_SHELL_RUND_FUNC_PROC
+	STA.Z	VR4				; store new process ID in VR4/1
+	LDA.I	BC_FILE_RELEASE			; load file release code
+	BRK					; release file claim
+	LDA.I	BC_FOCUS_CHANGE			; load focus change code
+	BRK					; change focus
+	LDA.I	BC_WAIT_FOCUS			; load wait focus code
+	BRK					; wait
+	JMP	_SHELL_LOOP			; return to main loop
 
->_SHELL_KILL_FUNC
-	; dangerous
-	JSR	_SHELL_NEXT_ARG
-	CMP.I	0
-	BNE	_SHELL_KILL_FUNC_ARG
-	JSR	_SHELL_MISSING_ARG_ERROR
-	JMP	_SHELL_LOOP
->_SHELL_KILL_FUNC_ARG
-	LDA.Z	_SHELL_ARG_PTR
+;==================================================
+
+>_SHELL_EXIT_FUNC
+	LDA.I	BC_EXIT				; load exit code
+	BRK					; exit
+
+;==================================================
+
+>_SHELL_CF_FUNC
+	JSR	_SHELL_NEXT_ARG			; try to get process ID arg
+	CMP.I	0				; test if got arg
+	BNE	_SHELL_CF_FUNC_ARG		; continue if so
+	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing arg error
+	JMP	_SHELL_LOOP			; return to main loop
+>_SHELL_CF_FUNC_ARG
+	LDA.Z	_SHELL_ARG_PTR			; load pointer to arg in VR0
 	STA.Z	VR0
 	STZ.Z	VR0 1
-	JSR	STRTONUM
-	CMP.I	FALSE
-	BEQ	_SHELL_KILL_FUNC_FAIL
-	LDA.Z	VR11
-	STA.Z	VR4
-	LDA.I	BC_KILL
-	BRK
+	JSR	STRTONUM			; try to get number value of process ID
+	CMP.I	TRUE				; test if succeeded
+	BEQ	_SHELL_CF_FUNC_NUMBER		; continue if so
+	LDA	_SHELL_NUMBER_STR		; load number convert error string
+	STA.Z	VR0
+	LDA	_SHELL_NUMBER_STR 1
+	STA.Z	VR0 1
+	JSR	PRINTL				; print
+	JMP	_SHELL_LOOP			; return to main loop
+>_SHELL_CF_FUNC_NUMBER
+	LDA.Z	VR11				; load process ID value
+	STA.Z	VR4				; store in VR4/1
+	LDA.I	BC_FOCUS_CHANGE			; load focus change code
+	BRK					; change focus
+	LDA.I	BC_WAIT_FOCUS			; load wait focus code
+	BRK					; wait
+	JMP	_SHELL_LOOP			; return to main loop
+
+;==================================================
+
+>_SHELL_ME_FUNC
+	LDA	PROC_ACTIVE_ID			; hackily access OS variables to get currently running process ID
+	JSR	PRINTH				; print
+	LDA.I	ASCII_LF
+	JSR	PRINTC
+	JMP	_SHELL_LOOP			; return to main loop
+
+;==================================================
+
+>_SHELL_KILL_FUNC
+	JSR	_SHELL_NEXT_ARG			; try to get process ID arg
+	CMP.I	0				; test if got arg
+	BNE	_SHELL_KILL_FUNC_ARG		; continue if so
+	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing arg error
+	JMP	_SHELL_LOOP			; return to main loop
+>_SHELL_KILL_FUNC_ARG
+	LDA.Z	_SHELL_ARG_PTR			; load pointer to arg in VR0
+	STA.Z	VR0
+	STZ.Z	VR0 1
+	JSR	STRTONUM			; try to get number value of process ID
+	CMP.I	TRUE				; test if succeeded
+	BEQ	_SHELL_KILL_FUNC_NUMBER		; continue if so
+	LDA	_SHELL_NUMBER_STR		; load number convert error string
+	STA.Z	VR0
+	LDA	_SHELL_NUMBER_STR 1
+	STA.Z	VR0 1
+	JSR	PRINTL				; print
+	JMP	_SHELL_LOOP			; return to main loop
+>_SHELL_KILL_FUNC_NUMBER
+	LDA.Z	VR11				; load process ID to kill
+	STA.Z	VR4				; store in VR4/1
+	LDA.I	BC_KILL				; load kill code
+	BRK					; kill
 >_SHELL_KILL_FUNC_FAIL
-	JMP	_SHELL_LOOP
+	JMP	_SHELL_LOOP			; return to main loop
 
+;==================================================
+
+; uses hacky OS variable access for finding out stuff about processes
 >_SHELL_SYS_FUNC
-	; who owns file perms
-	; print the entire page map
-	; print the entire page table
-
-	LDA	_SHELL_SYS_OUT1
+	LDA	_SHELL_SYS_OUT1			; print sys message 1
 	STA.Z	VR0
 	LDA	_SHELL_SYS_OUT1 1
 	STA.Z	VR0 1
 	JSR	PRINTL
-	STZ.Z	VR3	; total active procs
-	STZ.Z	VR3 1	; total pages in use
-	LDX.I 0
+	STZ.Z	VR3				; reset counter for total active processes
+	STZ.Z	VR3 1				; reset counter for total pages in use
+	LDX.I	0				; set loop counter for processes to 0
 >_SHELL_SYS_FUNC_DEFAULT_LOOP
-	LDA.X	PROC_STATE
-	CMP.I	PROC_STATE_NULL
-	BNE	_SHELL_SYS_FUNC_DEFAULT_LOOP_GOOD
-	JMP	_SHELL_SYS_FUNC_DEFAULT_LOOP_SKIP
+	LDA.X	PROC_STATE			; load process state
+	CMP.I	PROC_STATE_NULL			; test if in null state
+	BNE	_SHELL_SYS_FUNC_DEFAULT_LOOP_GOOD	; continue if not in null state
+	JMP	_SHELL_SYS_FUNC_DEFAULT_LOOP_SKIP	; else skip this process
 >_SHELL_SYS_FUNC_DEFAULT_LOOP_GOOD
-	INC.Z	VR3
-	; print this process
-	TXA		; print process ID
+	INC.Z	VR3				; increment total number of active processes
+	TXA					; print process ID
 	JSR	PRINTH
 	LDA.I	ASCII_SPACE
 	JSR	PRINTC
 	JSR	PRINTC
-	TXA			; print process name
+	TXA					; process ID to X
+	ASL					; * 16 for pointer offset into process name page
 	ASL
 	ASL
 	ASL
-	ASL
-	STA.Z	VR0
+	STA.Z	VR0				; store low byte of name pointer
 	LDA.I	PROC_NAME > 8
 	ADC.I	0
-	STA.Z	VR0 1
-	JSR	PRINTS
-	JSR	STRLEN
-	EOR.I	0XFF
-	INC
-	CLC
-	ADC.I	17
-	; A has spaces left to print
+	STA.Z	VR0 1				; store high byte of name pointer
+	JSR	PRINTS				; print process name
+	JSR	STRLEN				; get length of process name
+	EOR.I	0XFF				; make negative
+	INC					; + 1
+	CLC					; CLC for ADC
+	ADC.I	17				; add 17 to get number of spaces left to print for alignment of other stuff later
 >_SHELL_SYS_FUNC_SPACE_LOOP
-	PHA
-	LDA.I	ASCII_SPACE
-	JSR	PRINTC
-	PLA
-	DEC
-	BNE	_SHELL_SYS_FUNC_SPACE_LOOP
-	; print state
-	LDA.X	PROC_STATE
-	JSR	PRINTH
-	LDA.I	ASCII_SPACE
-	JSR	PRINTC
+	PHA					; save number of spaces to print
+	LDA.I	ASCII_SPACE			; load space character
+	JSR	PRINTC				; print
+	PLA					; restore number of spaces
+	DEC					; decrement
+	BNE	_SHELL_SYS_FUNC_SPACE_LOOP	; loop if not done
+	LDA.X	PROC_STATE			; load process state
+	JSR	PRINTH				; print it
+	LDA.I	ASCII_SPACE			; space alignment
 	JSR	PRINTC
 	JSR	PRINTC
 	JSR	PRINTC
-	; print offset
-	TXA
-	ASL
-	TAX
-	LDA.X	PROC_PTROFF 1
+	JSR	PRINTC
+	TXA					; move process ID to A
+	ASL					; * 2
+	TAX					; back to X
+	LDA.X	PROC_PTROFF 1			; print pointer offset constant
 	JSR	PRINTH
 	LDA.X	PROC_PTROFF
 	JSR	PRINTH
-	LDA.I	ASCII_SPACE
+	LDA.I	ASCII_SPACE			; space alignment
 	JSR	PRINTC
 	JSR	PRINTC
 	JSR	PRINTC
-	TXA
-	LSR
-	TAX
-	; print stack size
-	LDA.I	0XFF
-	SEC
-	SBC.X	PROC_S
-	JSR	PRINTH
-	LDA.I	ASCII_SPACE
+	TXA					; process ID * 2 to A
+	LSR					; divide by 2 to get process ID back
+	TAX					; process ID to X
+	LDA.I	0XFF				; load 0xFF
+	SEC					; SEC for SBC
+	SBC.X	PROC_S				; subtract 0xFF with process stack pointer to get number of bytes on stack
+	JSR	PRINTH				; print
+	LDA.I	ASCII_SPACE			; space alignment
 	JSR	PRINTC
 	JSR	PRINTC
 	JSR	PRINTC
 	JSR	PRINTC
 	; print pages
-	LDY.I	0
-	STZ.Z	VR2	; code pages
-	STZ.Z	VR2 1	; data pages
+	LDY.I	0				; load page index counter as 0 for upcoming page counting
+	STZ.Z	VR2				; reset code page count to 0
+	STZ.Z	VR2 1				; reset data page count to 0
 >_SHELL_SYS_FUNC_PAGE_LOOP
-	TXA
-	CMP.Y	PAGE_TABLE_PROCID
-	BNE	_SHELL_SYS_FUNC_PAGE_LOOP_SKIP
-	INC.Z	VR3 1
-	LDA.Y	PAGE_TABLE_HOME
-	CMP.I	0X80
-	BGE	_SHELL_SYS_FUNC_PAGE_LOOP_DATA
-	INC.Z	VR2
-	BRA	_SHELL_SYS_FUNC_PAGE_LOOP_SKIP
+	TXA					; move process ID to A
+	CMP.Y	PAGE_TABLE_PROCID		; test if page in page table belongs to process
+	BNE	_SHELL_SYS_FUNC_PAGE_LOOP_SKIP	; skip if not belonging
+	INC.Z	VR3 1				; increment total active page count
+	LDA.Y	PAGE_TABLE_HOME			; load value of page home
+	CMP.I	0X80				; test
+	BGE	_SHELL_SYS_FUNC_PAGE_LOOP_DATA	; increment data page count if data page
+	INC.Z	VR2				; else increment code page count
+	BRA	_SHELL_SYS_FUNC_PAGE_LOOP_SKIP	; skip over incrementing data page count
 >_SHELL_SYS_FUNC_PAGE_LOOP_DATA
-	INC.Z	VR2 1
+	INC.Z	VR2 1				; increment data page count
 >_SHELL_SYS_FUNC_PAGE_LOOP_SKIP
-	INY
-	CPY.I	PAGE_COUNT_TOTAL
-	BNE	_SHELL_SYS_FUNC_PAGE_LOOP
-	LDA.Z	VR2
-	JSR	PRINTH
-	LDA.I	ASCII_SPACE
+	INY					; increment page index counter
+	CPY.I	PAGE_COUNT_TOTAL		; test if looped over all pages
+	BNE	_SHELL_SYS_FUNC_PAGE_LOOP	; loop if not done
+	LDA.Z	VR2				; load code page count
+	JSR	PRINTH				; print
+	LDA.I	ASCII_SPACE			; space alignment
 	JSR	PRINTC
 	JSR	PRINTC
 	JSR	PRINTC
 	JSR	PRINTC
-	LDA.Z	VR2 1
-	JSR	PRINTH
-	LDA.I	ASCII_LF
+	LDA.Z	VR2 1				; load data page count
+	JSR	PRINTH				; print
+	LDA.I	ASCII_LF			; newline
 	JSR	PRINTC
 >_SHELL_SYS_FUNC_DEFAULT_LOOP_SKIP
-	INX
-	CPX.I	PROC_COUNT
-	BEQ	_SHELL_SYS_FUNC_TOTALS
-	JMP	_SHELL_SYS_FUNC_DEFAULT_LOOP
+	INX					; increment process loop counter
+	CPX.I	PROC_COUNT			; test if all processes checked
+	BEQ	_SHELL_SYS_FUNC_TOTALS		; continue if done
+	JMP	_SHELL_SYS_FUNC_DEFAULT_LOOP	; loop if not done
 >_SHELL_SYS_FUNC_TOTALS
-	LDA.Z	VR3
+	LDA.Z	VR3				; load number of active processes
 	STA.Z	VR4
 	STZ.Z	VR4 1
-	JSR	PRINTDU16
-	LDA	_SHELL_SYS_OUT2
+	JSR	PRINTDU16			; print
+	LDA	_SHELL_SYS_OUT2			; print sys message 2
 	STA.Z	VR0
 	LDA	_SHELL_SYS_OUT2 1
 	STA.Z	VR0 1
 	JSR	PRINTL
-	LDA.Z	VR3 1
+	LDA.Z	VR3 1				; load number of active pages
 	STA.Z	VR4
 	STZ.Z	VR4 1
-	JSR	PRINTDU16
-	LDA	_SHELL_SYS_OUT3
+	JSR	PRINTDU16			; print
+	LDA	_SHELL_SYS_OUT3			; pint sys message 3
 	STA.Z	VR0
 	LDA	_SHELL_SYS_OUT3 1
 	STA.Z	VR0 1
 	JSR	PRINTL
-	; file perm owner
-	LDA	IO_FILE_CLAIM
-	JSR	PRINTH
-	LDA	_SHELL_SYS_OUT4
+	LDA	IO_FILE_CLAIM			; load process ID that owns file permissions
+	JSR	PRINTH				; print
+	LDA	_SHELL_SYS_OUT4			; print sys message 4
 	STA.Z	VR0
 	LDA	_SHELL_SYS_OUT4 1
 	STA.Z	VR0 1
 	JSR	PRINTL
-	; map
-	LDA	_SHELL_SYS_OUT5
+	LDA	_SHELL_SYS_OUT5			; print sys message 5
 	STA.Z	VR0
 	LDA	_SHELL_SYS_OUT5 1
 	STA.Z	VR0 1
 	JSR	PRINTL
-	LDX.I	0
+	LDX.I	0				; load page loop counter as 0
 >_SHELL_SYS_FUNC_TABLE_LOOP
-	TXA
-	JSR	PAGE_MAP_FIND
-	CMP.I	PAGE_COUNT_TOTAL
-	BEQ	_SHELL_SYS_FUNC_TABLE_LOOP_SKIP
-	PHA
-	TXA
-	JSR	PRINTH
-	LDA.I	ASCII_SPACE
+	TXA					; move page ID to A
+	JSR	PAGE_MAP_FIND			; find location of page ID in page map
+	CMP.I	PAGE_COUNT_TOTAL		; test if actually in map
+	BEQ	_SHELL_SYS_FUNC_TABLE_LOOP_SKIP	; skip if not
+	PHA					; push map location
+	TXA					; move page ID to A again
+	JSR	PRINTH				; print page ID
+	LDA.I	ASCII_SPACE			; space alignment
 	JSR	PRINTC
 	JSR	PRINTC
 	JSR	PRINTC
 	JSR	PRINTC
 	JSR	PRINTC
-	LDA.X	PAGE_TABLE_PROCID
-	JSR	PRINTH
-	LDA.I	ASCII_SPACE
+	LDA.X	PAGE_TABLE_PROCID		; load process ID that owns page
+	JSR	PRINTH				; print
+	LDA.I	ASCII_SPACE			; space alignment
 	JSR	PRINTC
 	JSR	PRINTC
-	LDA.X	PAGE_TABLE_HOME
-	JSR	PRINTH
-	LDA.I	ASCII_SPACE
+	LDA.X	PAGE_TABLE_HOME			; load home value of page
+	JSR	PRINTH				; print
+	LDA.I	ASCII_SPACE			; space alignment
 	JSR	PRINTC
 	JSR	PRINTC
 	JSR	PRINTC
-	PLA
-	JSR	PRINTH
+	PLA					; get map value
+	JSR	PRINTH				; print
 	LDA.I	ASCII_LF
 	JSR	PRINTC
 >_SHELL_SYS_FUNC_TABLE_LOOP_SKIP
-	INX
-	CPX.I	PAGE_COUNT_TOTAL
-	BNE	_SHELL_SYS_FUNC_TABLE_LOOP
-	JMP	_SHELL_LOOP
+	INX					; increment loop counter
+	CPX.I	PAGE_COUNT_TOTAL		; test if looped over all pages
+	BNE	_SHELL_SYS_FUNC_TABLE_LOOP	; loop if not
+	JMP	_SHELL_LOOP			; return to main loop
+
+;==================================================
 
 >_SHELL_PEEK_FUNC
-	JSR	_SHELL_NEXT_ARG
-	CMP.I	0
-	BNE	_SHELL_PEEK_FUNC_ARG
-	JSR	_SHELL_MISSING_ARG_ERROR
-	JMP	_SHELL_LOOP
+	JSR	_SHELL_NEXT_ARG			; try to get address arg
+	CMP.I	0				; test if got arg
+	BNE	_SHELL_PEEK_FUNC_ARG		; continue if so
+	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing arg error
+	JMP	_SHELL_LOOP			; return to main loop
 >_SHELL_PEEK_FUNC_ARG
-	LDA.Z	_SHELL_ARG_PTR
+	LDA.Z	_SHELL_ARG_PTR			; load pointer to arg in VR0
 	STA.Z	VR0
 	STZ.Z	VR0 1
-	JSR	STRTONUM
-	CMP.I	FALSE
-	BEQ	_SHELL_PEEK_FUNC_FAIL
-	LDA.ZP	VR11
-	JSR	PRINTH
+	JSR	STRTONUM			; get number value of address
+	CMP.I	TRUE				; test if succeeded
+	BEQ	_SHELL_PEEK_FUNC_NUMBER		; continue if so
+	LDA	_SHELL_NUMBER_STR		; load number convert error string
+	STA.Z	VR0
+	LDA	_SHELL_NUMBER_STR 1
+	STA.Z	VR0 1
+	JSR	PRINTL				; print
+	JMP	_SHELL_LOOP			; return to main loop
+>_SHELL_PEEK_FUNC_NUMBER
+	LDA.ZP	VR11				; load value in memory from address
+	JSR	PRINTH				; print value
 	LDA.I	ASCII_LF
 	JSR	PRINTC
->_SHELL_PEEK_FUNC_FAIL
-	JMP	_SHELL_LOOP
+	JSR	_SHELL_NEXT_ARG			; try to get other addresses
+	CMP.I	0				; test if another address given
+	BNE	_SHELL_PEEK_FUNC_ARG		; do it all again if another address
+	JMP	_SHELL_LOOP			; return to main loop
+
+;==================================================
 
 >_SHELL_POKE_FUNC
-	JSR	_SHELL_NEXT_ARG
-	CMP.I	0
-	BNE	_SHELL_POKE_FUNC_ARG1
-	JSR	_SHELL_MISSING_ARG_ERROR
-	JMP	_SHELL_LOOP
+	JSR	_SHELL_NEXT_ARG			; try to get address arg
+	CMP.I	0				; test if got arg
+	BNE	_SHELL_POKE_FUNC_ARG1		; continue if so
+	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing arg error
+	JMP	_SHELL_LOOP			; return to main loop
 >_SHELL_POKE_FUNC_ARG1
-	LDA.Z	_SHELL_ARG_PTR
+	LDA.Z	_SHELL_ARG_PTR			; load pointer to arg in VR0
 	STA.Z	VR0
 	STZ.Z	VR0 1
-	JSR	STRTONUM
-	CMP.I	FALSE
-	BEQ	_SHELL_POKE_FUNC_FAIL
-	LDA.Z	VR11
-	PHA
+	JSR	STRTONUM			; get number value of address
+	CMP.I	TRUE				; test if succeeded
+	BEQ	_SHELL_POKE_FUNC_NUM1		; continue if so
+	LDA	_SHELL_NUMBER_STR		; load number convert error string
+	STA.Z	VR0
+	LDA	_SHELL_NUMBER_STR 1
+	STA.Z	VR0 1
+	JSR	PRINTL				; print
+	JMP	_SHELL_LOOP			; return to main loop
+>_SHELL_POKE_FUNC_NUM1
+	LDA.Z	VR11				; save value of address in VR7
+	STA.Z	VR7
 	LDA.Z	VR11 1
-	PHA
-	JSR	_SHELL_NEXT_ARG
-	CMP.I	0
-	BNE	_SHELL_POKE_FUNC_ARG2
-	JSR	_SHELL_MISSING_ARG_ERROR
-	JMP	_SHELL_LOOP
+	STA.Z	VR7 1
+	JSR	_SHELL_NEXT_ARG			; try to get data arg
+	CMP.I	0				; test if got arg
+	BNE	_SHELL_POKE_FUNC_ARG2		; continue if so
+	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing arg error
+	JMP	_SHELL_LOOP			; return to main loop
 >_SHELL_POKE_FUNC_ARG2
-	LDA.Z	_SHELL_ARG_PTR
+	LDA.Z	_SHELL_ARG_PTR			; load pointer to arg in VR0, VR0/1 still 0
 	STA.Z	VR0
-	STZ.Z	VR0 1
-	JSR	STRTONUM
-	CMP.I	FALSE
-	BEQ	_SHELL_POKE_FUNC_FAIL
-	PLA
-	STA.Z	VR8 1
-	PLA
-	STA.Z	VR8
-	LDA.Z	VR11
-	STA.ZP	VR8
->_SHELL_POKE_FUNC_FAIL
-	JMP	_SHELL_LOOP
+	JSR	STRTONUM			; get number value of data
+	CMP.I	TRUE				; test if succeeded
+	BEQ	_SHELL_POKE_FUNC_NUM2		; continue if so
+	LDA	_SHELL_NUMBER_STR		; load number convert error string
+	STA.Z	VR0
+	LDA	_SHELL_NUMBER_STR 1
+	STA.Z	VR0 1
+	JSR	PRINTL				; print
+	JMP	_SHELL_LOOP			; return to main loop
+>_SHELL_POKE_FUNC_NUM2
+	LDA.Z	VR11				; store data at address from above
+	STA.ZP	VR7
+	JSR	_SHELL_NEXT_ARG			; try to get other address value pairs
+	CMP.I	0				; test if pair left
+	BNE	_SHELL_POKE_FUNC_ARG1		; do it all again if another pair
+	JMP	_SHELL_LOOP			; return to main loop
 
 ;==================================================
 

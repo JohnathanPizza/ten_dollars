@@ -84,6 +84,7 @@
 	LDA.I	BC_READ				; load read code
 	BRK					; get input
 	JSR	PRINTL				; reflect input
+	JSR	PRINT_WAIT			; wait for reflection to output
 
 	; set initial argument var values
 	JSR	STRLEAD				; trim leading whitespace in input to get first arg
@@ -733,7 +734,7 @@ $_FM_COPY_FUNC
 	JSR	_FM_NEXT_ARG			; try to get number of bytes to read
 	CMP.I	0				; test if given arg
 	BNE	_FM_READ_FUNC_ARG		; continue if arg given
-	JMP	_FM_LOOP			; return to main loop, no error if no more args found
+	JMP	_FM_LOOP			; return to main loop, no error if no more arguments found
 >_FM_READ_FUNC_ARG
 	LDA.Z	_FM_ARG_PTR			; load pointer to value arg
 	STA.Z	VR0				; set in VR0 for STRTONUM
@@ -807,7 +808,7 @@ $_FM_COPY_FUNC
 	JSR	_FM_NEXT_ARG			; try to get byte
 	CMP.I	0				; test if given arg
 	BNE	_FM_WRITE_FUNC_ARG		; continue if arg given
-	JMP	_FM_LOOP			; return to main loop, no error if no more args found
+	JMP	_FM_LOOP			; return to main loop, no error if no more arguments found
 >_FM_WRITE_FUNC_ARG
 	LDA.Z	_FM_ARG_PTR			; load pointer to value arg
 	STA.Z	VR0				; set in VR0 for STRTONUM

@@ -87,7 +87,7 @@
 	STA.Y	PROC_A			; store in process A register
 	LDA.I	0XFF			; load base process ID
 	STA.Y	PROC_PARENT		; store parent
-	LDA.I	PROC_STATE_INIT_ROM	; load init rom state
+	LDA.I	PROC_STATE_INIT_ROM	; load INIT_ROM state
 	STA.Y	PROC_STATE		; store in process state
 	LDA.I	1			; load 1 for low priority
 	STA.Y	PROC_SCHEDULE_PRIORITY	; store in process priority

@@ -973,6 +973,8 @@ $_FM_COPY_FUNC
 	LDA.Z	_FM_ARG_LEN			; load new argument length value to indicate if new argument found
 	RTS					; return
 
+;==================================================
+
 >_FM_CLOSE_FILES
 	PHA					; store A
 	LDA.I	FILE_OP_CLOSE_A			; load file close A op code

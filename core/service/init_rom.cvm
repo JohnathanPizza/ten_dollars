@@ -82,7 +82,7 @@
 	STA.Z	VR1 1
 	STZ.Z	VR1
 	LDX	PROC_ACTIVE_ID		; load process ID
-	LDA.X	PROC_A			; get rom program ID from A like earlier
+	LDA.X	PROC_A			; get ROM program ID from A like earlier
 	ASL				; ID * 2 for offset again
 	TAX				; move offset to X
 	LDA.X	ROM_PROGRAM_START_PTRS	; load pointer to program code in VR0
@@ -143,10 +143,10 @@
 
 	; set name
 	LDX	PROC_ACTIVE_ID		; get process ID
-	LDA.X	PROC_A			; get rom program ID
+	LDA.X	PROC_A			; get ROM program ID
 	ASL				; * 2 for pointer width
 	TAX				; move to X for indexing
-	LDA.X	ROM_PROGRAM_NAME_STRS	; move rom program name pointer to VR0
+	LDA.X	ROM_PROGRAM_NAME_STRS	; move ROM program name pointer to VR0
 	STA.Z	VR0
 	LDA.X	ROM_PROGRAM_NAME_STRS 1
 	STA.Z	VR0 1

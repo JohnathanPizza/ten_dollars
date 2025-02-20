@@ -2,10 +2,10 @@
 ; use for basic interaction with system
 
 ; ZP map
-=_SHELL_ARG_PTR		0 ; 1
-=_SHELL_ARG_LEN		1 ; 1
-=_SHELL_TOT_LEN		2 ; 1
-=_SHELL_INPUT_BUF	0X10 ; 0x40
+=_SHELL_ARG_PTR		0 	; 1
+=_SHELL_ARG_LEN		1 	; 1
+=_SHELL_ARG_END		2 	; 1
+=_SHELL_INPUT_BUF	0X10	; 0x40
 
 ; constants
 =_SHELL_INPUT_BUF_LEN	0X40
@@ -53,53 +53,72 @@
 	STA.Z	VR0 1
 	JSR	PRINTS				; print
 
-	JSR	_SHELL_GET_INPUT
-	JSR	_SHELL_NEXT_ARG
-	CMP.I	FALSE
-	BEQ	_SHELL_LOOP
-
-	LDA.Z	_SHELL_ARG_PTR
-	STA.Z	VR1
-	STZ.Z	VR1 1
-	LDA.Z	_SHELL_ARG_LEN
+	; get user input
+	LDA.I	_SHELL_INPUT_BUF		; load pointer to input buffer
+	STA.Z	VR0				; set read buffer to input buffer
+	STZ.Z	VR0 1
+	LDA.I	_SHELL_INPUT_BUF_LEN		; load input buffer size
 	STA.Z	VR4
-	LDX.I	0
+	LDA.I	BC_READ				; load read code
+	BRK					; get input
+	JSR	PRINTL				; reflect input
+	
+	; set initial argument var values
+	JSR	STRLEAD				; trim leading whitespace in input to get first arg
+	LDA.Z	VR11				; set argument pointer var
+	STA.Z	_SHELL_ARG_PTR
+	STA.Z	VR0				; also set VR0 to trimmed str pointer (VR0 1 is still 0x00)
+	JSR	STRWORDLEN			; get length of argument
+	LDA.Z	VR11				; test argument length
+	BEQ	_SHELL_LOOP			; go back to main loop if length is 0
+	STA.Z	_SHELL_ARG_LEN			; set argument length var
+	TAY					; move arg len to Y to access character that ends the argument (WS or nul char)
+	LDA.ZPY	VR0				; load ending char
+	STA.Z	_SHELL_ARG_END			; set as argument ending char var
+	LDA.I	ASCII_NUL			; load nul char value
+	STA.ZPY	VR0				; set ending char as nul char for easy use of string functions later
+
+	; search for given command
+	LDA.Z	_SHELL_ARG_PTR			; load pointer to the start of the first argument
+	STA.Z	VR1
+	STZ.Z	VR1 1				; zero here because the input buffer is in the zero page so the arg pointer must be too
+	LDA.Z	_SHELL_ARG_LEN			; load total length of argument for strncmp
+	STA.Z	VR4
+	LDX.I	0				; set array search index to 0
 >_SHELL_SEARCH_LOOP
-	LDA.X	_SHELL_FUNC_STR_PTR_ARRAY
+	LDA.X	_SHELL_FUNC_STR_PTR_ARRAY	; load next command string pointer from array
 	STA.Z	VR0
 	LDA.X	_SHELL_FUNC_STR_PTR_ARRAY 1
 	STA.Z	VR0 1
-	JSR	STRLEN
-	CMP.Z	VR4
-	BNE	_SHELL_SEARCH_LOOP_SKIP
-	JSR	STRNCMP
-	CMP.I	0
-	BNE	_SHELL_SEARCH_LOOP_SKIP
-	JMP.XP	_SHELL_FUNC_ARRAY
+	JSR	STRLEN				; get length of the command string
+	CMP.Z	VR4				; test if given argument and command are same length
+	BNE	_SHELL_SEARCH_LOOP_SKIP		; if not then go to next command
+	JSR	STRNCMP				; compare argument string to command string
+	CMP.I	0				; test if they were equal
+	BNE	_SHELL_SEARCH_LOOP_SKIP		; if not then go to next command
+	JMP.XP	_SHELL_FUNC_ARRAY		; use parallel function pointer array to call func corresponding to command string
 >_SHELL_SEARCH_LOOP_SKIP
+	INX					; X + 2 to set at next command string
 	INX
-	INX
-	CPX.I	_SHELL_FUNC_STR_PTR_ARRAY_END - _SHELL_FUNC_STR_PTR_ARRAY
-	BNE	_SHELL_SEARCH_LOOP
+	CPX.I	_SHELL_FUNC_STR_PTR_ARRAY_END - _SHELL_FUNC_STR_PTR_ARRAY	; test if searched through all command strings
+	BNE	_SHELL_SEARCH_LOOP		; loop again on new command string if not
 
-	LDA.I	ASCII_QUOTE
+	; no matching command string found
+	LDA.I	ASCII_QUOTE			; print " to wrap given command argument
 	JSR	PRINTC
-	LDA.Z	_SHELL_ARG_PTR
+	LDA.Z	_SHELL_ARG_PTR			; load pointer to given command
 	STA.Z	VR0
 	STZ.Z	VR0 1
-	LDY.Z	_SHELL_ARG_LEN
-	LDA.I	ASCII_NUL
-	STA.ZPY	VR0
-	JSR	PRINTS
-	LDA.I	ASCII_QUOTE
+	JSR	PRINTS				; print given command
+	LDA.I	ASCII_QUOTE			; add another "
 	JSR	PRINTC
-	LDA	_SHELL_COMMAND_ERROR_STR
+	LDA	_SHELL_COMMAND_ERROR_STR	; load bad command error string
 	STA.Z	VR0
 	LDA	_SHELL_COMMAND_ERROR_STR 1
 	STA.Z	VR0 1
-	JSR	PRINTL
-	JMP	_SHELL_LOOP
-
+	JSR	PRINTL				; print
+	JMP	_SHELL_LOOP			; go back to main loop and get new input
+	
 ;==========
 
 ; command strings
@@ -217,17 +236,14 @@ $_SHELL_POKE_FUNC
 
 >_SHELL_RUN_FUNC
 	JSR	_SHELL_NEXT_ARG
-	CMP.I	TRUE
-	BEQ	_SHELL_RUN_FUNC_ARG
+	CMP.I	0
+	BNE	_SHELL_RUN_FUNC_ARG
 	JSR	_SHELL_MISSING_ARG_ERROR
 	JMP	_SHELL_LOOP
 >_SHELL_RUN_FUNC_ARG
 	LDA.Z	_SHELL_ARG_PTR					; load pointer to name arg
-	STA.Z	VR0						; set in VR0 for rom name finder
+	STA.Z	VR0						; set in VR0 for ROM name finder
 	STZ.Z	VR0 1
-	LDA.I	ASCII_NUL					; truncate arg
-	LDY.Z	_SHELL_ARG_LEN
-	STA.ZPY	VR0
 	JSR	ROM_PROGRAM_GET
 	CMP.I	0XFF
 	BEQ	_SHELL_RUN_FUNC_FAIL
@@ -245,8 +261,8 @@ $_SHELL_POKE_FUNC
 
 >_SHELL_RUND_FUNC
 	JSR	_SHELL_NEXT_ARG
-	CMP.I	TRUE
-	BEQ	_SHELL_RUND_FUNC_ARG
+	CMP.I	0
+	BNE	_SHELL_RUND_FUNC_ARG
 	JSR	_SHELL_MISSING_ARG_ERROR
 	JMP	_SHELL_LOOP
 >_SHELL_RUND_FUNC_ARG
@@ -254,21 +270,15 @@ $_SHELL_POKE_FUNC
 	BRK
 	LDA.Z	VR11
 	BEQ	_SHELL_RUND_FUNC_FAIL
-
 	LDA.Z	_SHELL_ARG_PTR					; load pointer to name arg
 	STA.Z	VR0						; set in VR0 for file open
 	STZ.Z	VR0 1
-	LDA.I	ASCII_NUL					; truncate arg
-	LDY.Z	_SHELL_ARG_LEN
-	STA.ZPY	VR0
-
 	LDA.I	FILE_OP_OPEN_A					; *change to find and pass file id?
 	STA.Z	VR6
 	LDA.I	BC_FILE_OP
 	BRK
 	LDA.Z	VR11
 	BNE	_SHELL_RUND_FUNC_FAIL
-
 	LDA.I	BC_SPAWN_DISK
 	BRK
 	LDA.Z	VR11
@@ -288,17 +298,14 @@ $_SHELL_POKE_FUNC
 
 >_SHELL_CF_FUNC
 	JSR	_SHELL_NEXT_ARG
-	CMP.I	TRUE
-	BEQ	_SHELL_CF_FUNC_ARG
+	CMP.I	0
+	BNE	_SHELL_CF_FUNC_ARG
 	JSR	_SHELL_MISSING_ARG_ERROR
 	JMP	_SHELL_LOOP
 >_SHELL_CF_FUNC_ARG
 	LDA.Z	_SHELL_ARG_PTR
 	STA.Z	VR0
 	STZ.Z	VR0 1
-	LDA.I	ASCII_NUL
-	LDY.Z	_SHELL_ARG_LEN
-	STA.ZPY	VR0
 	JSR	STRTONUM
 	CMP.I	FALSE
 	BEQ	_SHELL_CF_FUNC_FAIL
@@ -321,17 +328,14 @@ $_SHELL_POKE_FUNC
 >_SHELL_KILL_FUNC
 	; dangerous
 	JSR	_SHELL_NEXT_ARG
-	CMP.I	TRUE
-	BEQ	_SHELL_KILL_FUNC_ARG
+	CMP.I	0
+	BNE	_SHELL_KILL_FUNC_ARG
 	JSR	_SHELL_MISSING_ARG_ERROR
 	JMP	_SHELL_LOOP
 >_SHELL_KILL_FUNC_ARG
 	LDA.Z	_SHELL_ARG_PTR
 	STA.Z	VR0
 	STZ.Z	VR0 1
-	LDA.I	ASCII_NUL
-	LDY.Z	_SHELL_ARG_LEN
-	STA.ZPY	VR0
 	JSR	STRTONUM
 	CMP.I	FALSE
 	BEQ	_SHELL_KILL_FUNC_FAIL
@@ -531,17 +535,14 @@ $_SHELL_POKE_FUNC
 
 >_SHELL_PEEK_FUNC
 	JSR	_SHELL_NEXT_ARG
-	CMP.I	TRUE
-	BEQ	_SHELL_PEEK_FUNC_ARG
+	CMP.I	0
+	BNE	_SHELL_PEEK_FUNC_ARG
 	JSR	_SHELL_MISSING_ARG_ERROR
 	JMP	_SHELL_LOOP
 >_SHELL_PEEK_FUNC_ARG
 	LDA.Z	_SHELL_ARG_PTR
 	STA.Z	VR0
 	STZ.Z	VR0 1
-	LDA.I	ASCII_NUL
-	LDY.Z	_SHELL_ARG_LEN
-	STA.ZPY	VR0
 	JSR	STRTONUM
 	CMP.I	FALSE
 	BEQ	_SHELL_PEEK_FUNC_FAIL
@@ -554,17 +555,14 @@ $_SHELL_POKE_FUNC
 
 >_SHELL_POKE_FUNC
 	JSR	_SHELL_NEXT_ARG
-	CMP.I	TRUE
-	BEQ	_SHELL_POKE_FUNC_ARG1
+	CMP.I	0
+	BNE	_SHELL_POKE_FUNC_ARG1
 	JSR	_SHELL_MISSING_ARG_ERROR
 	JMP	_SHELL_LOOP
 >_SHELL_POKE_FUNC_ARG1
 	LDA.Z	_SHELL_ARG_PTR
 	STA.Z	VR0
 	STZ.Z	VR0 1
-	LDA.I	ASCII_NUL
-	LDY.Z	_SHELL_ARG_LEN
-	STA.ZPY	VR0
 	JSR	STRTONUM
 	CMP.I	FALSE
 	BEQ	_SHELL_POKE_FUNC_FAIL
@@ -572,19 +570,15 @@ $_SHELL_POKE_FUNC
 	PHA
 	LDA.Z	VR11 1
 	PHA
-	JSR	_SHELL_ARG_RESTORE
 	JSR	_SHELL_NEXT_ARG
-	CMP.I	TRUE
-	BEQ	_SHELL_POKE_FUNC_ARG2
+	CMP.I	0
+	BNE	_SHELL_POKE_FUNC_ARG2
 	JSR	_SHELL_MISSING_ARG_ERROR
 	JMP	_SHELL_LOOP
 >_SHELL_POKE_FUNC_ARG2
 	LDA.Z	_SHELL_ARG_PTR
 	STA.Z	VR0
 	STZ.Z	VR0 1
-	LDA.I	ASCII_NUL
-	LDY.Z	_SHELL_ARG_LEN
-	STA.ZPY	VR0
 	JSR	STRTONUM
 	CMP.I	FALSE
 	BEQ	_SHELL_POKE_FUNC_FAIL
@@ -616,80 +610,44 @@ $_SHELL_POKE_FUNC
 
 ;==================================================
 
-; gets new user input in the input buffer and resets arg vars
->_SHELL_GET_INPUT
-	PHA					; store A
-	LDA.Z	VR0				; save VR0
-	PHA
-	LDA.Z	VR0 1
-	PHA
-	LDA.Z	VR4				; save VR4/1
-	PHA
-	LDA.I	_SHELL_INPUT_BUF		; load pointer to input buffer
-	STA.Z	_SHELL_ARG_PTR			; reset arg pointer
-	STZ.Z	_SHELL_ARG_LEN			; reset arg length
-	STA.Z	VR0				; set read buffer to input buffer
-	STZ.Z	VR0 1
-	LDA.I	_SHELL_INPUT_BUF_LEN		; load input buffer size
-	STA.Z	VR4
-	LDA.I	BC_READ				; load read code
-	BRK					; get input
-	JSR	PRINTL				; reflect input
-	JSR	STRLEN				; get input length
-	STA.Z	_SHELL_TOT_LEN			; update total length
-	PLA					; restore VR4/1
-	STA.Z	VR4
-	PLA					; restore VR0
-	STA.Z	VR0 1
-	PLA
-	STA.Z	VR0
-	PLA					; return A
-	RTS					; return
-
 ; gets the next argument and updates arg vars
-; returns in A TRUE or FALSE if there is or isnt another arg
+; A = 0 if no new argument
+; A = not 0 if new argument found
 >_SHELL_NEXT_ARG
-	LDA.Z	_SHELL_ARG_PTR			; load arg pointer in VR10
-	STA.Z	VR10
-	STZ.Z	VR10 1
-	LDA.Z	_SHELL_ARG_LEN			; add current arg length to set pointer to one after end of last arg
-	STA.Z	VR11
-	JSR	PROGRAM_GET_ARG			; get next arg
-	PHA					; store result
-	LDA.Z	VR10				; update arg pointer
-	STA.Z	_SHELL_ARG_PTR
-	LDA.Z	VR11				; update arg length
-	STA.Z	_SHELL_ARG_LEN
-	PLA					; restore result
-	RTS					; return
-
-; conditionally restores the truncated byte of args
->_SHELL_ARG_RESTORE
-	PHA					; store A
+	PHY					; store Y
 	LDA.Z	VR0				; store VR0
 	PHA
 	LDA.Z	VR0 1
 	PHA
-	LDA.I	_SHELL_INPUT_BUF		; load pointer to input buf in VR0
-	STA.Z	VR0
+	LDA.Z	_SHELL_ARG_PTR			; load argument pointer
+	STA.Z	VR0				; store in VR0
 	STZ.Z	VR0 1
-	JSR	STRLEN				; get length of input buffer
-	CMP.Z	_SHELL_TOT_LEN			; compare to the length of input when first entered by user
-	BEQ	_SHELL_ARG_RESTORE_SAME		; if the same, then any truncated byte shouldnt be restored as it is acting as the true buffer end
-	PHY					; store Y
-	LDY.Z	_SHELL_ARG_LEN			; load current arg length
-	LDA.Z	_SHELL_ARG_PTR			; load current arg pointer in VR0
-	STA.Z	VR0
+	LDY.Z	_SHELL_ARG_LEN			; load current argument length into Y
+	LDA.Z	_SHELL_ARG_END			; load previously used word end character
+	STA.ZPY	VR0				; restore word end character
+	TYA					; move argument length to A
+	CLC					; CLC for ADC
+	ADC.Z	_SHELL_ARG_PTR			; add argument length to argument pointer value to get pointer to after argument
+	STA.Z	VR0				; store in VR0
 	STZ.Z	VR0 1
-	LDA.I	ASCII_SPACE			; set truncated byte back to non-delimiting whitespace character
-	STA.ZPY	VR0
-	PLY					; restore Y
->_SHELL_ARG_RESTORE_SAME
+	JSR	STRLEAD				; trim leading whitespace
+	LDA.Z	VR11				; load new pointer value to trimmed string
+	STA.Z	_SHELL_ARG_PTR			; store trimmed string as new argument pointer
+	STA.Z	VR0				; also set VR0 as this trimmed string pointer
+	JSR	STRWORDLEN			; get length of next argument
+	LDA.Z	VR11				; store length in argument length var
+	STA.Z	_SHELL_ARG_LEN
+	TAY					; move new argument length to Y
+	LDA.ZPY	VR0				; load word end character of new argument
+	STA.Z	_SHELL_ARG_END			; store in argument end var
+	LDA.I	ASCII_NUL			; load nul char value
+	STA.ZPY	VR0				; set word end of new argument to nul char
 	PLA					; restore VR0
 	STA.Z	VR0 1
 	PLA
 	STA.Z	VR0
-	PLA					; restore A
+	PLY					; restore Y
+	LDA.Z	_SHELL_ARG_LEN			; load new argument length value to indicate if new argument found
 	RTS					; return
 
 >SHELL_END

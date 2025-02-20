@@ -1,0 +1,12 @@
+; waits until process has sent its message from BRK_SEND
+; once the target process has read the message or died, the process state is set to ready
+
+>SERVICE_SEND
+	LDY	PROC_ACTIVE_ID		; load process ID
+	LDA.Y	IPC_TARGET		; load IPC target value
+	CMP.I	0XFF			; test if 0xFF meaning message received or receiver died
+	BNE	_SERVICE_SEND_SKIP	; if not then keep suspended
+	LDA.I	PROC_STATE_READY	; load ready state value
+	STA.Y	PROC_STATE		; update process state
+>_SERVICE_SEND_SKIP
+	JMP	SERVICE_CYCLE_BEGIN	; start next cycle

@@ -1,3 +1,5 @@
+; no functionality here, T1 does not cause any interrupts
+
 >INTERRUPT_T1
 	STA	HW_ENABLE_ADDR HW_RAM1	; turn off VIA
 	JMP	PROC_UNPAUSE		; resume process

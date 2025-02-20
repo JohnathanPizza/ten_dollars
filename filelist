@@ -1,8 +1,11 @@
 const/ascii.cvm
 const/bool.cvm
+const/error.cvm
+const/fileop.cvm
 const/hardware.cvm
+const/null.cvm
 const/procflag.cvm
-const/procstate.cvm
+const/system.cvm
 const/via.cvm
 const/vridx.cvm
 
@@ -10,6 +13,8 @@ core/map.cvm
 core/start.cvm
 
 core/cycle.cvm
+core/file.cvm
+core/floppy.cvm
 core/page.cvm
 core/process.cvm
 core/schedule.cvm
@@ -22,16 +27,27 @@ core/interrupt/brk/data_get.cvm
 core/interrupt/brk/data_load.cvm
 core/interrupt/brk/data_release.cvm
 core/interrupt/brk/exit.cvm
+core/interrupt/brk/file_claim.cvm
+core/interrupt/brk/file_op.cvm
+core/interrupt/brk/file_release.cvm
 core/interrupt/brk/flag_disable.cvm
 core/interrupt/brk/flag_enable.cvm
+core/interrupt/brk/focus_change.cvm
+core/interrupt/brk/kill.cvm
+core/interrupt/brk/parent.cvm
 core/interrupt/brk/priority.cvm
 core/interrupt/brk/ptroff.cvm
+core/interrupt/brk/random.cvm
 core/interrupt/brk/read.cvm
+core/interrupt/brk/receive.cvm
+core/interrupt/brk/send.cvm
+core/interrupt/brk/spawn_disk.cvm
+core/interrupt/brk/spawn_rom.cvm
 core/interrupt/brk/suspend.cvm
+core/interrupt/brk/wait_focus.cvm
 core/interrupt/brk/writec.cvm
-core/interrupt/brk/write_claim.cvm
-core/interrupt/brk/write_release.cvm
 core/interrupt/brk/writes.cvm
+core/interrupt/brk/write_wait.cvm
 
 core/interrupt/via/ca1.cvm
 core/interrupt/via/cb1.cvm
@@ -44,17 +60,27 @@ core/service/exit.cvm
 core/service/init_disk.cvm
 core/service/init_rom.cvm
 core/service/io_read.cvm
-core/service/io_write.cvm
 core/service/null.cvm
 core/service/ready.cvm
+core/service/send.cvm
+core/service/wait_focus.cvm
 
 extra/bit.cvm
-extra/character.cvm
+extra/charconv.cvm
+extra/chartest.cvm
+extra/error.cvm
 extra/math16.cvm
 extra/memory.cvm
+extra/nullcheck.cvm
 extra/print.cvm
+extra/standard.cvm
 extra/string.cvm
 extra/wait.cvm
 
-romprograms.cvm
-shell.cvm
+romprogs/info.cvm
+
+romprogs/shell/adj.cvm
+romprogs/shell/shell.cvm
+
+romprogs/fm/adj.cvm
+romprogs/fm/fm.cvm

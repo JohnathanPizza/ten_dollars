@@ -3,7 +3,7 @@
 @0X8000
 >START
 	; hardware initialization
-	
+
 	; setting stack pointer
 	LDX.I	0XFF	; load stack pointer default value
 	TXS		; set stack pointer to 0x1FF
@@ -18,11 +18,15 @@
 	STZ	VIA_WRITE_PORT		; preset the write port to output 0
 	LDA.I	0XFF			; load value to set write port to all output
 	STA	VIA_WRITE_PORT_DIR	; set write port to all output
-	LDA.I	0B00000000		; load initial ACR value
+	LDA.I	0B01000000		; load initial ACR value
 	STA	VIA_ACR			; store into ACR
-	LDA.I	VIA_IER_ENABLE VIA_IB_CA1	; enable keyboard at start since it will always be on
+	LDA.I	VIA_IER_ENABLE VIA_IB_CA1 VIA_IB_T2	; enable keyboard and T2 at start
 	STA	VIA_IER			; enable
-	BIT	VIA_READ_PORT		; clear any random possible interrupt quickly
+	LDA	VIA_READ_PORT		; clear any random possible interrupt quickly
+	LDA	VIA_T2L			; same
+	LDA.I	0XFF			; load max value for T1 counters
+	STA	VIA_T1L			; set low counter latch to max value
+	STA	VIA_T1HC		; set high counter latch to max value, start looping T1 countdown
 	STA	HW_ENABLE_ADDR HW_RAM1	; disable VIA since setup is done
 
 	; initialize RAM variables
@@ -36,8 +40,8 @@
 	STA.Z	VR4 1
 	STZ.Z	VR5
 	JSR	MEMSET			; clear 0x200 to 0xFFF
-	
-	LDA.I	PAGE_TABLE_PROCID	; set page procids to 0xFF
+
+	LDA.I	PAGE_TABLE_PROCID	; set page process IDs to 0xFF
 	STA.Z	VR0
 	LDA.I	PAGE_TABLE_PROCID > 8
 	STA.Z	VR0 1
@@ -52,30 +56,47 @@
 	STA.Z	VR0
 	LDA.I	PAGE_MAP > 8
 	STA.Z	VR0 1
+	LDA.I	PAGE_COUNT_TOTAL
+	STA.Z	VR4
+	STZ.Z	VR4 1
+	LDA.I	0XFF
+	STA.Z	VR5
+	JSR	MEMSET
+
+	LDA.I	PROC_PARENT		; set parent values to 0xFF
+	STA.Z	VR0
+	LDA.I	PROC_PARENT > 8
+	STA.Z	VR0 1
+	LDA.I	PROC_COUNT
+	STA.Z	VR4
+	STZ.Z	VR4 1
+	LDA.I	0XFF
+	STA.Z	VR5
+	JSR	MEMSET
+
+	LDA.I	IPC_TARGET		; set IPC targets to 0xFF
+	STA.Z	VR0
+	LDA.I	IPC_TARGET > 8
+	STA.Z	VR0 1
+	LDA.I	PROC_COUNT
+	STA.Z	VR4
+	STZ.Z	VR4 1
 	LDA.I	0XFF
 	STA.Z	VR5
 	JSR	MEMSET
 
 	LDA.I	0XFF
-	STA	PROC_ACTIVE_ID		; no proc active id at first
-	STA	IO_WRITE_CLAIM		; clear write claim
-	LDA.I	0
-	STA	IO_READ_FOCUS		; start with proc 0 focused
+	STA	PROC_ACTIVE_ID		; no process active ID at first
+	STA	IO_FILE_CLAIM		; clear file claim
 
 	; init finished
 
-	CLI				; interrupts on
+	LDA.I	ROM_SHELL_ID
+	STA.Z	VR4
+	LDA.I	BC_SPAWN_ROM
+	BRK
 
-	LDA.I	ASCII_ESC		; print ESC and @ to initialize printer
-	JSR	PRINTC
-	LDA.I	ASCII_AT
-	JSR	PRINTC
-	LDA.I	ASCII_EXCLAIMATION	; print !!\n to let user know code started running
-	JSR	PRINTC
-	JSR	PRINTC
-	JSR	PRINTL
+	LDA.Z	VR11
+	STA	IO_READ_FOCUS
 
-	LDA.I	0			; load shell program code
-	JSR	LOADROM			; start a shell program in proc 0
-	
 	JMP	SERVICE_CYCLE_BEGIN	; start the very first service cycle

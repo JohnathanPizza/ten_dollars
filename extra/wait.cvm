@@ -4,7 +4,6 @@
 ; WAIT_MILIS
 ; WAIT_SEC
 
-; TODO make WAIT_1MS page aligned
 
 ;==================================================
 
@@ -12,18 +11,18 @@
 ; causes 1 ms to elapse from the time of call to return
 
 >WAIT_1MS
-	PHX			; 3
-	LDX.I	220		; 2
+	PHX			; store X, 3 cycles
+	LDX.I	220		; load magic number, 2 cycles
 >_WAIT_1MS_LOOP
-	NOP			; 2
-	NOP			; 2
-	DEX			; 2
-	BNE	_WAIT_1MS_LOOP	; 3,2
-	PLX			; 3
-	NOP			; 2
-	NOP			; 2
-	NOP			; 2
-	RTS			; 7
+	NOP			; add cycles to loop time, 2 cycles
+	NOP			; add cycles to loop time, 2 cycles
+	DEX			; decrement loop counter, 2 cycles
+	BNE	_WAIT_1MS_LOOP	; compare, 3 cycles until last exec of 2 cycles
+	PLX			; restore X, 3 cycles
+	NOP			; add cycles, 2 cycles
+	NOP			; add cycles, 2 cycles
+	NOP			; add cycles, 2 cycles
+	RTS			; return, 7 cycles
 
 ;==================================================
 
@@ -51,9 +50,9 @@
 >WAIT_SEC
 	PHA			; store A
 	LDA.I	250		; load number of miliseconds to wait
-	JSR	WAIT_MILIS	; 250
-	JSR	WAIT_MILIS	; 500
-	JSR	WAIT_MILIS	; 750
-	JSR	WAIT_MILIS	; 1000
+	JSR	WAIT_MILIS	; 250 ms
+	JSR	WAIT_MILIS	; 500 ms
+	JSR	WAIT_MILIS	; 750 ms
+	JSR	WAIT_MILIS	; 1 s
 	PLA			; restore A
 	RTS			; return

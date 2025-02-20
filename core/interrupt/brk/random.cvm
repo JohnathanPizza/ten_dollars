@@ -1,0 +1,16 @@
+; BRK_RANDOM
+; R --- VR11/1: random number N
+; gets a random-ish number from the T1 timer which is constantly counting
+; returns the sum of the low order and high order t1 timer counter registers in N
+
+>BRK_RANDOM
+	PHP					; critical section, save P register for SEI
+	SEI					; turn off interrupts for critical section
+	STA	HW_ENABLE_ADDR HW_RAM1 HW_VIA	; enable RAM1 and VIA
+	LDA	VIA_T1L				; load T1 low counter
+	CLC					; CLC for ADC
+	ADC	VIA_T1HC			; add low counter to T1 high counter
+	STA.Z	VR11				; store random sum to N
+	STA	HW_ENABLE_ADDR HW_RAM1		; turn off VIA
+	PLP					; restore P after critical section is done
+	JMP PROC_UNPAUSE			; return to process

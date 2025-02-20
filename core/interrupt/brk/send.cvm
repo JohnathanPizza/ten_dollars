@@ -1,0 +1,33 @@
+; BRK_SEND
+; P --- VR4: message M
+;	VR5/1: target process ID T
+; sends the 16-byte message M to process T and suspends this process until the message was read by process T or process T dies
+; does nothing if this process is process T
+; does nothing if T is not a valid process ID
+
+>BRK_SEND
+	LDA.Z	VR5			; load T
+	CMP.I	PROC_COUNT		; test if valid process ID
+	BGE	_BRK_SEND_SKIP		; skip if not valid
+	CMP	PROC_ACTIVE_ID		; test if this process is process T
+	BGE	_BRK_SEND_SKIP		; skip if same process
+	TAY				; move T to Y
+	LDA.Y	PROC_STATE		; load state of process T
+	CMP.I	PROC_STATE_NULL		; compare with null state
+	BEQ	_BRK_SEND_SKIP		; skip if process T is in null state
+	LDA	PROC_ACTIVE_ID		; get process ID
+	ASL				; *2 for pointer offset to 16-byte message buffer
+	TAY				; move offset to Y
+	LDA.Z	VR4			; load M low byte
+	STA.Y	IPC_DATA		; store in this process' message slot
+	LDA.Z	VR4 1			; load M high byte
+	STA.Y	IPC_DATA 1		; store in this process' message slot
+	LDY	PROC_ACTIVE_ID		; load this process' ID again into Y
+	LDA.Z	VR5			; load T
+	STA.Y	IPC_TARGET		; store T in this process' target
+	LDA.I	PROC_STATE_SEND		; load send state
+	STA.Y	PROC_STATE		; set this process' state to send state
+	JSR	PROC_LEAVE		; save process
+	JMP	SERVICE_CYCLE_BEGIN	; start new cycle
+>_BRK_SEND_SKIP
+	JMP	PROC_UNPAUSE		; return to process

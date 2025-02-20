@@ -1,0 +1,9 @@
+; BRK_PARENT
+; R --- VR11/1: parent process ID P
+; returns the process' parent process ID in P
+
+>BRK_PARENT
+	LDY	PROC_ACTIVE_ID	; load process ID
+	LDA.Y	PROC_PARENT	; load parent
+	STA.Z	VR11		; store in VR11
+	JMP	PROC_UNPAUSE	; return to process

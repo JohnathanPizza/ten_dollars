@@ -15,7 +15,7 @@
 ! 0		; 7 bel
 ! 0X66		; 8 backspace/bs
 ! 0X0D		; 9 tab
-! 0X5A		; 10 enter/lf
+! 0		; 10 enter/lf
 ! 0		; 11 vt
 ! 0		; 12 ff
 ! 0		; 13 cr
@@ -32,7 +32,7 @@
 ! 0		; 24 can
 ! 0		; 25 em
 ! 0		; 26 sub
-! 0X76		; 27 esc
+! 0		; 27 esc
 ! 0		; 28 fs
 ! 0		; 29 gs
 ! 0		; 30 rs

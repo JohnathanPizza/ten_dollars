@@ -2,16 +2,18 @@
 ; ===
 ; PRINTS
 ; PRINTC
-; PRINTB
 ; PRINTL
-; PRINTWAIT
+; PRINTH
+; PRINTB
+; PRINTDU16
+; PRINT_WAIT
 
 ;==================================================
 
 ; PRINTS
 ; P --- VR0: string pointer S
 ; calls the write BRK function to write out S over IO
-; must be nul character delimited
+; must be null character delimited
 
 >PRINTS
 	PHA			; store A
@@ -22,7 +24,7 @@
 >_PRINTS_LOOP
 	LDA.I	BC_WRITES
 	BRK			; call WRITES
-	LDA.Z	VR0		; add the number of chars written to pointer S
+	LDA.Z	VR0		; add the number of characters written to pointer S
 	CLC
 	ADC.Z	VR11
 	STA.Z	VR0
@@ -30,7 +32,11 @@
 	ADC.I	0
 	STA.Z	VR0 1
 	LDA.ZP	VR0		; load character from the new pointer
-	BNE	_PRINTS_LOOP	; if not the nul char, not at string end, print again
+	BEQ	_PRINTS_DONE	; if null character, at string end, can exit
+	LDA.I	BC_SUSPEND	; load suspend code
+	BRK			; suspend process
+	BRA	_PRINTS_LOOP	; loop
+>_PRINTS_DONE
 	PLA			; copy back VR0
 	STA.Z	VR0 1
 	PLA
@@ -60,20 +66,54 @@
 
 ;==================================================
 
-; PRINTB
+; PRINTL
+; P --- VR0: string pointer S
+; calls the write BRK function to write out S over IO and adds a newline character to the end
+; must be null character delimited
+
+>PRINTL
+	PHA			; store A
+	LDA.Z	VR0		; copy out VR0
+	PHA
+	LDA.Z	VR0 1
+	PHA
+>_PRINTL_LOOP
+	LDA.I	BC_WRITES
+	BRK			; call WRITES
+	LDA.Z	VR0		; add the number of characters written to pointer S
+	CLC
+	ADC.Z	VR11
+	STA.Z	VR0
+	LDA.Z	VR0 1
+	ADC.I	0
+	STA.Z	VR0 1
+	LDA.ZP	VR0		; load character from the new pointer
+	BNE	_PRINTL_LOOP	; if not the null character, not at string end, print again
+	LDA.I	ASCII_LF	; load newline character
+	JSR	PRINTC		; print
+	PLA			; copy back VR0
+	STA.Z	VR0 1
+	PLA
+	STA.Z	VR0
+	PLA			; restore A
+	RTS			; return
+
+;==================================================
+
+; PRINTH
 ; P --- A: byte B
 ; writes the hexadecimal representation of B to the print buffer
 
->PRINTB
-	PHA			; store A
+>PRINTH
+	PHA			; store B
 	ROR			; shift high nybble into low nybble
 	ROR
 	ROR
 	ROR
 	JSR	TOHEX		; get hex character for high nybble
 	JSR	PRINTC		; print it
-	PLA			; reload A
-	PHA			; store A
+	PLA			; reload B
+	PHA			; store B
 	JSR	TOHEX		; get hex character for low nybble
 	JSR	PRINTC		; print it
 	PLA			; restore B
@@ -81,22 +121,167 @@
 
 ;==================================================
 
-; PRINTL
-; writes the newline character to the print buffer
+; PRINTB
+; P --- A: byte B
+; writes the binary representation of B to the print buffer
 
->PRINTL
-	PHA			; store A
-	LDA.I	ASCII_LF	; load newline
-	JSR	PRINTC		; print newline
-	PLA			; restore A
+>PRINTB
+	PHA			; store B
+	PHX			; store X
+	LDX.Z	VR7		; load VR7/1
+	PHX			; store VR7/1
+	STA.Z	VR7		; store B to VR7/1
+	LDX.I	8		; load counter as 8
+>_PRINTB_LOOP
+	LDA.Z	VR7		; load B for next bit
+	ASL			; shift next bit
+	STA.Z	VR7		; save updated value
+	BCC	_PRINTB_LOOP_0	; test if bit was 0
+	LDA.I	ASCII_1		; load 1 value
+	JSR	PRINTC		; print
+	BRA	_PRINTB_LOOP_END	; go to test code
+>_PRINTB_LOOP_0
+	LDA.I	ASCII_0		; load 0 value
+	JSR	PRINTC		; print
+>_PRINTB_LOOP_END
+	DEX			; decrement counter
+	BNE	_PRINTB_LOOP	; if counter not 0 loop
+	PLX			; restore VR7/1
+	STX.Z	VR7
+	PLX			; restore X
+	PLA			; restore B
 	RTS			; return
 
 ;==================================================
 
-; PRINTWAIT
-; returns when the print buffer is clear
+; PRINTDU16
+; P --- VR4: unsigned 16 byte number N
+; writes the decimal representation of N to the print buffer
 
->PRINTWAIT
-	LDA	IO_WRITE_STATUS	; load write status
-	BNE	PRINTWAIT	; if not 0 then loop
+>PRINTDU16
+	PHA			; store A
+	PHX			; store X
+	PHY			; store Y
+	LDA.Z	VR4		; store VR4
+	PHA
+	LDA.Z	VR4 1
+	PHA
+	LDA.Z	VR5		; store VR5/1, will use as digit value
+	PHA
+	LDA.Z	VR5 1		; store VR5/2, will use as leading 0 flag
+	PHA
+	LDA.I	10000		; load 10,000 into VR10
+	STA.Z	VR10
+	LDA.I	10000 > 8
+	STA.Z	VR10 1
+	LDX.I	VRI_4		; set first number to N
+	LDY.I	VRI_10		; set second number to 10K
+	STZ.Z	VR5		; zero current digit
+	LDA.I	1		; set leading 0 flag
+	STA.Z	VR5 1
+>_PRINTDU16_10K
+	JSR	GREU16		; test if N >= 10K, doing unsigned test here is probably wrong
+	CMP.I	FALSE
+	BEQ	_PRINTDU16_10K_END	; go to next digit if so
+	STZ.Z	VR5 1		; clear leading 0
+	INC.Z	VR5		; increment digit
+	JSR	SUB16		; subtract digit value
+	BRA	_PRINTDU16_10K	; loop
+>_PRINTDU16_10K_END
+	JSR	_PRINTDU16_HELPER
+	LDA.I	1000		; load 1,000 into VR10
+	STA.Z	VR10
+	LDA.I	1000 > 8
+	STA.Z	VR10 1
+	STZ.Z	VR5		; zero current digit
+>_PRINTDU16_1K
+	JSR	GREU16		; test if N >= 1K
+	CMP.I	FALSE
+	BEQ	_PRINTDU16_1K_END	; go to next digit if so
+	STZ.Z	VR5 1		; clear leading 0
+	INC.Z	VR5		; increment digit
+	JSR	SUB16		; subtract digit value
+	BRA	_PRINTDU16_1K	; loop
+>_PRINTDU16_1K_END
+	JSR	_PRINTDU16_HELPER
+	LDA.I	100		; load 100 into VR10
+	STA.Z	VR10
+	STZ.Z	VR10 1
+	STZ.Z	VR5		; zero current digit
+>_PRINTDU16_100
+	JSR	GREU16		; test if N >= 100
+	CMP.I	FALSE
+	BEQ	_PRINTDU16_100_END	; go to next digit if so
+	STZ.Z	VR5 1		; clear leading 0
+	INC.Z	VR5		; increment digit
+	JSR	SUB16		; subtract digit value
+	BRA	_PRINTDU16_100	; loop
+>_PRINTDU16_100_END
+	JSR	_PRINTDU16_HELPER
+	LDA.I	10		; load 10 into VR10
+	STA.Z	VR10
+	STZ.Z	VR10 1
+	STZ.Z	VR5		; zero current digit
+>_PRINTDU16_10
+	JSR	GREU16		; test if N >= 10
+	CMP.I	FALSE
+	BEQ	_PRINTDU16_10_END	; go to next digit if so
+	STZ.Z	VR5 1		; clear leading 0
+	INC.Z	VR5		; increment digit
+	JSR	SUB16		; subtract digit value
+	BRA	_PRINTDU16_10	; loop
+>_PRINTDU16_10_END
+	JSR	_PRINTDU16_HELPER
+	LDA.I	1		; load 1 into VR10
+	STA.Z	VR10
+	STZ.Z	VR10 1
+	STZ.Z	VR5		; zero current digit
+	STZ.Z	VR5 1		; clear leading 0 no matter what, first digit must be printed
+>_PRINTDU16_1
+	JSR	GREU16		; test if N >= 1
+	CMP.I	FALSE
+	BEQ	_PRINTDU16_1_END	; go to next digit if so
+	INC.Z	VR5		; increment digit
+	JSR	SUB16		; subtract digit value
+	BRA	_PRINTDU16_1	; loop
+>_PRINTDU16_1_END
+	JSR	_PRINTDU16_HELPER
+	PLA			; restore VR5/2
+	STA.Z	VR5 1
+	PLA			; restore VR5/1
+	STA.Z	VR5
+	PLA			; restore VR4
+	STA.Z	VR4 1
+	PLA
+	STA.Z	VR4
+	PLY			; restore Y
+	PLX			; restore X
+	PLA			; restore A
+	RTS			; return
+>_PRINTDU16_HELPER
+	LDA.Z	VR5 1		; load leading 0 flag
+	BEQ	_PRINTDU16_HELPER_PRINT	; print if not set
+	RTS			; else return since getting leading 0s
+>_PRINTDU16_HELPER_PRINT
+	LDA.Z	VR5		; load digit
+	CLC			; CLC for ADC
+	ADC.I	ASCII_0		; get ascii value
+	JSR	PRINTC		; print digit
+>_PRINTDU16_HELPER_END
+	RTS			; return
+
+;==================================================
+
+; PRINT_WAIT
+; spins on the write wait interrupt
+; returns when the write buffer is empty
+
+>PRINT_WAIT
+	PHA			; store A
+>_PRINT_WAIT_LOOP
+	LDA.I	BC_WRITE_WAIT	; load write wait code
+	BRK			; get status of writes
+	LDA.Z	VR11		; load return value
+	BNE	_PRINT_WAIT_LOOP	; keep looping if write buffer not empty
+	PLA			; restore A
 	RTS			; return

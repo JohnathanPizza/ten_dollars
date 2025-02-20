@@ -1,23 +1,26 @@
-; frees the data page from the id in VR4/1
+; BRK_DATA_RELEASE
+; P --- VR4/1: data page ID P
+; frees the data page P owned by the process
+; if P is the active DAP then the active DAP is set to a null data page ID
 
 >BRK_DATA_RELEASE
-	LDA.Z	VR4			; get data page id
+	LDA.Z	VR4			; get data page ID in P
 	JSR	PAGE_TABLE_GET_DATA	; try to find in map
 	CMP.I	PAGE_COUNT_TOTAL	; test if found
 	BEQ	_BRK_DATA_RELEASE_FAIL	; return if not a real page
-	TAY				; move page id to Y
+	TAY				; move page ID to Y
 	LDA.I	0XFF			; load null procid value
-	STA.Y	PAGE_TABLE_PROCID	; store in page owner id to release it
+	STA.Y	PAGE_TABLE_PROCID	; store in page owner ID to release it
 	TYA				; move page it to A
 	JSR	PAGE_MAP_FIND		; find map idx
 	TAY				; move map idx to Y
 	LDA.I	0XFF			; load map null value
 	STA.Y	PAGE_MAP		; store in map idx
-	LDA.Z	VR4			; load data page id that was released
-	LDY	PROC_ACTIVE_ID		; load proc id
-	CMP.Y	PROC_ACTIVE_DAP_ID	; compare current DAP id to released id
-	BNE	_BRK_DATA_RELEASE_FAIL	; skip if not the same id
+	LDA.Z	VR4			; load data page P that was released
+	LDY	PROC_ACTIVE_ID		; load process ID
+	CMP.Y	PROC_ACTIVE_DAP_ID	; compare active DAP ID to released ID
+	BNE	_BRK_DATA_RELEASE_FAIL	; skip if not the same ID
 	LDA.I	0X80			; load DAP null value
-	STA.Y	PROC_ACTIVE_DAP_ID	; store into DAP id
+	STA.Y	PROC_ACTIVE_DAP_ID	; store into active DAP ID
 >_BRK_DATA_RELEASE_FAIL
-	JMP	PROC_UNPAUSE		; return to proc
+	JMP	PROC_UNPAUSE		; return to process

@@ -1,0 +1,16 @@
+; BRK_KILL
+; P --- VR4/1: process ID P
+; kill process P by putting it in the exit state
+; does nothing if P is not a valid process ID or if P is in the null state already
+
+>BRK_KILL
+	LDY.Z	VR4			; load P
+	CPY.I	PROC_COUNT		; test if valid process ID
+	BGE	_BRK_KILL_SKIP		; if not then just return
+	LDA.Y	PROC_STATE		; get process P state
+	CMP.I	PROC_STATE_NULL		; test if process P is in the null state
+	BEQ	_BRK_KILL_SKIP		; if so then skip killing, already dead
+	LDA.I	PROC_STATE_EXIT		; load exit state value
+	STA.Y	PROC_STATE		; set target process state to exit next service cycle
+>_BRK_KILL_SKIP
+	JSR	PROC_UNPAUSE		; return to process

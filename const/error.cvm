@@ -1,0 +1,10 @@
+=FLOPPY_ERROR_NODISK	1	; no disk inserted in the floppy drive
+=FLOPPY_ERROR_DRIVE	2	; some error probably related to reading/writing the bit stream happened in the drive
+
+=FILE_ERROR_NONAME	3	; given file name has 0 length
+=FILE_ERROR_DUPNAME	4	; file already exists with given name
+=FILE_ERROR_DISKFULL	5	; no more room for new files on disk
+=FILE_ERROR_NOFILE	6	; file with given name does not exist
+=FILE_ERROR_INUSE	7	; file already opened and in use
+=FILE_ERROR_ID		8	; file ID not in valid range
+=FILE_ERROR_OPEN	9	; no file is open

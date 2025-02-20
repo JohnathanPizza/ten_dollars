@@ -2,14 +2,20 @@
 ; picks a process to serve and then jumps to appropriate function based on process state
 
 >SERVICE_CYCLE_BEGIN
-	CLI				; clear ints in case they were turned off before, can do this here since in non critical code
+	LDA.I	0XFF			; load null process value
+	STA	PROC_ACTIVE_ID		; store to indicate no process is running right now
+	CLI				; enable interrupts for a little to let hardware ints go off
+	NOP
+	NOP
+	NOP
+	SEI				; disable again
 	JSR	SCHEDULER_INCREMENT	; increment all the process schedule values based on priority
-	JSR	SCHEDULER_SELECT	; get the next process id to serve
-	LDA.Z	VR11			; load proc id
-	STA	PROC_ACTIVE_ID		; make that proc the new active one
-	TAX				; move proc id to X
-	STZ.X	PROC_SCHEDULE_COUNT	; reset proc schedule counter because it got picked
-	LDA.X	PROC_STATE		; load proc state
+	JSR	SCHEDULER_SELECT	; get the next process ID to serve
+	LDA.Z	VR11			; load process ID
+	STA	PROC_ACTIVE_ID		; make that process the new active one
+	TAX				; move process ID to X
+	STZ.X	PROC_SCHEDULE_COUNT	; reset process schedule counter because it got picked
+	LDA.X	PROC_STATE		; load process state
 	ASL				; shift left to make pointer offset value
 	TAX				; move offset to X
-	JMP.XP	SERVICE_ARRAY		; jump to correct function to serve the proc for its current state
+	JMP.XP	SERVICE_ARRAY		; jump to correct function to serve the process for its current state

@@ -1,0 +1,89 @@
+; ERROR.CVM
+; ===
+; PRINT_ERROR
+
+;==========
+
+; array of string pointers to use for each system error code
+; arranged by const/error.cvm
+
+>ERROR_STR_ARRAY
+$FLOPPY_ERROR_NODISK_STR
+$FLOPPY_ERROR_DRIVE_STR
+$FILE_ERROR_NONAME_STR
+$FILE_ERROR_DUPNAME_STR
+$FILE_ERROR_DISKFULL_STR
+$FILE_ERROR_NOFILE_STR
+$FILE_ERROR_INUSE_STR
+$FILE_ERROR_ID_STR
+$FILE_ERROR_OPEN_STR
+>_ERROR_STR_ARRAY_END
+
+=ERROR_STR_COUNT	_ERROR_STR_ARRAY_END - ERROR_STR_ARRAY / 2
+
+;==========
+
+; strings for each error
+
+>FLOPPY_ERROR_NODISK_STR
+"No disk inserted in drive\0
+
+>FLOPPY_ERROR_DRIVE_STR
+"Drive error caused bad read or write (check disk formatting)\0
+
+>FILE_ERROR_NONAME_STR
+"File name has length 0\0
+
+>FILE_ERROR_DUPNAME_STR
+"File name already exists on disk\0
+
+>FILE_ERROR_DISKFULL_STR
+"No space left on disk for a new file\0
+
+>FILE_ERROR_NOFILE_STR
+"File does not exist on disk\0
+
+>FILE_ERROR_INUSE_STR
+"File already in use\0
+
+>FILE_ERROR_ID_STR
+"File ID not in range\0
+
+>FILE_ERROR_OPEN_STR
+"File not open\0
+
+;==================================================
+
+; PRINT_ERROR
+; P --- A: system error code C
+; prints the system error string for code C without a newline
+; if C is not a valid error code, do nothing
+
+>PRINT_ERROR
+	DEC				; decrement C for array index
+	CMP.I	ERROR_STR_COUNT		; see if index is valid
+	BLS	_PRINT_ERROR_CONT	; continue if so
+	INC				; increment to restore A to value C
+	RTS				; else return
+>_PRINT_ERROR_CONT
+	PHA				; store C - 1
+	PHX				; store X
+	ASL				; get index * 2 for str pointer offset
+	TAX				; move offset to X
+	LDA.Z	VR0			; store VR0
+	PHA
+	LDA.Z	VR0 1
+	PHA
+	LDA.X	ERROR_STR_ARRAY		; get low byte of error string
+	STA.Z	VR0			; store in VR0/1
+	LDA.X	ERROR_STR_ARRAY 1	; get high byte of error string
+	STA.Z	VR0 1			; store in VR0/2
+	JSR	PRINTS			; print error string
+	PLA				; restore VR0
+	STA.Z	VR0 1
+	PLA
+	STA.Z	VR0
+	PLX				; restore X
+	PLA				; get C - 1
+	INC				; restore A to value C
+	RTS				; return

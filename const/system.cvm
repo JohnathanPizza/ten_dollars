@@ -1,0 +1,53 @@
+; important system constants kept here for easy access instead of grepping or searching many files
+
+=PAGE_MAP_RAM_BASE	0X10	; pages used for OS + program stuff, before paged region
+=PAGE_COUNT_RAM1	0X70	; avail pages in device RAM1
+=PAGE_COUNT_TOTAL	0XF0	; avail pages in devices RAM1 and RAM2, 0x80 + 0x70
+=PROC_COUNT		32	; max number of running processes
+
+=PROC_STATE_NULL	0	; no process
+=PROC_STATE_INIT_ROM	1	; process is being loaded from ROM code
+=PROC_STATE_INIT_DISK	2	; poccess is being loaded frmo disk code
+=PROC_STATE_READY	3	; process can be loaded and ran
+=PROC_STATE_IO_READ	4	; process waiting for an IO read to come back
+=PROC_STATE_EXIT	5	; process exiting and deallocating after completed
+=PROC_STATE_WAIT_FOCUS	6	; process waiting for input focus to return
+=PROC_STATE_SEND	7	; process waiting for IPC message to be read
+
+=IO_READ_BUFFER_LEN	0X80	; length of the system read buffer
+
+=FILE_POS_END		256 * 19 - 1	; very last address of a byte in a file [0-0x12FF]
+=FILE_COUNT_MAX		79		; max number of files per disk
+=FILE_EOF		0XFF		; constant code for EOF indicator
+
+=FLOPPY_STEP_TIME	10	; miliseconds to wait between track steps in the floppy drive
+
+; constants for BRK codes
+=BC_WRITES		0
+=BC_WRITEC		1
+=BC_READ		2
+=BC_PTROFF		3
+=BC_EXIT		4
+=BC_SUSPEND		5
+=BC_DATA_GET		6
+=BC_DATA_LOAD		7
+=BC_DATA_RELEASE	8
+=BC_DATA_FLUSH		9
+=BC_FLAG_ENABLE		10
+=BC_FLAG_DISABLE	11
+=BC_PRIORITY		12
+=BC_SPAWN_ROM		13
+=BC_FILE_CLAIM		14
+=BC_FILE_OP		15
+=BC_FILE_RELEASE	16
+=BC_FOCUS_CHANGE	17
+=BC_PARENT		18
+=BC_SPAWN_DISK		19
+=BC_WAIT_FOCUS		20
+=BC_WRITE_WAIT		21
+=BC_KILL		22
+=BC_RANDOM		23
+=BC_SEND		24
+=BC_RECEIVE		25
+
+=BRK_COUNT	_BRK_ARRAY_END - BRK_ARRAY / 2	; total number of BRK functions in core/interrupt/brk/array.cvm

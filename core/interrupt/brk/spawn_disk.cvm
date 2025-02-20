@@ -1,0 +1,32 @@
+; BRK_SPAWN_DISK
+; R --- VR11/1: new process ID N
+; tries to spawn a new program from a file on disk
+; uses the file currently open in slot A as the program file
+; if N = 0xFF then no process could be used for the program
+; otherwise N = the new child process ID with this process as the parent
+
+>BRK_SPAWN_DISK
+	LDA.I	0XFF			; load error value
+	STA.Z	VR11			; store in N
+	LDA	PROC_ACTIVE_ID		; load process ID
+	CMP	IO_FILE_CLAIM		; test if this process has file access
+	BNE	_BRK_SPAWN_DISK_END	; return if not
+	LDA	IO_FILE_A_ID		; load file A ID
+	BEQ	_BRK_SPAWN_DISK_END	; if none open, just return
+	JSR	PROC_GET		; get an open process ID
+	CMP.I	PROC_COUNT		; test if failed
+	BEQ	_BRK_SPAWN_DISK_END	; just return if no process open
+	STA.Z	VR11			; store new process ID in N
+	TAY				; move new process ID to Y
+	LDA	IO_FILE_A_ID		; load open file ID
+	STA.Y	PROC_A			; store in A of new process
+	LDA	PROC_ACTIVE_ID		; load current process
+	STA.Y	PROC_PARENT		; set as parent process
+	LDA.I	PROC_STATE_INIT_DISK	; load init disk state
+	STA.Y	PROC_STATE		; set as process state
+	LDA.I	1			; load 1 for low priority
+	STA.Y	PROC_SCHEDULE_PRIORITY	; store in process priority
+	LDA.I	0			; load 0 to reset schedule counter
+	STA.Y	PROC_SCHEDULE_COUNT	; reset counter
+>_BRK_SPAWN_DISK_END
+	JMP	PROC_UNPAUSE		; return to process

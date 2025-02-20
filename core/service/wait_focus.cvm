@@ -1,0 +1,12 @@
+; waits until process has read focus again and then sets it the ready state
+; if the process does not have read focus when it is served in this state, it stays suspended
+
+>SERVICE_WAIT_FOCUS
+	LDY	PROC_ACTIVE_ID			; load process ID
+	CPY	IO_READ_FOCUS			; compare to read focus process ID
+	BEQ	_SERVICE_WAIT_FOCUS_GOOD	; if this process has read focus then unblock
+	JMP	SERVICE_CYCLE_BEGIN		; else start next cycle
+>_SERVICE_WAIT_FOCUS_GOOD
+	LDA.I	PROC_STATE_READY		; load ready state value
+	STA.Y	PROC_STATE			; update state
+	JMP	SERVICE_CYCLE_BEGIN		; start next cycle

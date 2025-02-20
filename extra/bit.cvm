@@ -14,6 +14,7 @@
 ; returns the value of bit I from bit array A in V
 ; V is the result of the mask, so check for either 0 or not 0
 ; compare with 0 and use BEQ/BNE
+; the array at A should be at most 256 bits long
 
 >BITARRAY_GET
 	PHY			; store Y
@@ -34,6 +35,7 @@
 ; P --- VR0: array pointer A
 ;	VR4/1: bit index I
 ; sets the value of the bit at index I in bit array A to 1
+; the array at A should be at most 256 bits long
 
 >BITARRAY_SET
 	PHY			; store Y
@@ -55,6 +57,7 @@
 ; P --- VR0: array pointer A
 ;	VR4/1: bit index I
 ; sets the value of the bit at index I in bit array A to 0
+; the array at A should be at most 256 bits long
 
 >BITARRAY_CLEAR
 	PHY			; store Y

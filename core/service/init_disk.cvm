@@ -1,2 +1,217 @@
+; gets a process into a runnable state at the start of the given disk program
+
+; process A register = file ID of program to load
+
+; file format for programs:
+; byte 254 sector 19 (0x12FE): number of code pages
+; byte 255 sector 19 (0x12FF): number of adjustment pages
+; sector 1: first code page
+; sector after last code page: start of adjustment pages
+; adjustment page format:
+; can have a maximum of 127 pointers
+; must have a trailing 0xFFFF (nullptr) value at the end of the pointers for each page
+; with 127 pointers (max)
+; bytes 0-253: XX
+; bytes 254, 255: FF FF
+; with N ptrs
+; bytes [0,2N-1]: XX
+; bytes [2N,2N+1]: FF FF
+
 >SERVICE_INIT_DISK
-	JMP	SERVICE_CYCLE_BEGIN	; just go to next cycle for now
+	LDY	PROC_ACTIVE_ID		; load process ID
+	LDA.Y	PROC_A			; load file ID from A
+	DEC				; dec to turn it into a file idx
+	LSR				; / 16 to get sector offest for file name
+	LSR
+	LSR
+	LSR
+	INC				; + 2 to get sector number on track 0
+	INC
+	STA.Z	VR4 1			; set sector
+	STZ.Z	VR4			; set track to 0
+	JSR	RETRY_FLOPPY_READ	; read sector
+	CMP.I	0			; test if success
+	BEQ	_SERVICE_INIT_DISK_NAME	; continue if success
+	JMP	_SERVICE_INIT_DISK_FAIL	; else fail
+>_SERVICE_INIT_DISK_NAME
+	LDA.Y	PROC_A			; load file ID again
+	DEC				; dec to turn it into a file idx
+	ASL				; * 16 to get file name string offset in sector
+	ASL
+	ASL
+	ASL
+	STA.Z	VR0			; store sector offset
+	LDA.I	FLOPPY_PAGE > 8		; load floppy page number where sector is in RAM
+	STA.Z	VR0 1			; store
+	TYA				; get process ID
+	ASL				; * 16 to get file name offset in process control variables in RAM
+	ASL
+	ASL
+	ASL
+	STA.Z	VR1			; store offset to proces name string start
+	LDA.I	PROC_NAME > 8		; load process string page number
+	ADC.I	0			; 5th bit in carry for process IDs 0-15 vs 16-31
+	STA.Z	VR1 1			; store page number
+	LDA.I	16			; load length of file name and process name strings
+	STA.Z	VR4			; store
+	JSR	STRNCPY			; copy file name to be process name
+
+	LDA.Y	PROC_A			; load file ID from A
+	STA.Z	VR4			; set file track
+	LDA.I	19			; load 19 for sector
+	STA.Z	VR4 1			; set last sector of file
+	JSR	RETRY_FLOPPY_READ	; read sector
+	CMP.I	0			; test if succeeded
+	BEQ	_SERVICE_INIT_DISK_CONT1	; continue if success
+	JMP	_SERVICE_INIT_DISK_FAIL	; else fail
+>_SERVICE_INIT_DISK_CONT1
+	LDA	FLOPPY_PAGE 255		; get adjust pages count
+	STA.Z	VR5			; save for later
+	CLC				; CLC for ADC
+	LDA	FLOPPY_PAGE 254		; load number of code pages
+	ADC.I	2			; add 2 to get number of pages total needed
+	STA.Z	VR7			; store in VR7/1
+	JSR	PAGE_TABLE_VACANT	; get num of vacant pages
+	CMP.Z	VR7			; compare to amount needed
+	BGE	_SERVICE_INIT_DISK_CONT2	; continue if good
+	JMP	_SERVICE_INIT_DISK_PAGES	; else fail
+>_SERVICE_INIT_DISK_CONT2
+	; get data pages
+	JSR	PAGE_TABLE_GET		; get a vacant page
+	TAY				; move page ID to Y
+	LDA	PROC_ACTIVE_ID		; load process ID
+	STA.Y	PAGE_TABLE_PROCID	; store process ID in page row
+	LDA.I	0X80			; load home value for ZP
+	STA.Y	PAGE_TABLE_HOME		; store in page row
+	PHY				; save page ID
+	JSR	PAGE_MAP_GET_BACK	; get empty map idx from back
+	TAY				; move to Y
+	PLA				; pull page ID
+	STA.Y	PAGE_MAP		; store page ID in map at idx
+
+	JSR	PAGE_TABLE_GET		; get a vacant page
+	TAY				; move page ID to Y
+	LDA	PROC_ACTIVE_ID		; load process ID
+	STA.Y	PAGE_TABLE_PROCID	; store process ID in page row
+	LDA.I	0X81			; load home value for stack
+	STA.Y	PAGE_TABLE_HOME		; store in page row
+	PHY				; save page ID
+	JSR	PAGE_MAP_GET_BACK	; get empty map idx from back
+	TAY				; move to Y
+	PLA				; pull page ID
+	STA.Y	PAGE_MAP		; store page ID in map at idx
+
+	DEC.Z	VR7			; needed - 1
+	DEC.Z	VR7			; needed - 2 because zp and stack pages claimed
+
+	; get code pages
+	LDA.Z	VR7			; load needed code pages count
+	PHA				; push
+	JSR	PAGE_MAP_LARGEST	; find map idx where the code pages should go
+	STA.Z	VR7 1			; store starting map idx at VR7/2
+	PHA				; push starting map idx
+>_SERVICE_INIT_DISK_LOOP
+	LDX.Z	VR7 1			; load next map idx to X
+	LDA.X	PAGE_MAP		; load value of map idx there
+	CMP.I	0XFF			; test if that map idx is empty
+	BEQ	_SERVICE_INIT_DISK_LOOP_SKIP	; skip swap if already empty
+	JSR	PAGE_MAP_GET_BACK	; get an empty map idx starting at the back
+	TAY				; move map idx to Y
+	JSR	PAGE_MAP_SWAP		; swap empty map idx at back with current map idx
+>_SERVICE_INIT_DISK_LOOP_SKIP
+	JSR	PAGE_TABLE_GET		; get empty page table row
+	TAY				; move page ID to Y
+	LDA	PROC_ACTIVE_ID		; load process ID
+	STA.Y	PAGE_TABLE_PROCID	; store process ID in page row
+	LDA.Z	VR7 1			; load current map idx
+	STA.Y	PAGE_TABLE_HOME		; store in home value
+	TYA				; move page ID to A
+	LDY.Z	VR7 1			; load map idx in Y
+	STA.Y	PAGE_MAP		; store page ID in map idx
+	INC.Z	VR7 1			; inc map idx to go to next one
+	DEC.Z	VR7			; dec the number of needed pages
+	BNE	_SERVICE_INIT_DISK_LOOP	; loop if needed page count is not 0
+
+	; copy code into pages
+	PLA				; pull starting map idx from earlier
+	CLC				; CLC for ADC
+	ADC.I	PAGE_MAP_RAM_BASE	; load page of start of code pages for pagecpy
+	STA.Z	VR1 1
+	LDA.I	FLOPPY_PAGE > 8		; load page of floppy page for pagecpy
+	STA.Z	VR0 1
+	LDX	PROC_ACTIVE_ID		; load process ID
+	LDA.X	PROC_A			; get file ID again
+	STA.Z	VR4			; set file track
+	PLA				; get number of code pages
+	STA.Z	VR7			; store again
+	LDA.Z	VR1 1			; load first page idx
+	STA.Z	VR6			; save again for adjust
+	LDA.I	1			; load 1 for sector
+	STA.Z	VR4 1			; set start sector to 1
+>_SERVICE_INIT_DISK_CODE_LOOP
+	JSR	RETRY_FLOPPY_READ	; read sector
+	CMP.I	0			; test if success
+	BNE	_SERVICE_INIT_DISK_FAIL	; fail if not
+	JSR	PAGECPY			; copy sector to code page
+	INC.Z	VR1 1			; inc code page
+	INC.Z	VR4 1			; inc sector
+	DEC.Z	VR7			; dec number of pages left
+	BNE	_SERVICE_INIT_DISK_CODE_LOOP	; loop if not done
+
+	; adjust
+	; VR4 still has track and VR4 1 has first adjust sector
+	LDA.Z	VR6			; get first page idx
+	STA.Z	VR0 1			; set pointer to code in VR0
+	STZ.Z	VR0
+	LDA.I	FLOPPY_PAGE > 8		; get floppy page idx
+	STA.Z	VR1 1			; store as pointer to adjustments in VR1
+	STZ.Z	VR1
+	LDA.Z	VR4			; save track
+	STA.Z	VR6
+	LDA.Z	VR4 1			; save sector
+	STA.Z	VR6 1
+>_SERVICE_INIT_DISK_ADJUST_LOOP
+	LDA.Z	VR6			; load track
+	STA.Z	VR4
+	LDA.Z	VR6 1			; load sector
+	STA.Z	VR4 1
+	JSR	RETRY_FLOPPY_READ	; read sector
+	CMP.I	0			; test if success
+	BNE	_SERVICE_INIT_DISK_FAIL	; fail if not
+	STZ.Z	VR4			; set adjust offset to 0
+	STZ.Z	VR4 1
+	JSR	PROGRAM_ADJUST		; adjust
+	INC.Z	VR6 1			; inc sector
+	DEC.Z	VR5			; dec number of adj pages
+	BNE	_SERVICE_INIT_DISK_ADJUST_LOOP	; loop if not done
+
+	; set variables
+	LDA	PROC_ACTIVE_ID		; load process ID
+	ASL				; *2 for offset
+	TAY				; set in Y
+	LDA.Z	VR0 1			; load code location
+	STA.Y	PROC_PTROFF 1		; set ptroff
+	LDA.I	0
+	STA.Y	PROC_PTROFF
+	LDA.Z	VR0 1			; set PC to code
+	STA.Y	PROC_PC 1
+	LDA.I	0
+	STA.Y	PROC_PC
+	LDY	PROC_ACTIVE_ID		; load process active ID
+	LDA.I	0XFF			; load initial value for stack pointer
+	STA.Y	PROC_S			; set stack
+	LDA.I	0B00100000		; load initial value for processor flags
+	STA.Y	PROC_P			; set flags
+	LDA.I	2			; load initial value for priortiy
+	STA.Y	PROC_SCHEDULE_PRIORITY	; set priority
+	LDA.I	PROC_STATE_READY	; load ready state
+	STA.Y	PROC_STATE		; update state
+	LDA.I	0X80			; load initial value for no DAP
+	STA.Y	PROC_ACTIVE_DAP_ID	; store in DAP
+	JMP	SERVICE_CYCLE_BEGIN	; start new cycle
+>_SERVICE_INIT_DISK_FAIL
+	LDA.I	PROC_STATE_EXIT		; load exit state value
+	LDY	PROC_ACTIVE_ID		; load process ID
+	STA.Y	PROC_STATE		; set process state to exit
+>_SERVICE_INIT_DISK_PAGES
+	JMP	SERVICE_CYCLE_BEGIN	; start new cycle

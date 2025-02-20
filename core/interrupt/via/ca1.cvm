@@ -1,10 +1,13 @@
-; user input interrupt connected to port A (with the keyboard)
+; user input interrupt connected to VIA port A (with the keyboard)
+; if an incoming scan code is determined to be a text character, it is added to the write buffer
+; release of the return key finalizes an input line
+; release of the escape key spawns a new shell program and focuses it
 
 =KEYBOARD_SC_BREAK	0XF0
 =KEYBOARD_SC_EXTEND	0XE0
 =KEYBOARD_SC_LSHIFT	0X12
-
-=IO_READ_BUFFER_LEN	0X80
+=KEYBOARD_SC_RETURN	0X5A
+=KEYBOARD_SC_ESCAPE	0X76
 
 >INTERRUPT_CA1
 	LDA	VIA_READ_PORT		; load inverted scan code from keyboard
@@ -15,11 +18,17 @@
 	BEQ	_INTERRUPT_CA1_SPECIAL	; if break, adjust flags
 	CMP.I	KEYBOARD_SC_EXTEND	; compare scan code to extend
 	BEQ	_INTERRUPT_CA1_SPECIAL	; if extend, adjust flags
+	CMP.I	KEYBOARD_SC_RETURN	; compare scan code to return
+	BEQ	_INTERRUPT_CA1_RETURN	; if return, finalize input
+	CMP.I	KEYBOARD_SC_ESCAPE	; compare scan code to escape
+	BEQ	_INTERRUPT_CA1_ESCAPE	; if escape, spawn new shell
 
 	; can translate the scan code to an ASCII character
 	BIT	IO_KEYBOARD_FLAGS	; BIT the flags var, N flag will have bit 7
 	STZ	IO_KEYBOARD_FLAGS	; flags are consumed, reset
-	BMI	_INTERRUPT_CA1_EXIT	; if N = 0, good to read since no flags, else return
+	BPL	_INTERRUPT_CA1_CONT	; if N = 0, good to read since no flags, else return
+	JMP	_INTERRUPT_CA1_EXIT	; return
+>_INTERRUPT_CA1_CONT
 	ORA	IO_KEYBOARD_SHIFT	; A still has the scan code, add 0x80 if shift is down
 	LDX.I	0X7F			; load highest ASCII value
 >_INTERRUPT_CA1_LOOP
@@ -31,11 +40,7 @@
 >_INTERRUPT_CA1_LOOP_END
 	CPX.I	ASCII_BS		; compare against backspace character
 	BEQ	_INTERRUPT_CA1_BACK	; go to backspace code
-	CPX.I	ASCII_LF		; compare against enter character
-	BEQ	_INTERRUPT_CA1_ENTER	; go to enter code
-	CPX.I	ASCII_ESC		; compare against escape character
-	BEQ	_INTERRUPT_CA1_ESC	; go to escape code
-	
+
 	; treat as a normal ASCII character and add to the buffer
 	TXA				; move ASCII value to A
 	LDX	IO_READ_IDX		; load buffer write index
@@ -55,22 +60,40 @@
 >_INTERRUPT_CA1_SPECIAL
 	DEC	IO_KEYBOARD_FLAGS	; decrement flags so nonzero and bit 7 set
 	BRA	_INTERRUPT_CA1_EXIT	; exit
->_INTERRUPT_CA1_ENTER
-	LDX	IO_READ_IDX		; load write index to write nul char
-	STZ.X	IO_READ_BUFFER		; write nul char
+>_INTERRUPT_CA1_RETURN
+	BIT	IO_KEYBOARD_FLAGS	; test if flags are set
+	BPL	_INTERRUPT_CA1_EXIT	; if not set then end
+	STZ	IO_KEYBOARD_FLAGS	; reset flags
+	LDX	IO_READ_IDX		; load write index to write null character
+	STZ.X	IO_READ_BUFFER		; write null character
 	LDA.I	TRUE			; load true value
 	STA	IO_READ_VALID		; set valid to true since user hit enter to signal end of input
 	STZ	IO_READ_IDX		; reset write index to 0
-	STZ	IO_KEYBOARD_FLAGS	; reset flags
 	BRA	_INTERRUPT_CA1_EXIT	; exit
 >_INTERRUPT_CA1_BACK
 	LDA	IO_READ_IDX		; load index to delete
 	BEQ	_INTERRUPT_CA1_EXIT	; if at 0 already, nothing to delete so return
-	DEC	IO_READ_IDX		; else decrement write index, effectively deleting char
+	DEC	IO_READ_IDX		; else decrement write index, effectively deleting character
 	BRA	_INTERRUPT_CA1_EXIT	; exit
->_INTERRUPT_CA1_ESC
-	LDA.I	0			; load 0 to switch focus to proc id 0
-	STA	IO_READ_FOCUS		; set proc id focus
+>_INTERRUPT_CA1_ESCAPE
+	BIT	IO_KEYBOARD_FLAGS	; test if flags are set
+	BPL	_INTERRUPT_CA1_EXIT	; if not set then end
+	STZ	IO_KEYBOARD_FLAGS	; reset flags
+	JSR	PROC_GET		; get open process ID
+	CMP.I	PROC_COUNT		; test if failed
+	BEQ	_INTERRUPT_CA1_EXIT	; just return if no process open
+	TAY				; move good process ID to Y
+	LDA.I	ROM_SHELL_ID		; load program ID
+	STA.Y	PROC_A			; store in process A register
+	LDA.I	0XFF			; load base process ID
+	STA.Y	PROC_PARENT		; store parent
+	LDA.I	PROC_STATE_INIT_ROM	; load INIT_ROM state
+	STA.Y	PROC_STATE		; store in process state
+	LDA.I	1			; load 1 for low priority
+	STA.Y	PROC_SCHEDULE_PRIORITY	; store in process priority
+	LDA.I	0			; load 0 to reset schedule counter
+	STA.Y	PROC_SCHEDULE_COUNT	; reset counter
+	STY	IO_READ_FOCUS		; set new process ID as focus
 >_INTERRUPT_CA1_EXIT
 	STA	HW_ENABLE_ADDR HW_RAM1	; turn off VIA
 	JMP	PROC_UNPAUSE		; resume process

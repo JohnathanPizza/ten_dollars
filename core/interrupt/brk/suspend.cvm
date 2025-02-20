@@ -1,4 +1,6 @@
-; forcibly suspends the current process
+; BRK_SUSPEND
+; suspends the current process for 1 service cycle so that other processes may run
+; useful for when process is waiting on a claimed system resource, suspending itself may help other process complete its resource section faster and thus make the suspending process advance faster
 
 >BRK_SUSPEND
 	JSR	PROC_LEAVE		; save process

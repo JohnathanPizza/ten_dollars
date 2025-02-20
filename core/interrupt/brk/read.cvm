@@ -1,14 +1,17 @@
-; starts a new reading operation for the proc
-; pointer to the reading buffer supplied in VR0 and then buffer length in VR4/1
+; BRK_READ
+; P --- VR0: pointer to read buffer B
+;	VR4/1: size of buffer S
+; starts a new reading operation for the process and suspends the process until the read request is completed
+; at most S - 1 characters will be read from input and placed at B with a trailing null character added
 
 >BRK_READ
 	LDA	IO_READ_STATUS		; load reading status
 	BNE	_BRK_READ_SKIP		; if not 0 then skip index reset
 	STZ	IO_READ_IDX		; reset write buffer index
 >_BRK_READ_SKIP
-	INC	IO_READ_STATUS		; increment status to signal another proc is reading
+	INC	IO_READ_STATUS		; increment status to signal another process is reading
 	JSR	PROC_LEAVE		; save process to suspend it while waiting for read to complete
 	LDA.I	PROC_STATE_IO_READ	; load new process state for reading
-	LDY	PROC_ACTIVE_ID		; load proc id
+	LDY	PROC_ACTIVE_ID		; load process ID
 	STA.Y	PROC_STATE		; update process state
 	JMP	SERVICE_CYCLE_BEGIN	; start new cycle

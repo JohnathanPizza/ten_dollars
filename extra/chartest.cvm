@@ -1,0 +1,146 @@
+; CHARTEST.CVM
+; ===
+; ISUPPER
+; ISLOWER
+; ISNUM
+; ISALPHA
+; ISHEX
+; ISSPACE
+
+;==================================================
+
+; ISUPPER
+; P --- A: character C
+; R --- A: result boolean B
+; B is true if C is uppercase
+; otherwise B if false
+
+>ISUPPER
+	CMP.I	ASCII_Z 1	; compare to ASCII_Z
+	BGE	_ISUPPER_FALSE	; fail if above
+	CMP.I	ASCII_A		; compare to ASCII_A
+	BLS	_ISUPPER_FALSE	; fail if below
+	LDA.I	TRUE		; load true value
+	RTS			; return
+>_ISUPPER_FALSE
+	LDA.I	FALSE		; load false value
+	RTS			; return
+
+;==================================================
+
+; ISLOWER
+; P --- A: character C
+; R --- A: result boolean B
+; B is true if C is lowercase
+; otherwise B if false
+
+>ISLOWER
+	CMP.I	ASCII_ZL 1	; compare to ASCII_ZL
+	BGE	_ISLOWER_FALSE	; fail if above
+	CMP.I	ASCII_AL	; compare to ASCII_AL
+	BLS	_ISLOWER_FALSE	; fail if below
+	LDA.I	TRUE		; load true value
+	RTS			; return
+>_ISLOWER_FALSE
+	LDA.I	FALSE		; load false value
+	RTS			; return
+
+;==================================================
+
+; ISNUM
+; P --- A: character C
+; R --- A: result boolean B
+; B is true if C is a decimal digit
+; otherwise B is false
+
+>ISNUM
+	CMP.I	ASCII_9 1	; compare to ASCII_9
+	BGE	_ISNUM_FALSE	; fail if above
+	CMP.I	ASCII_0		; compare to ASCII_0
+	BLS	_ISNUM_FALSE	; fail if below
+	LDA.I	TRUE		; load true value
+	RTS			; return
+>_ISNUM_FALSE
+	LDA.I	FALSE		; load false value
+	RTS			; return
+
+;==================================================
+
+; ISALPHA
+; P --- A: character C
+; R --- A: result boolean B
+; B is true if C is any letter in the alphabet
+; otherwise B is false
+
+>ISALPHA
+	STA.Z	VR8		; save C in VR8/1
+	JSR	ISLOWER		; test if lowercase letter
+	CMP.I	TRUE		; if lowercase
+	BEQ	_ISALPHA_TRUE	; then return true
+	LDA.Z	VR8		; load C
+	JSR	ISUPPER		; test if uppercase letter
+	CMP.I	TRUE		; if uppercase
+	BEQ	_ISALPHA_TRUE	; then return true
+	LDA.I	FALSE		; load false
+	RTS			; return
+>_ISALPHA_TRUE
+	LDA.I	TRUE		; load true
+	RTS			; return
+
+;==================================================
+
+; ISHEX
+; P --- A: character C
+; R --- A: result boolean B
+; B is true if C is a hexadecimal digit (0-9, a-f, A-F)
+; otherwise B is false
+
+>ISHEX
+	JSR	TOUPPER		; make uppercase to reduce tests
+	CMP.I	ASCII_A		; test on A
+	BEQ	_ISHEX_TRUE	; if equal return true
+	CMP.I	ASCII_B		; test on B
+	BEQ	_ISHEX_TRUE	; if equal return true
+	CMP.I	ASCII_C		; test on C
+	BEQ	_ISHEX_TRUE	; if equal return true
+	CMP.I	ASCII_D		; test on D
+	BEQ	_ISHEX_TRUE	; if equal return true
+	CMP.I	ASCII_E		; test on E
+	BEQ	_ISHEX_TRUE	; if equal return true
+	CMP.I	ASCII_F		; test on F
+	BEQ	_ISHEX_TRUE	; if equal return true
+	JSR	ISNUM
+	CMP.I	TRUE
+	BEQ	_ISHEX_TRUE
+	LDA.I	FALSE		; load false
+	RTS			; return
+>_ISHEX_TRUE
+	LDA.I	TRUE		; load true
+	RTS			; return
+
+;==================================================
+
+; ISSPACE
+; P --- A: character C
+; R --- A: result boolean B
+; B is true if C is a space, hor tab, vert tab, line feed, form feed, or carriage return
+; otherwise B is false
+
+>ISSPACE
+	CMP.I	ASCII_SPACE	; test if space
+	BEQ	_ISSPACE_TRUE	; if equal return true
+	CMP.I	ASCII_TAB	; test if h tab
+	BEQ	_ISSPACE_TRUE	; if equal return true
+	CMP.I	ASCII_VT	; test if v tab
+	BEQ	_ISSPACE_TRUE	; if equal return true
+	CMP.I	ASCII_LF	; test if line feed
+	BEQ	_ISSPACE_TRUE	; if equal return true
+	CMP.I	ASCII_FF	; test if form feed
+	BEQ	_ISSPACE_TRUE	; if equal return true
+	CMP.I	ASCII_CR	; test if carriage return
+	BEQ	_ISSPACE_TRUE	; if equal return true
+	LDA.I	FALSE		; load false
+	RTS			; return
+>_ISSPACE_TRUE
+	LDA.I	TRUE		; load true
+	RTS			; return

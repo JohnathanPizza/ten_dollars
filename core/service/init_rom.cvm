@@ -159,9 +159,9 @@
 	LDA.I	PROC_NAME > 8		; load name page number
 	ADC.I	0			; add carry which is now bit 5 of process ID to get correct page
 	STA.Z	VR1 1			; set high byte of pointer
-	LDY.I	15			; load 15 to write nul char at the end
-	LDA.I	0			; nul char value
-	STA.ZPY	VR1			; store nul at end of max string length
+	LDY.I	15			; load 15 to write null char at the end
+	LDA.I	0			; null char value
+	STA.ZPY	VR1			; store null at end of max string length
 	STY.Z	VR4			; also set 15 to be number for strncpy
 	JSR	STRNCPY			; copy string to set name
 >_SERVICE_INIT_ROM_PAGES

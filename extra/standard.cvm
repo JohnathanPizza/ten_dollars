@@ -29,7 +29,7 @@
 	STZ.Z	VR11			; set NL to 0
 >_PROGRAM_GET_ARG_TRIM
 	LDA.ZP	VR10			; get possible whitespace character
-	BEQ	_PROGRAM_GET_ARG_NONE	; if nul character then return false
+	BEQ	_PROGRAM_GET_ARG_NONE	; if null character then return false
 	JSR	ISSPACE			; test if whitespace
 	CMP.I	FALSE
 	BEQ	_PROGRAM_GET_ARG_WORD	; if not whitespace then this is the start of the next argument
@@ -37,7 +37,7 @@
 	BRA	_PROGRAM_GET_ARG_TRIM	; loop
 >_PROGRAM_GET_ARG_WORD
 	LDA.ZP	VR10			; get possible character
-	BEQ	_PROGRAM_GET_ARG_DONE	; if nul character then done searching
+	BEQ	_PROGRAM_GET_ARG_DONE	; if null character then done searching
 	JSR	ISSPACE			; test if this character is a space
 	CMP.I	TRUE
 	BEQ	_PROGRAM_GET_ARG_DONE	; done searching if space character is found

@@ -115,7 +115,7 @@
 ;	A: file ID F
 ; R --- A: success value R
 ; sets the name of file F to N
-; maximum length of N is 15 ( + nul character)
+; maximum length of N is 15 ( + null character)
 ; does not check if N is too big, truncates if so
 ; R = 0 if the operation finished
 ; otherwise R = either a floppy error code or file error code
@@ -160,7 +160,7 @@
 	LDA.Z	VR8			; load F idx
 	LDA.I	15			; load 15 for STRNCPY value
 	STA.Z	VR4			; store
-	; nul char not added since on format all data is 0 and if byte 16 is never touched then it will always be 0 / nul char
+	; null char not added since on format all data is 0 and if byte 16 is never touched then it will always be 0 / null char
 	JSR	STRNCPY			; copy N to sector
 	STZ.Z	VR4			; set track 0 again
 	JSR	RETRY_FLOPPY_WRITE	; write sector

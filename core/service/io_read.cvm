@@ -16,17 +16,17 @@
 >_SERVICE_IO_READ_LOOP
 	LDA.Y	IO_READ_BUFFER		; load next character from read buffer
 	STA.ZPY	VR0			; store into process buffer at index Y
-	BEQ	_SERVICE_IO_READ_LOOP_END	; if stored the nul char then exit loop
+	BEQ	_SERVICE_IO_READ_LOOP_END	; if stored the null char then exit loop
 	INY				; inc buffer idx
 	DEX				; dec buffer remaining len
 >_SERVICE_IO_READ_CHECK
 	CPX.I	0			; check if remaining buffer length is 0
 	BNE	_SERVICE_IO_READ_LOOP	; if space left keep looping
 >_SERVICE_IO_READ_LOOP_END
-	LDA.I	0			; load 0 for nul char value
+	LDA.I	0			; load 0 for null char value
 	LDY.Z	VR4			; load length of buffer in Y
 	DEY				; set index to very last position in buffer
-	STA.ZPY	VR0			; store nul char
+	STA.ZPY	VR0			; store null char
 	JSR	PROC_LEAVE		; save process
 	LDA.I	PROC_STATE_READY	; load ready state
 	LDY	PROC_ACTIVE_ID		; load process ID

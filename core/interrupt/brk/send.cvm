@@ -11,6 +11,10 @@
 	BGE	_BRK_SEND_SKIP		; skip if not valid
 	CMP	PROC_ACTIVE_ID		; test if this process is process T
 	BGE	_BRK_SEND_SKIP		; skip if same process
+	TAY				; move T to Y
+	LDA.Y	PROC_STATE		; load state of process T
+	CMP.I	PROC_STATE_NULL		; compare with null state
+	BEQ	_BRK_SEND_SKIP		; skip if process T is in null state
 	LDA	PROC_ACTIVE_ID		; get process ID
 	ASL				; *2 for pointer offset to 16-byte message buffer
 	TAY				; move offset to Y

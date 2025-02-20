@@ -19,7 +19,7 @@
 ; do not change A or L if other arguments will be searched for
 
 >PROGRAM_GET_ARG
-	CLC				; add previous L to A to get 1 past end of prev arg
+	CLC				; add previous L to A to get 1 past end of prev argument
 	LDA.Z	VR10			; load low byte of A
 	ADC.Z	VR11			; add with L
 	STA.Z	VR10			; store in low byte

@@ -33,7 +33,7 @@
 ; PROC_LOAD
 ; for the current active process,
 ; load code pages to their homes, load the stack in 0x100, load the zp in 0x00
-; load the active DAP if any, load register values in PROC_PAUSE vars
+; load the active DAP if any, load register values in PROC_PAUSE variables
 ; does not preserve A, X, Y values
 
 >PROC_LOAD
@@ -110,7 +110,7 @@
 	PLX
 	STX.Z	VR8
 >_PROC_LOAD_DAP_SKIP
-	; setting PAUSE vars
+	; setting PAUSE variables
 	LDY	PROC_ACTIVE_ID		; load process ID for getting values
 	LDA.Y	PROC_A			; set A
 	STA	PROC_PAUSE_A
@@ -135,7 +135,7 @@
 
 ; PROC_LEAVE
 ; performs writebacks for DAP, stack, and zp for the active process
-; updates process register values from PAUSE vars
+; updates process register values from PAUSE variables
 
 >PROC_LEAVE
 	; flush DAP back to memory
@@ -183,7 +183,7 @@
 	JSR	PAGE_MAP_FIND		; get map idx of stack page
 	JSR	PAGE_STORE_DAP		; store stack back to memory
 
-	; update process registers from PAUSE vars
+	; update process registers from PAUSE variables
 	LDY	PROC_ACTIVE_ID		; load process ID
 	LDA	PROC_PAUSE_A		; update A
 	STA.Y	PROC_A

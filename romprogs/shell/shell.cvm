@@ -64,25 +64,25 @@
 	JSR	PRINTL				; reflect input
 	JSR	PRINT_WAIT			; wait for reflection to output
 
-	; set initial argument var values
-	JSR	STRLEAD				; trim leading whitespace in input to get first arg
-	LDA.Z	VR11				; set argument pointer var
+	; set initial argument variable values
+	JSR	STRLEAD				; trim leading whitespace in input to get first argument
+	LDA.Z	VR11				; set argument pointer variable
 	STA.Z	_SHELL_ARG_PTR
 	STA.Z	VR0				; also set VR0 to trimmed str pointer (VR0 1 is still 0x00)
 	JSR	STRWORDLEN			; get length of argument
 	LDA.Z	VR11				; test argument length
 	BEQ	_SHELL_LOOP			; go back to main loop if length is 0
-	STA.Z	_SHELL_ARG_LEN			; set argument length var
-	TAY					; move arg len to Y to access character that ends the argument (WS or nul char)
+	STA.Z	_SHELL_ARG_LEN			; set argument length variable
+	TAY					; move argument len to Y to access character that ends the argument (WS or nul char)
 	LDA.ZPY	VR0				; load ending char
-	STA.Z	_SHELL_ARG_END			; set as argument ending char var
+	STA.Z	_SHELL_ARG_END			; set as argument ending char variable
 	LDA.I	ASCII_NUL			; load nul char value
 	STA.ZPY	VR0				; set ending char as nul char for easy use of string functions later
 
 	; search for given command
 	LDA.Z	_SHELL_ARG_PTR			; load pointer to the start of the first argument
 	STA.Z	VR1
-	STZ.Z	VR1 1				; zero here because the input buffer is in the zero page so the arg pointer must be too
+	STZ.Z	VR1 1				; zero here because the input buffer is in the zero page so the argument pointer must be too
 	LDA.Z	_SHELL_ARG_LEN			; load total length of argument for strncmp
 	STA.Z	VR4
 	LDX.I	0				; set array search index to 0
@@ -255,13 +255,13 @@ $_SHELL_POKE_FUNC
 ;==================================================
 
 >_SHELL_RUN_FUNC
-	JSR	_SHELL_NEXT_ARG			; try to get name arg
-	CMP.I	0				; test if got arg
+	JSR	_SHELL_NEXT_ARG			; try to get name argument
+	CMP.I	0				; test if got argument
 	BNE	_SHELL_RUN_FUNC_ARG		; continue if so
-	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing arg error
+	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing argument error
 	JMP	_SHELL_LOOP			; return to main loop
 >_SHELL_RUN_FUNC_ARG
-	LDA.Z	_SHELL_ARG_PTR			; load pointer to arg in VR0
+	LDA.Z	_SHELL_ARG_PTR			; load pointer to argument in VR0
 	STA.Z	VR0
 	STZ.Z	VR0 1
 	JSR	ROM_PROGRAM_GET			; try to get ROM program ID from name
@@ -297,10 +297,10 @@ $_SHELL_POKE_FUNC
 ;==================================================
 
 >_SHELL_RUND_FUNC
-	JSR	_SHELL_NEXT_ARG			; try to get name arg
-	CMP.I	0				; test if got arg
+	JSR	_SHELL_NEXT_ARG			; try to get name argument
+	CMP.I	0				; test if got argument
 	BNE	_SHELL_RUND_FUNC_ARG		; continue if so
-	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing arg error
+	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing argument error
 	JMP	_SHELL_LOOP			; return to main loop
 >_SHELL_RUND_FUNC_ARG
 	LDA.I	BC_FILE_CLAIM			; load file claim code
@@ -314,7 +314,7 @@ $_SHELL_POKE_FUNC
 	JSR	PRINTL				; print
 	JMP	_SHELL_LOOP			; return to main loop
 >_SHELL_RUND_FUNC_CLAIM
-	LDA.Z	_SHELL_ARG_PTR			; load pointer to arg in VR0
+	LDA.Z	_SHELL_ARG_PTR			; load pointer to argument in VR0
 	STA.Z	VR0
 	STZ.Z	VR0 1
 	LDA.I	FILE_OP_OPEN_A			; load file open A code
@@ -358,13 +358,13 @@ $_SHELL_POKE_FUNC
 ;==================================================
 
 >_SHELL_CF_FUNC
-	JSR	_SHELL_NEXT_ARG			; try to get process ID arg
-	CMP.I	0				; test if got arg
+	JSR	_SHELL_NEXT_ARG			; try to get process ID argument
+	CMP.I	0				; test if got argument
 	BNE	_SHELL_CF_FUNC_ARG		; continue if so
-	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing arg error
+	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing argument error
 	JMP	_SHELL_LOOP			; return to main loop
 >_SHELL_CF_FUNC_ARG
-	LDA.Z	_SHELL_ARG_PTR			; load pointer to arg in VR0
+	LDA.Z	_SHELL_ARG_PTR			; load pointer to argument in VR0
 	STA.Z	VR0
 	STZ.Z	VR0 1
 	JSR	STRTONUM			; try to get number value of process ID
@@ -397,13 +397,13 @@ $_SHELL_POKE_FUNC
 ;==================================================
 
 >_SHELL_KILL_FUNC
-	JSR	_SHELL_NEXT_ARG			; try to get process ID arg
-	CMP.I	0				; test if got arg
+	JSR	_SHELL_NEXT_ARG			; try to get process ID argument
+	CMP.I	0				; test if got argument
 	BNE	_SHELL_KILL_FUNC_ARG		; continue if so
-	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing arg error
+	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing argument error
 	JMP	_SHELL_LOOP			; return to main loop
 >_SHELL_KILL_FUNC_ARG
-	LDA.Z	_SHELL_ARG_PTR			; load pointer to arg in VR0
+	LDA.Z	_SHELL_ARG_PTR			; load pointer to argument in VR0
 	STA.Z	VR0
 	STZ.Z	VR0 1
 	JSR	STRTONUM			; try to get number value of process ID
@@ -605,13 +605,13 @@ $_SHELL_POKE_FUNC
 ;==================================================
 
 >_SHELL_PEEK_FUNC
-	JSR	_SHELL_NEXT_ARG			; try to get address arg
-	CMP.I	0				; test if got arg
+	JSR	_SHELL_NEXT_ARG			; try to get address argument
+	CMP.I	0				; test if got argument
 	BNE	_SHELL_PEEK_FUNC_ARG		; continue if so
-	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing arg error
+	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing argument error
 	JMP	_SHELL_LOOP			; return to main loop
 >_SHELL_PEEK_FUNC_ARG
-	LDA.Z	_SHELL_ARG_PTR			; load pointer to arg in VR0
+	LDA.Z	_SHELL_ARG_PTR			; load pointer to argument in VR0
 	STA.Z	VR0
 	STZ.Z	VR0 1
 	JSR	STRTONUM			; get number value of address
@@ -636,13 +636,13 @@ $_SHELL_POKE_FUNC
 ;==================================================
 
 >_SHELL_POKE_FUNC
-	JSR	_SHELL_NEXT_ARG			; try to get address arg
-	CMP.I	0				; test if got arg
+	JSR	_SHELL_NEXT_ARG			; try to get address argument
+	CMP.I	0				; test if got argument
 	BNE	_SHELL_POKE_FUNC_ARG1		; continue if so
-	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing arg error
+	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing argument error
 	JMP	_SHELL_LOOP			; return to main loop
 >_SHELL_POKE_FUNC_ARG1
-	LDA.Z	_SHELL_ARG_PTR			; load pointer to arg in VR0
+	LDA.Z	_SHELL_ARG_PTR			; load pointer to argument in VR0
 	STA.Z	VR0
 	STZ.Z	VR0 1
 	JSR	STRTONUM			; get number value of address
@@ -659,13 +659,13 @@ $_SHELL_POKE_FUNC
 	STA.Z	VR7
 	LDA.Z	VR11 1
 	STA.Z	VR7 1
-	JSR	_SHELL_NEXT_ARG			; try to get data arg
-	CMP.I	0				; test if got arg
+	JSR	_SHELL_NEXT_ARG			; try to get data argument
+	CMP.I	0				; test if got argument
 	BNE	_SHELL_POKE_FUNC_ARG2		; continue if so
-	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing arg error
+	JSR	_SHELL_MISSING_ARG_ERROR	; else print missing argument error
 	JMP	_SHELL_LOOP			; return to main loop
 >_SHELL_POKE_FUNC_ARG2
-	LDA.Z	_SHELL_ARG_PTR			; load pointer to arg in VR0, VR0/1 still 0
+	LDA.Z	_SHELL_ARG_PTR			; load pointer to argument in VR0, VR0/1 still 0
 	STA.Z	VR0
 	JSR	STRTONUM			; get number value of data
 	CMP.I	TRUE				; test if succeeded
@@ -690,10 +690,10 @@ $_SHELL_POKE_FUNC
 
 ;==================================================
 
-; prints the missing arg error string
+; prints the missing argument error string
 >_SHELL_MISSING_ARG_ERROR
 	PHA					; store A
-	LDA	_SHELL_MISSING_ARG_STR		; load missing arg string
+	LDA	_SHELL_MISSING_ARG_STR		; load missing argument string
 	STA.Z	VR0
 	LDA	_SHELL_MISSING_ARG_STR 1
 	STA.Z	VR0 1
@@ -703,7 +703,7 @@ $_SHELL_POKE_FUNC
 
 ;==================================================
 
-; gets the next argument and updates arg vars
+; gets the next argument and updates argument variables
 ; A = 0 if no new argument
 ; A = not 0 if new argument found
 >_SHELL_NEXT_ARG
@@ -728,11 +728,11 @@ $_SHELL_POKE_FUNC
 	STA.Z	_SHELL_ARG_PTR			; store trimmed string as new argument pointer
 	STA.Z	VR0				; also set VR0 as this trimmed string pointer
 	JSR	STRWORDLEN			; get length of next argument
-	LDA.Z	VR11				; store length in argument length var
+	LDA.Z	VR11				; store length in argument length variable
 	STA.Z	_SHELL_ARG_LEN
 	TAY					; move new argument length to Y
 	LDA.ZPY	VR0				; load word end character of new argument
-	STA.Z	_SHELL_ARG_END			; store in argument end var
+	STA.Z	_SHELL_ARG_END			; store in argument end variable
 	LDA.I	ASCII_NUL			; load nul char value
 	STA.ZPY	VR0				; set word end of new argument to nul char
 	PLA					; restore VR0

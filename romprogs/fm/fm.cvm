@@ -86,25 +86,25 @@
 	JSR	PRINTL				; reflect input
 	JSR	PRINT_WAIT			; wait for reflection to output
 
-	; set initial argument var values
-	JSR	STRLEAD				; trim leading whitespace in input to get first arg
-	LDA.Z	VR11				; set argument pointer var
+	; set initial argument variable values
+	JSR	STRLEAD				; trim leading whitespace in input to get first argument
+	LDA.Z	VR11				; set argument pointer variable
 	STA.Z	_FM_ARG_PTR
 	STA.Z	VR0				; also set VR0 to trimmed str pointer (VR0 1 is still 0x00)
 	JSR	STRWORDLEN			; get length of argument
 	LDA.Z	VR11				; test argument length
 	BEQ	_FM_LOOP			; go back to main loop if length is 0
-	STA.Z	_FM_ARG_LEN			; set argument length var
-	TAY					; move arg len to Y to access character that ends the argument (WS or null character)
+	STA.Z	_FM_ARG_LEN			; set argument length variable
+	TAY					; move argument len to Y to access character that ends the argument (WS or null character)
 	LDA.ZPY	VR0				; load ending character
-	STA.Z	_FM_ARG_END			; set as argument ending character var
+	STA.Z	_FM_ARG_END			; set as argument ending character variable
 	LDA.I	ASCII_NUL			; load null character value
 	STA.ZPY	VR0				; set ending character as null character for easy use of string functions later
 
 	; search for given command
 	LDA.Z	_FM_ARG_PTR			; load pointer to the start of the first argument
 	STA.Z	VR1
-	STZ.Z	VR1 1				; zero here because the input buffer is in the zero page so the arg pointer must be too
+	STZ.Z	VR1 1				; zero here because the input buffer is in the zero page so the argument pointer must be too
 	LDA.Z	_FM_ARG_LEN			; load total length of argument for strncmp
 	STA.Z	VR4
 	LDX.I	0				; set array search index to 0
@@ -375,12 +375,12 @@ $_FM_COPY_FUNC
 
 >_FM_DNAME_FUNC
 	JSR	_FM_NEXT_ARG			; try to get new disk name
-	CMP.I	0				; test if given arg
-	BNE	_FM_DNAME_FUNC_ARG		; continue if arg given
-	JSR	_FM_MISSING_ARG_ERROR		; print missing arg error
+	CMP.I	0				; test if given argument
+	BNE	_FM_DNAME_FUNC_ARG		; continue if argument given
+	JSR	_FM_MISSING_ARG_ERROR		; print missing argument error
 	JMP	_FM_LOOP			; return to main loop
 >_FM_DNAME_FUNC_ARG
-	LDA.Z	_FM_ARG_PTR			; load pointer to name arg
+	LDA.Z	_FM_ARG_PTR			; load pointer to name argument
 	STA.Z	VR0				; set in VR0 for disk rename interrupt
 	STZ.Z	VR0 1
 	LDA.I	FILE_OP_DISK_RENAME		; load disk rename file op code
@@ -464,12 +464,12 @@ $_FM_COPY_FUNC
 
 >_FM_FIND_FUNC
 	JSR	_FM_NEXT_ARG			; try to get file name
-	CMP.I	0				; test if given arg
-	BNE	_FM_FIND_FUNC_ARG		; continue if arg given
-	JSR	_FM_MISSING_ARG_ERROR		; print missing arg error
+	CMP.I	0				; test if given argument
+	BNE	_FM_FIND_FUNC_ARG		; continue if argument given
+	JSR	_FM_MISSING_ARG_ERROR		; print missing argument error
 	JMP	_FM_LOOP			; return to main loop
 >_FM_FIND_FUNC_ARG
-	LDA.Z	_FM_ARG_PTR			; load pointer to name arg
+	LDA.Z	_FM_ARG_PTR			; load pointer to name argument
 	STA.Z	VR0				; set in VR0 for file find interrupt
 	STZ.Z	VR0 1
 	LDA.I	FILE_OP_EXIST			; load file exist op code
@@ -503,12 +503,12 @@ $_FM_COPY_FUNC
 
 >_FM_CREATE_FUNC
 	JSR	_FM_NEXT_ARG			; try to get new file name
-	CMP.I	0				; test if given arg
-	BNE	_FM_CREATE_FUNC_ARG		; continue if arg given
-	JSR	_FM_MISSING_ARG_ERROR		; print missing arg error
+	CMP.I	0				; test if given argument
+	BNE	_FM_CREATE_FUNC_ARG		; continue if argument given
+	JSR	_FM_MISSING_ARG_ERROR		; print missing argument error
 	JMP	_FM_LOOP			; return to main loop
 >_FM_CREATE_FUNC_ARG
-	LDA.Z	_FM_ARG_PTR			; load pointer to name arg in VR0 for file create interrupt
+	LDA.Z	_FM_ARG_PTR			; load pointer to name argument in VR0 for file create interrupt
 	STA.Z	VR0
 	STZ.Z	VR0 1
 	LDA.I	FILE_OP_CREATE			; load file create file op code
@@ -527,12 +527,12 @@ $_FM_COPY_FUNC
 
 >_FM_DESTROY_FUNC
 	JSR	_FM_NEXT_ARG			; try to get destroying file name
-	CMP.I	0				; test if given arg
-	BNE	_FM_DESTROY_FUNC_ARG		; continue if arg given
-	JSR	_FM_MISSING_ARG_ERROR		; print missing arg error
+	CMP.I	0				; test if given argument
+	BNE	_FM_DESTROY_FUNC_ARG		; continue if argument given
+	JSR	_FM_MISSING_ARG_ERROR		; print missing argument error
 	JMP	_FM_LOOP			; return to main loop
 >_FM_DESTROY_FUNC_ARG
-	LDA.Z	_FM_ARG_PTR			; load pointer to name arg
+	LDA.Z	_FM_ARG_PTR			; load pointer to name argument
 	STA.Z	VR0				; set in VR0 for file open interrupt
 	STZ.Z	VR0 1
 	LDA.I	FILE_OP_OPEN_A			; load file open op code
@@ -563,12 +563,12 @@ $_FM_COPY_FUNC
 
 >_FM_FNAME_FUNC
 	JSR	_FM_NEXT_ARG			; try to get old file name
-	CMP.I	0				; test if given arg
-	BNE	_FM_FNAME_FUNC_ARG		; continue if arg given
-	JSR	_FM_MISSING_ARG_ERROR		; print missing arg error
+	CMP.I	0				; test if given argument
+	BNE	_FM_FNAME_FUNC_ARG		; continue if argument given
+	JSR	_FM_MISSING_ARG_ERROR		; print missing argument error
 	JMP	_FM_LOOP			; return to main loop
 >_FM_FNAME_FUNC_ARG
-	LDA.Z	_FM_ARG_PTR			; load pointer to name arg in VR0 for file open
+	LDA.Z	_FM_ARG_PTR			; load pointer to name argument in VR0 for file open
 	STA.Z	VR0
 	STZ.Z	VR0 1
 	LDA.I	FILE_OP_OPEN_A			; load file open op
@@ -583,12 +583,12 @@ $_FM_COPY_FUNC
 	JMP	_FM_LOOP			; return to main loop
 >_FM_FNAME_FUNC_OPEN
 	JSR	_FM_NEXT_ARG			; try to get new file name
-	CMP.I	0				; test if given arg
-	BNE	_FM_FNAME_FUNC_ARG2		; continue if arg given
-	JSR	_FM_MISSING_ARG_ERROR		; print missing arg error
+	CMP.I	0				; test if given argument
+	BNE	_FM_FNAME_FUNC_ARG2		; continue if argument given
+	JSR	_FM_MISSING_ARG_ERROR		; print missing argument error
 	BRA	_FM_FNAME_FUNC_END		; close file and return
 >_FM_FNAME_FUNC_ARG2
-	LDA.Z	_FM_ARG_PTR			; load pointer to name arg in VR0 for file rename
+	LDA.Z	_FM_ARG_PTR			; load pointer to name argument in VR0 for file rename
 	STA.Z	VR0
 	STZ.Z	VR0 1
 	LDA.I	FILE_OP_RENAME_A		; load file rename op
@@ -608,12 +608,12 @@ $_FM_COPY_FUNC
 
 >_FM_COPY_FUNC
 	JSR	_FM_NEXT_ARG			; try to get source file name
-	CMP.I	0				; test if given arg
-	BNE	_FM_COPY_FUNC_ARG		; continue if arg given
-	JSR	_FM_MISSING_ARG_ERROR		; print missing arg error
+	CMP.I	0				; test if given argument
+	BNE	_FM_COPY_FUNC_ARG		; continue if argument given
+	JSR	_FM_MISSING_ARG_ERROR		; print missing argument error
 	JMP	_FM_LOOP			; return to main loop
 >_FM_COPY_FUNC_ARG
-	LDA.Z	_FM_ARG_PTR			; load pointer to name arg in VR0 for file open
+	LDA.Z	_FM_ARG_PTR			; load pointer to name argument in VR0 for file open
 	STA.Z	VR0
 	STZ.Z	VR0 1
 	LDA.I	FILE_OP_OPEN_A			; load file open op
@@ -628,12 +628,12 @@ $_FM_COPY_FUNC
 	JMP	_FM_LOOP			; return to main loop
 >_FM_COPY_FUNC_OPENA
 	JSR	_FM_NEXT_ARG			; try to destination file name
-	CMP.I	0				; test if given arg
-	BNE	_FM_COPY_FUNC_ARG2		; continue if arg given
-	JSR	_FM_MISSING_ARG_ERROR		; print missing arg error
+	CMP.I	0				; test if given argument
+	BNE	_FM_COPY_FUNC_ARG2		; continue if argument given
+	JSR	_FM_MISSING_ARG_ERROR		; print missing argument error
 	JMP	_FM_COPY_FUNC_END		; close file and return
 >_FM_COPY_FUNC_ARG2
-	LDA.Z	_FM_ARG_PTR			; load pointer to name arg in VR0 for file open
+	LDA.Z	_FM_ARG_PTR			; load pointer to name argument in VR0 for file open
 	STA.Z	VR0
 	STZ.Z	VR0 1
 	LDA.I	FILE_OP_OPEN_B
@@ -693,12 +693,12 @@ $_FM_COPY_FUNC
 
 >_FM_OPEN_FUNC
 	JSR	_FM_NEXT_ARG			; try to get file name
-	CMP.I	0				; test if given arg
-	BNE	_FM_OPEN_FUNC_ARG		; continue if arg given
-	JSR	_FM_MISSING_ARG_ERROR		; print missing arg error
+	CMP.I	0				; test if given argument
+	BNE	_FM_OPEN_FUNC_ARG		; continue if argument given
+	JSR	_FM_MISSING_ARG_ERROR		; print missing argument error
 	JMP	_FM_LOOP			; return to main loop
 >_FM_OPEN_FUNC_ARG
-	LDA.Z	_FM_ARG_PTR			; load pointer to name arg
+	LDA.Z	_FM_ARG_PTR			; load pointer to name argument
 	STA.Z	VR0				; set in VR0 for file open interrupt
 	STZ.Z	VR0 1
 	LDA.I	FILE_OP_OPEN_B			; load file open op code
@@ -732,14 +732,14 @@ $_FM_COPY_FUNC
 
 >_FM_READ_FUNC
 	JSR	_FM_NEXT_ARG			; try to get number of bytes to read
-	CMP.I	0				; test if given arg
-	BNE	_FM_READ_FUNC_ARG		; continue if arg given
+	CMP.I	0				; test if given argument
+	BNE	_FM_READ_FUNC_ARG		; continue if argument given
 	JMP	_FM_LOOP			; return to main loop, no error if no more arguments found
 >_FM_READ_FUNC_ARG
-	LDA.Z	_FM_ARG_PTR			; load pointer to value arg
+	LDA.Z	_FM_ARG_PTR			; load pointer to value argument
 	STA.Z	VR0				; set in VR0 for STRTONUM
 	STZ.Z	VR0 1
-	JSR	STRTONUM			; get value of arg
+	JSR	STRTONUM			; get value of argument
 	CMP.I	TRUE				; test if succeeded
 	BEQ	_FM_READ_FUNC_VALUE		; continue if so
 	LDA	_FM_NUMBER_ERROR_STR		; print number error string
@@ -806,14 +806,14 @@ $_FM_COPY_FUNC
 
 >_FM_WRITE_FUNC
 	JSR	_FM_NEXT_ARG			; try to get byte
-	CMP.I	0				; test if given arg
-	BNE	_FM_WRITE_FUNC_ARG		; continue if arg given
+	CMP.I	0				; test if given argument
+	BNE	_FM_WRITE_FUNC_ARG		; continue if argument given
 	JMP	_FM_LOOP			; return to main loop, no error if no more arguments found
 >_FM_WRITE_FUNC_ARG
-	LDA.Z	_FM_ARG_PTR			; load pointer to value arg
+	LDA.Z	_FM_ARG_PTR			; load pointer to value argument
 	STA.Z	VR0				; set in VR0 for STRTONUM
 	STZ.Z	VR0 1
-	JSR	STRTONUM			; get value of arg
+	JSR	STRTONUM			; get value of argument
 	CMP.I	TRUE				; test if succeeded
 	BEQ	_FM_WRITE_FUNC_VALUE		; continue if so
 	LDA	_FM_NUMBER_ERROR_STR		; print number error string
@@ -870,15 +870,15 @@ $_FM_COPY_FUNC
 
 >_FM_JUMP_FUNC
 	JSR	_FM_NEXT_ARG			; try to get position
-	CMP.I	0				; test if given arg
-	BNE	_FM_JUMP_FUNC_ARG		; continue if arg given
-	JSR	_FM_MISSING_ARG_ERROR		; print missing arg error
+	CMP.I	0				; test if given argument
+	BNE	_FM_JUMP_FUNC_ARG		; continue if argument given
+	JSR	_FM_MISSING_ARG_ERROR		; print missing argument error
 	JMP	_FM_LOOP			; return to main loop
 >_FM_JUMP_FUNC_ARG
-	LDA.Z	_FM_ARG_PTR			; load pointer to value arg
+	LDA.Z	_FM_ARG_PTR			; load pointer to value argument
 	STA.Z	VR0				; set in VR0 for STRTONUM
 	STZ.Z	VR0 1
-	JSR	STRTONUM			; get value of arg
+	JSR	STRTONUM			; get value of argument
 	CMP.I	TRUE				; test if succeeded
 	BEQ	_FM_JUMP_FUNC_VALUE		; continue if so
 	LDA	_FM_NUMBER_ERROR_STR		; print number error string
@@ -921,10 +921,10 @@ $_FM_COPY_FUNC
 
 ;==================================================
 
-; prints the missing arg error string
+; prints the missing argument error string
 >_FM_MISSING_ARG_ERROR
 	PHA					; store A
-	LDA	_FM_MISSING_ARG_STR		; load missing arg string
+	LDA	_FM_MISSING_ARG_STR		; load missing argument string
 	STA.Z	VR0
 	LDA	_FM_MISSING_ARG_STR 1
 	STA.Z	VR0 1
@@ -934,7 +934,7 @@ $_FM_COPY_FUNC
 
 ;==================================================
 
-; gets the next argument and updates arg vars
+; gets the next argument and updates argument variables
 ; A = 0 if no new argument
 ; A = not 0 if new argument found
 >_FM_NEXT_ARG
@@ -959,11 +959,11 @@ $_FM_COPY_FUNC
 	STA.Z	_FM_ARG_PTR			; store trimmed string as new argument pointer
 	STA.Z	VR0				; also set VR0 as this trimmed string pointer
 	JSR	STRWORDLEN			; get length of next argument
-	LDA.Z	VR11				; store length in argument length var
+	LDA.Z	VR11				; store length in argument length variable
 	STA.Z	_FM_ARG_LEN
 	TAY					; move new argument length to Y
 	LDA.ZPY	VR0				; load word end character of new argument
-	STA.Z	_FM_ARG_END			; store in argument end var
+	STA.Z	_FM_ARG_END			; store in argument end variable
 	LDA.I	ASCII_NUL			; load null character value
 	STA.ZPY	VR0				; set word end of new argument to null character
 	PLA					; restore VR0

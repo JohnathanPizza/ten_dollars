@@ -185,7 +185,7 @@
 	DEC.Z	VR5			; dec number of adj pages
 	BNE	_SERVICE_INIT_DISK_ADJUST_LOOP	; loop if not done
 
-	; set vars
+	; set variables
 	LDA	PROC_ACTIVE_ID		; load process ID
 	ASL				; *2 for offset
 	TAY				; set in Y

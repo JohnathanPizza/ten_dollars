@@ -14,19 +14,19 @@
 ; if P is PROC_COUNT then no process is open
 
 >PROC_GET
-	PHX				; store X
-	LDX.I	0			; set process index to 0
+    PHX                             ; store X
+    LDX.I   0                       ; set process index to 0
 >_PROC_GET_LOOP
-	LDA.X	PROC_STATE		; load process state at idx
-	CMP.I	PROC_STATE_NULL		; compare to null state
-	BEQ	_PROC_GET_FOUND		; if null state then return this process ID
-	INX				; increment idx
-	CPX.I	PROC_COUNT		; test if last idx
-	BNE	_PROC_GET_LOOP		; if not then loop
+    LDA.X   PROC_STATE              ; load process state at idx
+    CMP.I   PROC_STATE_NULL         ; compare to null state
+    BEQ     _PROC_GET_FOUND         ; if null state then return this process ID
+    INX                             ; increment idx
+    CPX.I   PROC_COUNT              ; test if last idx
+    BNE     _PROC_GET_LOOP          ; if not then loop
 >_PROC_GET_FOUND
-	TXA				; move P to A
-	PLX				; restore X
-	RTS				; return
+    TXA                             ; move P to A
+    PLX                             ; restore X
+    RTS                             ; return
 
 ;==================================================
 
@@ -37,99 +37,99 @@
 ; does not preserve A, X, Y values
 
 >PROC_LOAD
-	LDX.I	0			; set page idx to 0
+    LDX.I   0                       ; set page idx to 0
 >_PROC_LOAD_CODE_LOOP
-	TXA				; move page idx to A
-	JSR	PAGE_TABLE_TEST		; test current page
-	CMP.I	0XFE			; test if the page is a code page for the process
-	BNE	_PROC_LOAD_CODE_LOOP_NEXT	; if not, skip to the next idx
-	TXA				; move page idx to A
-	JSR	PAGE_MAP_HOME_SWAP	; move page to its home location
+    TXA                             ; move page idx to A
+    JSR     PAGE_TABLE_TEST         ; test current page
+    CMP.I   0XFE                    ; test if the page is a code page for the process
+    BNE     _PROC_LOAD_CODE_LOOP_NEXT       ; if not, skip to the next idx
+    TXA                             ; move page idx to A
+    JSR     PAGE_MAP_HOME_SWAP      ; move page to its home location
 >_PROC_LOAD_CODE_LOOP_NEXT
-	INX				; inc page idx
-	CPX.I	PAGE_COUNT_TOTAL	; compare idx to the number of pages
-	BNE	_PROC_LOAD_CODE_LOOP	; if not max value then loop
+    INX                             ; inc page idx
+    CPX.I   PAGE_COUNT_TOTAL        ; compare idx to the number of pages
+    BNE     _PROC_LOAD_CODE_LOOP    ; if not max value then loop
 
-	; save return pointer before loading stack
-	PLA
-	STA.Z	VR0
-	PLA
-	STA.Z	VR0 1
+    ; save return pointer before loading stack
+    PLA
+    STA.Z   VR0
+    PLA
+    STA.Z   VR0 1
 
-	; now load the stack
-	JSR	PAGE_TABLE_GET_STACK	; get the stack page ID for the current process
-	JSR	PAGE_MAP_FIND		; get map idx of the stack page
-	JSR	PAGE_LOAD_DAP		; load the map idx for the stack into the DAP
-	LDY	PROC_ACTIVE_ID		; load active ID to get stack pointer
-	LDA.Y	PROC_S			; load stack pointer into A
-	TAY				; move stack pointer to Y as idx
-	BRA	_PROC_LOAD_STACK_LOOP_CHECK	; enter stack copy loop
+    ; now load the stack
+    JSR     PAGE_TABLE_GET_STACK    ; get the stack page ID for the current process
+    JSR     PAGE_MAP_FIND           ; get map idx of the stack page
+    JSR     PAGE_LOAD_DAP           ; load the map idx for the stack into the DAP
+    LDY     PROC_ACTIVE_ID          ; load active ID to get stack pointer
+    LDA.Y   PROC_S                  ; load stack pointer into A
+    TAY                             ; move stack pointer to Y as idx
+    BRA     _PROC_LOAD_STACK_LOOP_CHECK     ; enter stack copy loop
 >_PROC_LOAD_STACK_LOOP
-	INY				; inc idx
-	LDA.Y	DYNAMIC_ACCESS_PAGE	; load next byte from DAP
-	STA.Y	0X100			; store into stack
+    INY                             ; inc idx
+    LDA.Y   DYNAMIC_ACCESS_PAGE     ; load next byte from DAP
+    STA.Y   0X100                   ; store into stack
 >_PROC_LOAD_STACK_LOOP_CHECK
-	CPY.I	0XFF			; test if top at last stack idx
-	BNE	_PROC_LOAD_STACK_LOOP	; loop if not
-	LDY	PROC_ACTIVE_ID		; load process ID
-	LDX.Y	PROC_S			; get stack pointer for process
-	TXS				; move stack pointer to stack register
+    CPY.I   0XFF                    ; test if top at last stack idx
+    BNE     _PROC_LOAD_STACK_LOOP   ; loop if not
+    LDY     PROC_ACTIVE_ID          ; load process ID
+    LDX.Y   PROC_S                  ; get stack pointer for process
+    TXS                             ; move stack pointer to stack register
 
-	; in process stack space now, can use it for function calls and stuff
-	; restore return pointer
-	LDA.Z	VR0 1
-	PHA
-	LDA.Z	VR0
-	PHA
+    ; in process stack space now, can use it for function calls and stuff
+    ; restore return pointer
+    LDA.Z   VR0 1
+    PHA
+    LDA.Z   VR0
+    PHA
 
-	; load zp
-	JSR	PAGE_TABLE_GET_ZP	; get the zp page ID for the current process
-	JSR	PAGE_MAP_FIND		; get map idx of the stack page
-	JSR	PAGE_LOAD_DAP		; load the map idx for the zp into the DAP
-	LDX.I	0			; set copy idx to 0
+    ; load zp
+    JSR     PAGE_TABLE_GET_ZP       ; get the zp page ID for the current process
+    JSR     PAGE_MAP_FIND           ; get map idx of the stack page
+    JSR     PAGE_LOAD_DAP           ; load the map idx for the zp into the DAP
+    LDX.I   0                       ; set copy idx to 0
 >_PROC_LOAD_ZP_LOOP
-	LDA.X	DYNAMIC_ACCESS_PAGE	; load from DAP
-	STA.ZX	0			; store into ZP
-	INX				; inc idx
-	BNE	_PROC_LOAD_ZP_LOOP	; loop if not done with the whole page
+    LDA.X   DYNAMIC_ACCESS_PAGE     ; load from DAP
+    STA.ZX  0                       ; store into ZP
+    INX                             ; inc idx
+    BNE     _PROC_LOAD_ZP_LOOP      ; loop if not done with the whole page
 
-	; test and load DAP
-	LDX	PROC_ACTIVE_ID		; load process ID
-	LDA.X	PROC_ACTIVE_DAP_ID	; get process active DAP ID
-	JSR	PAGE_TABLE_GET_DATA	; try to find it in the page table
-	CMP.I	PAGE_COUNT_TOTAL	; test if actually found
-	BEQ	_PROC_LOAD_DAP_SKIP	; skip load if DAP not valid
-	JSR	PAGE_MAP_FIND		; get map idx of DAP page, ok - does not touch zp
-	LDX.Z	VR8			; save all registers used by PAGE_LOAD_DAP
-	PHX
-	LDX.Z	VR8 1
-	LDY.Z	VR10
-	JSR	PAGE_LOAD_DAP		; load map idx into DAP
-	STY.Z	VR10			; restore registers
-	STX.Z	VR8 1
-	PLX
-	STX.Z	VR8
+    ; test and load DAP
+    LDX     PROC_ACTIVE_ID          ; load process ID
+    LDA.X   PROC_ACTIVE_DAP_ID      ; get process active DAP ID
+    JSR     PAGE_TABLE_GET_DATA     ; try to find it in the page table
+    CMP.I   PAGE_COUNT_TOTAL        ; test if actually found
+    BEQ     _PROC_LOAD_DAP_SKIP     ; skip load if DAP not valid
+    JSR     PAGE_MAP_FIND           ; get map idx of DAP page, ok - does not touch zp
+    LDX.Z   VR8                     ; save all registers used by PAGE_LOAD_DAP
+    PHX
+    LDX.Z   VR8 1
+    LDY.Z   VR10
+    JSR     PAGE_LOAD_DAP           ; load map idx into DAP
+    STY.Z   VR10                    ; restore registers
+    STX.Z   VR8 1
+    PLX
+    STX.Z   VR8
 >_PROC_LOAD_DAP_SKIP
-	; setting PAUSE variables
-	LDY	PROC_ACTIVE_ID		; load process ID for getting values
-	LDA.Y	PROC_A			; set A
-	STA	PROC_PAUSE_A
-	LDA.Y	PROC_X			; set X
-	STA	PROC_PAUSE_X
-	LDA.Y	PROC_Y			; set Y
-	STA	PROC_PAUSE_Y
-	LDA.Y	PROC_S			; set S
-	STA	PROC_PAUSE_S
-	LDA.Y	PROC_P			; set P
-	STA	PROC_PAUSE_P
-	TYA				; move process ID to A
-	ASL				; process ID * 2
-	TAY				; back to Y
-	LDA.Y	PROC_PC			; load PC low
-	STA	PROC_PAUSE_PCL		; store
-	LDA.Y	PROC_PC 1		; load PC high
-	STA	PROC_PAUSE_PCH		; store
-	RTS				; return
+    ; setting PAUSE variables
+    LDY     PROC_ACTIVE_ID          ; load process ID for getting values
+    LDA.Y   PROC_A                  ; set A
+    STA     PROC_PAUSE_A
+    LDA.Y   PROC_X                  ; set X
+    STA     PROC_PAUSE_X
+    LDA.Y   PROC_Y                  ; set Y
+    STA     PROC_PAUSE_Y
+    LDA.Y   PROC_S                  ; set S
+    STA     PROC_PAUSE_S
+    LDA.Y   PROC_P                  ; set P
+    STA     PROC_PAUSE_P
+    TYA                             ; move process ID to A
+    ASL                             ; process ID * 2
+    TAY                             ; back to Y
+    LDA.Y   PROC_PC                 ; load PC low
+    STA     PROC_PAUSE_PCL          ; store
+    LDA.Y   PROC_PC 1               ; load PC high
+    STA     PROC_PAUSE_PCH          ; store
+    RTS                             ; return
 
 ;==================================================
 
@@ -138,71 +138,71 @@
 ; updates process register values from PAUSE variables
 
 >PROC_LEAVE
-	; flush DAP back to memory
-	LDX	PROC_ACTIVE_ID		; load process ID
-	LDA.X	PROC_FLAGS		; load process flags to see if read-only is on
-	AND.I	PROC_FLAG_DAP_RDONLY	; mask read-only flag
-	BNE	_PROC_LEAVE_DAP_SKIP	; skip DAP writeback if read-only on
-	LDA.X	PROC_ACTIVE_DAP_ID	; load DAP ID
-	JSR	PAGE_TABLE_GET_DATA	; get page ID of DAP
-	CMP.I	PAGE_COUNT_TOTAL	; test if get_data failed
-	BEQ	_PROC_LEAVE_DAP_SKIP	; skip writeback if DAP ID not valid
-	JSR	PAGE_MAP_FIND		; get map idx of DAP page
-	LDX.Z	VR8			; save registers used in PAGE_STORE_DAP
-	PHX
-	LDX.Z	VR8 1
-	LDY.Z	VR10
-	JSR	PAGE_STORE_DAP		; store DAP to active DAP map idx
-	STY.Z	VR10			; restore registers
-	STX.Z	VR8 1
-	PLX
-	STX.Z	VR8
+    ; flush DAP back to memory
+    LDX     PROC_ACTIVE_ID          ; load process ID
+    LDA.X   PROC_FLAGS              ; load process flags to see if read-only is on
+    AND.I   PROC_FLAG_DAP_RDONLY    ; mask read-only flag
+    BNE     _PROC_LEAVE_DAP_SKIP    ; skip DAP writeback if read-only on
+    LDA.X   PROC_ACTIVE_DAP_ID      ; load DAP ID
+    JSR     PAGE_TABLE_GET_DATA     ; get page ID of DAP
+    CMP.I   PAGE_COUNT_TOTAL        ; test if get_data failed
+    BEQ     _PROC_LEAVE_DAP_SKIP    ; skip writeback if DAP ID not valid
+    JSR     PAGE_MAP_FIND           ; get map idx of DAP page
+    LDX.Z   VR8                     ; save registers used in PAGE_STORE_DAP
+    PHX
+    LDX.Z   VR8 1
+    LDY.Z   VR10
+    JSR     PAGE_STORE_DAP          ; store DAP to active DAP map idx
+    STY.Z   VR10                    ; restore registers
+    STX.Z   VR8 1
+    PLX
+    STX.Z   VR8
 >_PROC_LEAVE_DAP_SKIP
-	; store zp
-	LDX.I	0			; set index to 0
+    ; store zp
+    LDX.I   0                       ; set index to 0
 >_PROC_LEAVE_ZP_LOOP
-	LDA.ZX	0			; load byte from ZP
-	STA.X	DYNAMIC_ACCESS_PAGE	; store in DAP
-	INX				; inc index
-	BNE	_PROC_LEAVE_ZP_LOOP	; loop if not done
-	JSR	PAGE_TABLE_GET_ZP	; get zp page ID
-	JSR	PAGE_MAP_FIND		; get map idx of zp page
-	JSR	PAGE_STORE_DAP		; store zp back to memory
+    LDA.ZX  0                       ; load byte from ZP
+    STA.X   DYNAMIC_ACCESS_PAGE     ; store in DAP
+    INX                             ; inc index
+    BNE     _PROC_LEAVE_ZP_LOOP     ; loop if not done
+    JSR     PAGE_TABLE_GET_ZP       ; get zp page ID
+    JSR     PAGE_MAP_FIND           ; get map idx of zp page
+    JSR     PAGE_STORE_DAP          ; store zp back to memory
 
-	; store stack
-	LDY	PROC_PAUSE_S		; load stack pointer as idx
-	BRA	_PROC_LEAVE_STACK_LOOP_CHECK	; enter loop
+    ; store stack
+    LDY     PROC_PAUSE_S            ; load stack pointer as idx
+    BRA     _PROC_LEAVE_STACK_LOOP_CHECK    ; enter loop
 >_PROC_LEAVE_STACK_LOOP
-	INY				; inc idx
-	LDA.Y	0X100			; load from stack
-	STA.Y	DYNAMIC_ACCESS_PAGE	; store in DAP
+    INY                             ; inc idx
+    LDA.Y   0X100                   ; load from stack
+    STA.Y   DYNAMIC_ACCESS_PAGE     ; store in DAP
 >_PROC_LEAVE_STACK_LOOP_CHECK
-	CPY.I	0XFF			; test if idx is max value
-	BNE	_PROC_LEAVE_STACK_LOOP	; loop if not done
-	JSR	PAGE_TABLE_GET_STACK	; get stack page ID
-	JSR	PAGE_MAP_FIND		; get map idx of stack page
-	JSR	PAGE_STORE_DAP		; store stack back to memory
+    CPY.I   0XFF                    ; test if idx is max value
+    BNE     _PROC_LEAVE_STACK_LOOP  ; loop if not done
+    JSR     PAGE_TABLE_GET_STACK    ; get stack page ID
+    JSR     PAGE_MAP_FIND           ; get map idx of stack page
+    JSR     PAGE_STORE_DAP          ; store stack back to memory
 
-	; update process registers from PAUSE variables
-	LDY	PROC_ACTIVE_ID		; load process ID
-	LDA	PROC_PAUSE_A		; update A
-	STA.Y	PROC_A
-	LDA	PROC_PAUSE_X		; update X
-	STA.Y	PROC_X
-	LDA	PROC_PAUSE_Y		; update Y
-	STA.Y	PROC_Y
-	LDA	PROC_PAUSE_S		; update S
-	STA.Y	PROC_S
-	LDA	PROC_PAUSE_P		; update P
-	STA.Y	PROC_P
-	TYA				; process ID to A
-	ASL				; process ID * 2
-	TAY				; back to Y
-	LDA	PROC_PAUSE_PCL		; load PC low
-	STA.Y	PROC_PC			; update
-	LDA	PROC_PAUSE_PCH		; load PC high
-	STA.Y	PROC_PC 1		; update
-	RTS				; return
+    ; update process registers from PAUSE variables
+    LDY     PROC_ACTIVE_ID          ; load process ID
+    LDA     PROC_PAUSE_A            ; update A
+    STA.Y   PROC_A
+    LDA     PROC_PAUSE_X            ; update X
+    STA.Y   PROC_X
+    LDA     PROC_PAUSE_Y            ; update Y
+    STA.Y   PROC_Y
+    LDA     PROC_PAUSE_S            ; update S
+    STA.Y   PROC_S
+    LDA     PROC_PAUSE_P            ; update P
+    STA.Y   PROC_P
+    TYA                             ; process ID to A
+    ASL                             ; process ID * 2
+    TAY                             ; back to Y
+    LDA     PROC_PAUSE_PCL          ; load PC low
+    STA.Y   PROC_PC                 ; update
+    LDA     PROC_PAUSE_PCH          ; load PC high
+    STA.Y   PROC_PC 1               ; update
+    RTS                             ; return
 
 ;==================================================
 
@@ -211,76 +211,76 @@
 ; should be called with JMP
 
 >PROC_UNPAUSE
-	LDA	PROC_PAUSE_A		; load A
-	LDY	PROC_PAUSE_Y		; load Y
-	LDX	PROC_PAUSE_S		; load S in X
-	TXS				; set S from X
-	LDX	PROC_PAUSE_P		; load P in X
-	PHX				; push to stack
-	LDX	PROC_PAUSE_X		; load X
-	PLP				; pull P
-	JMP.P	PROC_PAUSE_PC		; jump to code
+    LDA     PROC_PAUSE_A            ; load A
+    LDY     PROC_PAUSE_Y            ; load Y
+    LDX     PROC_PAUSE_S            ; load S in X
+    TXS                             ; set S from X
+    LDX     PROC_PAUSE_P            ; load P in X
+    PHX                             ; push to stack
+    LDX     PROC_PAUSE_X            ; load X
+    PLP                             ; pull P
+    JMP.P   PROC_PAUSE_PC           ; jump to code
 
 ;==================================================
 
 ; PROGRAM_ADJUST
 ; P --- VR0: pointer to code C
-;	VR1: pointer to adjustments A
-;	VR4: assembled location address L
+;       VR1: pointer to adjustments A
+;       VR4: assembled location address L
 ; uses the adjustment pointers from A with the assembled location L to manually edit pointer values in instructions in code C
 ; only affects instructions that use abosulute addresses
 ; relative pointer values in A should reference the start of a 2-byte address, not an instruction
 ; A array should end with a value of 0xFFFF (null pointer)
 
 >PROGRAM_ADJUST
-	PHA			; store A
-	PHY			; store Y
-	PHX			; store X
-	LDY.I	1		; load Y with 1 for byte offset tricks in ZPY instructions later
-	LDA.Z	VR1		; copy A to VR8
-	STA.Z	VR8
-	LDA.Z	VR1 1
-	STA.Z	VR8 1
+    PHA                     ; store A
+    PHY                     ; store Y
+    PHX                     ; store X
+    LDY.I   1               ; load Y with 1 for byte offset tricks in ZPY instructions later
+    LDA.Z   VR1             ; copy A to VR8
+    STA.Z   VR8
+    LDA.Z   VR1 1
+    STA.Z   VR8 1
 >_PROGRAM_ADJUST_LOOP
-	LDA.ZP	VR8		; load next pointer from A into VR9
-	STA.Z	VR9
-	LDA.ZPY	VR8
-	STA.Z	VR9 1
+    LDA.ZP  VR8             ; load next pointer from A into VR9
+    STA.Z   VR9
+    LDA.ZPY VR8
+    STA.Z   VR9 1
 
-	JSR	NULLCHECK9	; check if pointer value is null
-	CMP.I	TRUE
-	BEQ	_PROGRAM_ADJUST_LOOP_EXIT	; exit loop if so
+    JSR     NULLCHECK9      ; check if pointer value is null
+    CMP.I   TRUE
+    BEQ     _PROGRAM_ADJUST_LOOP_EXIT       ; exit loop if so
 
-	CLC			; CLC for ADC
-	LDA.Z	VR9		; adding C to the relative pointer value for absolute pointer
-	ADC.Z	VR0
-	STA.Z	VR9
-	LDA.Z	VR9 1
-	ADC.Z	VR0 1
-	STA.Z	VR9 1
+    CLC                     ; CLC for ADC
+    LDA.Z   VR9             ; adding C to the relative pointer value for absolute pointer
+    ADC.Z   VR0
+    STA.Z   VR9
+    LDA.Z   VR9 1
+    ADC.Z   VR0 1
+    STA.Z   VR9 1
 
-	SEC			; SEC for SBC
-	LDA.ZP	VR9		; subtract L from the value in code at pointer location, forms relative pointer
-	SBC.Z	VR4
-	STA.ZP	VR9
-	LDA.ZPY	VR9
-	SBC.Z	VR4 1
-	STA.ZPY	VR9
+    SEC                     ; SEC for SBC
+    LDA.ZP  VR9             ; subtract L from the value in code at pointer location, forms relative pointer
+    SBC.Z   VR4
+    STA.ZP  VR9
+    LDA.ZPY VR9
+    SBC.Z   VR4 1
+    STA.ZPY VR9
 
-	CLC			; CLC for ADC
-	LDA.ZP	VR9		; adding C pointer value to relative pointer in code to form new, correct  absolute pointer
-	ADC.Z	VR0
-	STA.ZP	VR9
-	LDA.ZPY	VR9
-	ADC.Z	VR0 1
-	STA.ZPY	VR9
+    CLC                     ; CLC for ADC
+    LDA.ZP  VR9             ; adding C pointer value to relative pointer in code to form new, correct  absolute pointer
+    ADC.Z   VR0
+    STA.ZP  VR9
+    LDA.ZPY VR9
+    ADC.Z   VR0 1
+    STA.ZPY VR9
 
-	JSR	INC8		; inc pointer to next adjustment in A
-	JSR	INC8
+    JSR     INC8            ; inc pointer to next adjustment in A
+    JSR     INC8
 
-	BRA	_PROGRAM_ADJUST_LOOP	; loop
+    BRA     _PROGRAM_ADJUST_LOOP    ; loop
 >_PROGRAM_ADJUST_LOOP_EXIT
-	PLX			; restore X
-	PLY			; restore Y
-	PLA			; restore A
-	RTS			; return
+    PLX                     ; restore X
+    PLY                     ; restore Y
+    PLA                     ; restore A
+    RTS                     ; return

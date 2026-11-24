@@ -1,66 +1,66 @@
 ; entrypoint into interrupt handling code when hardware or software interrupt happens
 
 >INTERRUPT
-	; save volatile register variables from the process immediately
-	STA	PROC_PAUSE_A	; save A
-	STX	PROC_PAUSE_X	; save X
-	STY	PROC_PAUSE_Y	; save Y
-	PLA			; pull and store P
-	STA	PROC_PAUSE_P
-	PLA			; pull and store PC
-	STA	PROC_PAUSE_PCL
-	PLA
-	STA	PROC_PAUSE_PCH
-	TSX			; store S
-	STX	PROC_PAUSE_S
-	; stack is in state it was before the interrupt now
+    ; save volatile register variables from the process immediately
+    STA     PROC_PAUSE_A    ; save A
+    STX     PROC_PAUSE_X    ; save X
+    STY     PROC_PAUSE_Y    ; save Y
+    PLA                     ; pull and store P
+    STA     PROC_PAUSE_P
+    PLA                     ; pull and store PC
+    STA     PROC_PAUSE_PCL
+    PLA
+    STA     PROC_PAUSE_PCH
+    TSX                     ; store S
+    STX     PROC_PAUSE_S
+    ; stack is in state it was before the interrupt now
 
-	LDA	PROC_PAUSE_P	; load processor flags
-	AND.I	0X10		; mask the BRK flag (5th bit)
-	BNE	_INTERRUPT_BRK	; BRK flag is set, handle interrupt as a BRK instruction
-	; handle a hardware interrupt
-	STA	HW_ENABLE_ADDR HW_RAM1 HW_VIA ; turn on VIA so that interrupt code can use it
-	LDA	VIA_IFR			; load all active interrupts
-	AND	VIA_IER			; mask against enabled interrupts, only want to service enabled interrupts
-	AND.I	VIA_IB_T2		; test timer 2 bit
-	BEQ	_INTERRUPT_TEST_T1	; if not set, test timer 1
-	JMP	INTERRUPT_T2		; jump to timer 2 code
+    LDA     PROC_PAUSE_P    ; load processor flags
+    AND.I   0X10            ; mask the BRK flag (5th bit)
+    BNE     _INTERRUPT_BRK  ; BRK flag is set, handle interrupt as a BRK instruction
+    ; handle a hardware interrupt
+    STA     HW_ENABLE_ADDR HW_RAM1 HW_VIA ; turn on VIA so that interrupt code can use it
+    LDA     VIA_IFR                 ; load all active interrupts
+    AND     VIA_IER                 ; mask against enabled interrupts, only want to service enabled interrupts
+    AND.I   VIA_IB_T2               ; test timer 2 bit
+    BEQ     _INTERRUPT_TEST_T1      ; if not set, test timer 1
+    JMP     INTERRUPT_T2            ; jump to timer 2 code
 >_INTERRUPT_TEST_T1
-	LDA	VIA_IFR			; load active interrupts
-	AND	VIA_IER			; mask against enabled interrupts
-	AND.I	VIA_IB_T1		; test timer 1 bit
-	BEQ	_INTERRUPT_TEST_CA1	; if not set, test CA1
-	JMP	INTERRUPT_T1		; jump to timer 1 code
+    LDA     VIA_IFR                 ; load active interrupts
+    AND     VIA_IER                 ; mask against enabled interrupts
+    AND.I   VIA_IB_T1               ; test timer 1 bit
+    BEQ     _INTERRUPT_TEST_CA1     ; if not set, test CA1
+    JMP     INTERRUPT_T1            ; jump to timer 1 code
 >_INTERRUPT_TEST_CA1
-	LDA	VIA_IFR			; load active interrupts
-	AND	VIA_IER			; mask against enabled interrupts
-	AND.I	VIA_IB_CA1		; test CA1 bit
-	BEQ	_INTERRUPT_TEST_CB1	; if not set, test CB1
-	JMP	INTERRUPT_CA1		; jump to CA1/input code
+    LDA     VIA_IFR                 ; load active interrupts
+    AND     VIA_IER                 ; mask against enabled interrupts
+    AND.I   VIA_IB_CA1              ; test CA1 bit
+    BEQ     _INTERRUPT_TEST_CB1     ; if not set, test CB1
+    JMP     INTERRUPT_CA1           ; jump to CA1/input code
 >_INTERRUPT_TEST_CB1
-	LDA	VIA_IFR			; load active interrupts
-	AND	VIA_IER			; mask against enabled interrupts
-	AND.I	VIA_IB_CB1		; test CB1 bit
-	BEQ	_INTERRUPT_TEST_EXIT	; if not set, no more hardware interrupts left that are serviceable, return
-	JMP	INTERRUPT_CB1		; jump to CB1/output code
+    LDA     VIA_IFR                 ; load active interrupts
+    AND     VIA_IER                 ; mask against enabled interrupts
+    AND.I   VIA_IB_CB1              ; test CB1 bit
+    BEQ     _INTERRUPT_TEST_EXIT    ; if not set, no more hardware interrupts left that are serviceable, return
+    JMP     INTERRUPT_CB1           ; jump to CB1/output code
 >_INTERRUPT_TEST_EXIT
-	STA	HW_ENABLE_ADDR HW_RAM1	; turn off the VIA
+    STA     HW_ENABLE_ADDR HW_RAM1  ; turn off the VIA
 >_INTERRUPT_EXIT
-	JMP	PROC_UNPAUSE	; resume process
+    JMP     PROC_UNPAUSE    ; resume process
 
 >_INTERRUPT_BRK
-	; want to decrement the return address by 1 so BRK NOP pattern can become just BRK
-	SEC			; SEC for SBC
-	LDA	PROC_PAUSE_PCL	; load low byte
-	SBC.I	1		; sub 1
-	STA	PROC_PAUSE_PCL	; store back
-	LDA	PROC_PAUSE_PCH	; load high byte
-	SBC.I	0		; sub 0 + C
-	STA	PROC_PAUSE_PCH	; store back
-	; calculate a jump address based on the code in VR4
-	LDA	PROC_PAUSE_A	; load the BRK code given
-	CMP.I	BRK_COUNT	; compare it to the total number of BRK codes usable
-	BCS	_INTERRUPT_EXIT	; if code >= count, the code is not valid so just return
-	ASL			; shift left once to multiply by 2 and give a pointer offset into the BRK array
-	TAX			; move the offset into X for the jump
-	JMP.XP	BRK_ARRAY	; jump to related BRK function
+    ; want to decrement the return address by 1 so BRK NOP pattern can become just BRK
+    SEC                     ; SEC for SBC
+    LDA     PROC_PAUSE_PCL  ; load low byte
+    SBC.I   1               ; sub 1
+    STA     PROC_PAUSE_PCL  ; store back
+    LDA     PROC_PAUSE_PCH  ; load high byte
+    SBC.I   0               ; sub 0 + C
+    STA     PROC_PAUSE_PCH  ; store back
+    ; calculate a jump address based on the code in VR4
+    LDA     PROC_PAUSE_A    ; load the BRK code given
+    CMP.I   BRK_COUNT       ; compare it to the total number of BRK codes usable
+    BCS     _INTERRUPT_EXIT ; if code >= count, the code is not valid so just return
+    ASL                     ; shift left once to multiply by 2 and give a pointer offset into the BRK array
+    TAX                     ; move the offset into X for the jump
+    JMP.XP  BRK_ARRAY       ; jump to related BRK function

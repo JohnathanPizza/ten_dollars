@@ -1,11 +1,11 @@
 ; pointer array to service functions
 
 >SERVICE_ARRAY
-$SERVICE_NULL		; 0
-$SERVICE_INIT_ROM	; 1
-$SERVICE_INIT_DISK	; 2
-$SERVICE_READY		; 3
-$SERVICE_IO_READ	; 4
-$SERVICE_EXIT		; 5
-$SERVICE_WAIT_FOCUS	; 6
-$SERVICE_SEND		; 7
+$SERVICE_NULL           ; 0
+$SERVICE_INIT_ROM       ; 1
+$SERVICE_INIT_DISK      ; 2
+$SERVICE_READY          ; 3
+$SERVICE_IO_READ        ; 4
+$SERVICE_EXIT           ; 5
+$SERVICE_WAIT_FOCUS     ; 6
+$SERVICE_SEND           ; 7

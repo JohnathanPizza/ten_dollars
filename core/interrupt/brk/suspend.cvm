@@ -3,5 +3,5 @@
 ; useful for when process is waiting on a claimed system resource, suspending itself may help other process complete its resource section faster and thus make the suspending process advance faster
 
 >BRK_SUSPEND
-	JSR	PROC_LEAVE		; save process
-	JMP	SERVICE_CYCLE_BEGIN	; start new cycle
+    JSR     PROC_LEAVE              ; save process
+    JMP     SERVICE_CYCLE_BEGIN     ; start new cycle

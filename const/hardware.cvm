@@ -3,8 +3,8 @@
 ; use: STA HW_ENABLE_ADDR [modules you want to enable]
 ; ex: STA HW_ENABLE_ADDR HW_RAM1 HW_VIA
 
-=HW_ENABLE_ADDR	0X8000
-=HW_RAM1	0B0001	; main RAM module
-=HW_RAM2LO	0B0010	; secondary RAM module lower half
-=HW_RAM2HI	0B0110	; secondary RAM module upper half
-=HW_VIA		0B1000	; VIA module
+=HW_ENABLE_ADDR 0X8000
+=HW_RAM1        0B0001  ; main RAM module
+=HW_RAM2LO      0B0010  ; secondary RAM module lower half
+=HW_RAM2HI      0B0110  ; secondary RAM module upper half
+=HW_VIA         0B1000  ; VIA module

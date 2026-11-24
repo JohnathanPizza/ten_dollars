@@ -2,31 +2,31 @@
 
 >BRK_ARRAY
 
-$BRK_WRITES		; 0
-$BRK_WRITEC		; 1
-$BRK_READ		; 2
-$BRK_PTROFF		; 3
-$BRK_EXIT		; 4
-$BRK_SUSPEND		; 5
-$BRK_DATA_GET		; 6
-$BRK_DATA_LOAD		; 7
-$BRK_DATA_RELEASE	; 8
-$BRK_DATA_FLUSH		; 9
-$BRK_FLAG_ENABLE	; 10
-$BRK_FLAG_DISABLE	; 11
-$BRK_PRIORITY		; 12
-$BRK_SPAWN_ROM		; 13
-$BRK_FILE_CLAIM		; 14
-$BRK_FILE_OP		; 15
-$BRK_FILE_RELEASE	; 16
-$BRK_FOCUS_CHANGE	; 17
-$BRK_PARENT		; 18
-$BRK_SPAWN_DISK		; 19
-$BRK_WAIT_FOCUS		; 20
-$BRK_WRITE_WAIT		; 21
-$BRK_KILL		; 22
-$BRK_RANDOM		; 23
-$BRK_SEND		; 24
-$BRK_RECEIVE		; 25
+$BRK_WRITES             ; 0
+$BRK_WRITEC             ; 1
+$BRK_READ               ; 2
+$BRK_PTROFF             ; 3
+$BRK_EXIT               ; 4
+$BRK_SUSPEND            ; 5
+$BRK_DATA_GET           ; 6
+$BRK_DATA_LOAD          ; 7
+$BRK_DATA_RELEASE       ; 8
+$BRK_DATA_FLUSH         ; 9
+$BRK_FLAG_ENABLE        ; 10
+$BRK_FLAG_DISABLE       ; 11
+$BRK_PRIORITY           ; 12
+$BRK_SPAWN_ROM          ; 13
+$BRK_FILE_CLAIM         ; 14
+$BRK_FILE_OP            ; 15
+$BRK_FILE_RELEASE       ; 16
+$BRK_FOCUS_CHANGE       ; 17
+$BRK_PARENT             ; 18
+$BRK_SPAWN_DISK         ; 19
+$BRK_WAIT_FOCUS         ; 20
+$BRK_WRITE_WAIT         ; 21
+$BRK_KILL               ; 22
+$BRK_RANDOM             ; 23
+$BRK_SEND               ; 24
+$BRK_RECEIVE            ; 25
 
 >_BRK_ARRAY_END

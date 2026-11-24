@@ -11,18 +11,18 @@
 ; causes 1 ms to elapse from the time of call to return
 
 >WAIT_1MS
-	PHX			; store X, 3 cycles
-	LDX.I	220		; load magic number, 2 cycles
+    PHX                     ; store X, 3 cycles
+    LDX.I   220             ; load magic number, 2 cycles
 >_WAIT_1MS_LOOP
-	NOP			; add cycles to loop time, 2 cycles
-	NOP			; add cycles to loop time, 2 cycles
-	DEX			; decrement loop counter, 2 cycles
-	BNE	_WAIT_1MS_LOOP	; compare, 3 cycles until last exec of 2 cycles
-	PLX			; restore X, 3 cycles
-	NOP			; add cycles, 2 cycles
-	NOP			; add cycles, 2 cycles
-	NOP			; add cycles, 2 cycles
-	RTS			; return, 7 cycles
+    NOP                     ; add cycles to loop time, 2 cycles
+    NOP                     ; add cycles to loop time, 2 cycles
+    DEX                     ; decrement loop counter, 2 cycles
+    BNE     _WAIT_1MS_LOOP  ; compare, 3 cycles until last exec of 2 cycles
+    PLX                     ; restore X, 3 cycles
+    NOP                     ; add cycles, 2 cycles
+    NOP                     ; add cycles, 2 cycles
+    NOP                     ; add cycles, 2 cycles
+    RTS                     ; return, 7 cycles
 
 ;==================================================
 
@@ -31,16 +31,16 @@
 ; causes almost exactly M ms to elapse from the time of call to return
 
 >WAIT_MILIS
-	PHA			; store A
+    PHA                     ; store A
 >_WAIT_MILIS_LOOP
-	CMP.I	0		; test if 0 miliseconds left
-	BEQ	_WAIT_MILIS_LOOP_END	; if 0 then return
-	JSR	WAIT_1MS	; else wait 1 milisecond
-	DEC			; decrement count
-	BRA	_WAIT_MILIS_LOOP
+    CMP.I   0               ; test if 0 miliseconds left
+    BEQ     _WAIT_MILIS_LOOP_END    ; if 0 then return
+    JSR     WAIT_1MS        ; else wait 1 milisecond
+    DEC                     ; decrement count
+    BRA     _WAIT_MILIS_LOOP
 >_WAIT_MILIS_LOOP_END
-	PLA			; restore A
-	RTS			; return
+    PLA                     ; restore A
+    RTS                     ; return
 
 ;==================================================
 
@@ -48,11 +48,11 @@
 ; causes almost exactly 1 s to elapse from the time of call to return
 
 >WAIT_SEC
-	PHA			; store A
-	LDA.I	250		; load number of miliseconds to wait
-	JSR	WAIT_MILIS	; 250 ms
-	JSR	WAIT_MILIS	; 500 ms
-	JSR	WAIT_MILIS	; 750 ms
-	JSR	WAIT_MILIS	; 1 s
-	PLA			; restore A
-	RTS			; return
+    PHA                     ; store A
+    LDA.I   250             ; load number of miliseconds to wait
+    JSR     WAIT_MILIS      ; 250 ms
+    JSR     WAIT_MILIS      ; 500 ms
+    JSR     WAIT_MILIS      ; 750 ms
+    JSR     WAIT_MILIS      ; 1 s
+    PLA                     ; restore A
+    RTS                     ; return

@@ -2,6 +2,6 @@
 ; does nothing otherwise as a null process has nothing to do
 
 >SERVICE_NULL
-	LDX	PROC_ACTIVE_ID		; load process ID
-	STZ.X	PROC_SCHEDULE_PRIORITY	; set process priority to 0
-	JMP	SERVICE_CYCLE_BEGIN	; start next cycle
+    LDX     PROC_ACTIVE_ID          ; load process ID
+    STZ.X   PROC_SCHEDULE_PRIORITY  ; set process priority to 0
+    JMP     SERVICE_CYCLE_BEGIN     ; start next cycle

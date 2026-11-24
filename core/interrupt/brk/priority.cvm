@@ -7,7 +7,7 @@
 ; higher priority values cause a process to be serviced more often
 
 >BRK_PRIORITY
-	LDA.Z	VR4			; load new priority P
-	LDY	PROC_ACTIVE_ID		; load process ID
-	STA.Y	PROC_SCHEDULE_PRIORITY	; update process priority
-	JMP	PROC_UNPAUSE		; return to process
+    LDA.Z   VR4                     ; load new priority P
+    LDY     PROC_ACTIVE_ID          ; load process ID
+    STA.Y   PROC_SCHEDULE_PRIORITY  ; update process priority
+    JMP     PROC_UNPAUSE            ; return to process

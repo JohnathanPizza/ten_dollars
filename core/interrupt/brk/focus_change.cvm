@@ -9,20 +9,20 @@
 ; otherwise S = FALSE and process P can not be guaranteed to have read focus
 
 >BRK_FOCUS_CHANGE
-	LDA	IO_READ_FOCUS		; load current focus process ID
-	CMP	PROC_ACTIVE_ID		; test if this process has it
-	BNE	_BRK_FOCUS_CHANGE_FAIL	; if this process doesnt have it, fail
-	LDY.Z	VR4			; else load P
-	CPY.I	PROC_COUNT		; test if in range
-	BGE	_BRK_FOCUS_CHANGE_FAIL	; fail if out of range
-	LDA.Y	PROC_STATE		; load state of process P
-	CMP.I	PROC_STATE_NULL		; test if process even exists
-	BEQ	_BRK_FOCUS_CHANGE_FAIL	; fail if the process doesnt exist
-	STY	IO_READ_FOCUS		; change read focus
-	LDA.I	TRUE			; load true
-	STA.Z	VR11			; store in S
-	JMP	PROC_UNPAUSE		; return to process
+    LDA     IO_READ_FOCUS           ; load current focus process ID
+    CMP     PROC_ACTIVE_ID          ; test if this process has it
+    BNE     _BRK_FOCUS_CHANGE_FAIL  ; if this process doesnt have it, fail
+    LDY.Z   VR4                     ; else load P
+    CPY.I   PROC_COUNT              ; test if in range
+    BGE     _BRK_FOCUS_CHANGE_FAIL  ; fail if out of range
+    LDA.Y   PROC_STATE              ; load state of process P
+    CMP.I   PROC_STATE_NULL         ; test if process even exists
+    BEQ     _BRK_FOCUS_CHANGE_FAIL  ; fail if the process doesnt exist
+    STY     IO_READ_FOCUS           ; change read focus
+    LDA.I   TRUE                    ; load true
+    STA.Z   VR11                    ; store in S
+    JMP     PROC_UNPAUSE            ; return to process
 >_BRK_FOCUS_CHANGE_FAIL
-	LDA.I	FALSE			; load false
-	STA.Z	VR11			; store in S
-	JMP	PROC_UNPAUSE		; return to process
+    LDA.I   FALSE                   ; load false
+    STA.Z   VR11                    ; store in S
+    JMP     PROC_UNPAUSE            ; return to process

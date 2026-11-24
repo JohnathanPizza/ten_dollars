@@ -10,60 +10,60 @@
 ;==================================================
 
 ; ADD16
-; P ---	VRX: summand A
-;	VRY: summand B
-; R ---	VRX: sum S=A+B
+; P --- VRX: summand A
+;       VRY: summand B
+; R --- VRX: sum S=A+B
 ; adds the two 16-bit numbers in registers given by VRIs in X and Y
 ; results of operation stored in P after
 
 >ADD16
-	PHA		; store A
-	CLC		; clear carry for ADC
-	LDA.ZX	VRB	; load low byte of A
-	ADC.Y	VRB	; add with low byte of B
-	STA.ZX	VRB	; store into low byte of S
-	LDA.ZX	VRB 1	; load high byte of A
-	ADC.Y	VRB 1	; add with high byte of B
-	STA.ZX	VRB 1	; store into high byte of S
-	PHP		; save P results in VR11/1
-	PLA
-	STA.Z	VR11
-	PLA		; save original A in VR11/2 to switch A and P on stack
-	STA.Z	VR11 1
-	LDA.Z	VR11	; load P
-	PHA		; push so it comes off last
-	LDA.Z	VR11 1	; restore A
-	PLP		; pull P to get add results
-	RTS		; return
+    PHA             ; store A
+    CLC             ; clear carry for ADC
+    LDA.ZX  VRB     ; load low byte of A
+    ADC.Y   VRB     ; add with low byte of B
+    STA.ZX  VRB     ; store into low byte of S
+    LDA.ZX  VRB 1   ; load high byte of A
+    ADC.Y   VRB 1   ; add with high byte of B
+    STA.ZX  VRB 1   ; store into high byte of S
+    PHP             ; save P results in VR11/1
+    PLA
+    STA.Z   VR11
+    PLA             ; save original A in VR11/2 to switch A and P on stack
+    STA.Z   VR11 1
+    LDA.Z   VR11    ; load P
+    PHA             ; push so it comes off last
+    LDA.Z   VR11 1  ; restore A
+    PLP             ; pull P to get add results
+    RTS             ; return
 
 ;==================================================
 
 ; SUB16
-; P ---	VRX: minuend A
-;	VRY: subtrahend B
-; R ---	VRX: difference D=A-B
+; P --- VRX: minuend A
+;       VRY: subtrahend B
+; R --- VRX: difference D=A-B
 ; subtracts the two 16-bit numbers in registers given by VRIs in X and Y
 ; results of operation stored in P after
 
 >SUB16
-	PHA		; store A
-	SEC		; set carry for SBC
-	LDA.ZX	VRB 	; load low byte of A
-	SBC.Y	VRB	; subtract with low byte of B
-	STA.ZX	VRB	; store into low byte of D
-	LDA.ZX	VRB 1	; load high byte of A
-	SBC.Y	VRB 1	; subtract with high byte of B
-	STA.ZX	VRB 1	; store into high byte of D
-	PHP		; save P results in VR11/1
-	PLA
-	STA.Z	VR11
-	PLA		; save original A in VR11/2 to switch A and P on stack
-	STA.Z	VR11 1
-	LDA.Z	VR11	; load P
-	PHA		; push so it comes off last
-	LDA.Z	VR11 1	; restore A
-	PLP		; pull P to get sub results
-	RTS		; return
+    PHA             ; store A
+    SEC             ; set carry for SBC
+    LDA.ZX  VRB     ; load low byte of A
+    SBC.Y   VRB     ; subtract with low byte of B
+    STA.ZX  VRB     ; store into low byte of D
+    LDA.ZX  VRB 1   ; load high byte of A
+    SBC.Y   VRB 1   ; subtract with high byte of B
+    STA.ZX  VRB 1   ; store into high byte of D
+    PHP             ; save P results in VR11/1
+    PLA
+    STA.Z   VR11
+    PLA             ; save original A in VR11/2 to switch A and P on stack
+    STA.Z   VR11 1
+    LDA.Z   VR11    ; load P
+    PHA             ; push so it comes off last
+    LDA.Z   VR11 1  ; restore A
+    PLP             ; pull P to get sub results
+    RTS             ; return
 
 ;==================================================
 
@@ -73,67 +73,67 @@
 ; INC16 uses a VRI held in X to increment one of the VRs
 
 >INC0
-	PHX		; store X
-	LDX.I	VRI_0	; load VRI for VR0
-	BRA	_INC	; go to inc code
+    PHX             ; store X
+    LDX.I   VRI_0   ; load VRI for VR0
+    BRA     _INC    ; go to inc code
 >INC1
-	PHX		; store X
-	LDX.I	VRI_1	; load VRI for VR1
-	BRA	_INC	; go to inc code
+    PHX             ; store X
+    LDX.I   VRI_1   ; load VRI for VR1
+    BRA     _INC    ; go to inc code
 >INC2
-	PHX		; store X
-	LDX.I	VRI_2	; load VRI for VR2
-	BRA	_INC	; go to inc code
+    PHX             ; store X
+    LDX.I   VRI_2   ; load VRI for VR2
+    BRA     _INC    ; go to inc code
 >INC3
-	PHX		; store X
-	LDX.I	VRI_3	; load VRI for VR3
-	BRA	_INC	; go to inc code
+    PHX             ; store X
+    LDX.I   VRI_3   ; load VRI for VR3
+    BRA     _INC    ; go to inc code
 >INC4
-	PHX		; store X
-	LDX.I	VRI_4	; load VRI for VR4
-	BRA	_INC	; go to inc code
+    PHX             ; store X
+    LDX.I   VRI_4   ; load VRI for VR4
+    BRA     _INC    ; go to inc code
 >INC5
-	PHX		; store X
-	LDX.I	VRI_5	; load VRI for VR5
-	BRA	_INC	; go to inc code
+    PHX             ; store X
+    LDX.I   VRI_5   ; load VRI for VR5
+    BRA     _INC    ; go to inc code
 >INC6
-	PHX		; store X
-	LDX.I	VRI_6	; load VRI for VR6
-	BRA	_INC	; go to inc code
+    PHX             ; store X
+    LDX.I   VRI_6   ; load VRI for VR6
+    BRA     _INC    ; go to inc code
 >INC7
-	PHX		; store X
-	LDX.I	VRI_7	; load VRI for VR7
-	BRA	_INC	; go to inc code
+    PHX             ; store X
+    LDX.I   VRI_7   ; load VRI for VR7
+    BRA     _INC    ; go to inc code
 >INC8
-	PHX		; store X
-	LDX.I	VRI_8	; load VRI for VR8
-	BRA	_INC	; go to inc code
+    PHX             ; store X
+    LDX.I   VRI_8   ; load VRI for VR8
+    BRA     _INC    ; go to inc code
 >INC9
-	PHX		; store X
-	LDX.I	VRI_9	; load VRI for VR9
-	BRA	_INC	; go to inc code
+    PHX             ; store X
+    LDX.I   VRI_9   ; load VRI for VR9
+    BRA     _INC    ; go to inc code
 >INC10
-	PHX		; store X
-	LDX.I	VRI_10	; load VRI for VR10
-	BRA	_INC	; go to inc code
+    PHX             ; store X
+    LDX.I   VRI_10  ; load VRI for VR10
+    BRA     _INC    ; go to inc code
 >INC11
-	PHX		; store X
-	LDX.I	VRI_11	; load VRI for VR11
-	BRA	_INC	; go to inc code
+    PHX             ; store X
+    LDX.I   VRI_11  ; load VRI for VR11
+    BRA     _INC    ; go to inc code
 >INC16
-	PHX		; store X
+    PHX             ; store X
 >_INC
-	PHA		; store A
-	CLC		; clear carry for ADC
-	LDA.ZX	VRB	; load low byte of A
-	ADC.I	1	; add 1 to it
-	STA.ZX	VRB	; store into low byte of S
-	LDA.ZX	VRB 1	; load high byte of A
-	ADC.I	0	; add 0 + C to it
-	STA.ZX	VRB 1	; store into high byte of S
-	PLA		; restore A
-	PLX		; restore X
-	RTS		; return
+    PHA             ; store A
+    CLC             ; clear carry for ADC
+    LDA.ZX  VRB     ; load low byte of A
+    ADC.I   1       ; add 1 to it
+    STA.ZX  VRB     ; store into low byte of S
+    LDA.ZX  VRB 1   ; load high byte of A
+    ADC.I   0       ; add 0 + C to it
+    STA.ZX  VRB 1   ; store into high byte of S
+    PLA             ; restore A
+    PLX             ; restore X
+    RTS             ; return
 
 ;==================================================
 
@@ -143,112 +143,112 @@
 ; DEC16 uses a VRI held in X to decrement one of the VRs
 
 >DEC0
-	PHX		; store X
-	LDX.I	VRI_0	; load VRI for VR0
-	BRA	_DEC	; go to dec code
+    PHX             ; store X
+    LDX.I   VRI_0   ; load VRI for VR0
+    BRA     _DEC    ; go to dec code
 >DEC1
-	PHX		; store X
-	LDX.I	VRI_1	; load VRI for VR1
-	BRA	_DEC	; go to dec code
+    PHX             ; store X
+    LDX.I   VRI_1   ; load VRI for VR1
+    BRA     _DEC    ; go to dec code
 >DEC2
-	PHX		; store X
-	LDX.I	VRI_2	; load VRI for VR2
-	BRA	_DEC	; go to dec code
+    PHX             ; store X
+    LDX.I   VRI_2   ; load VRI for VR2
+    BRA     _DEC    ; go to dec code
 >DEC3
-	PHX		; store X
-	LDX.I	VRI_3	; load VRI for VR3
-	BRA	_DEC	; go to dec code
+    PHX             ; store X
+    LDX.I   VRI_3   ; load VRI for VR3
+    BRA     _DEC    ; go to dec code
 >DEC4
-	PHX		; store X
-	LDX.I	VRI_4	; load VRI for VR4
-	BRA	_DEC	; go to dec code
+    PHX             ; store X
+    LDX.I   VRI_4   ; load VRI for VR4
+    BRA     _DEC    ; go to dec code
 >DEC5
-	PHX		; store X
-	LDX.I	VRI_5	; load VRI for VR5
-	BRA	_DEC	; go to dec code
+    PHX             ; store X
+    LDX.I   VRI_5   ; load VRI for VR5
+    BRA     _DEC    ; go to dec code
 >DEC6
-	PHX		; store X
-	LDX.I	VRI_6	; load VRI for VR6
-	BRA	_DEC	; go to dec code
+    PHX             ; store X
+    LDX.I   VRI_6   ; load VRI for VR6
+    BRA     _DEC    ; go to dec code
 >DEC7
-	PHX		; store X
-	LDX.I	VRI_7	; load VRI for VR7
-	BRA	_DEC	; go to dec code
+    PHX             ; store X
+    LDX.I   VRI_7   ; load VRI for VR7
+    BRA     _DEC    ; go to dec code
 >DEC8
-	PHX		; store X
-	LDX.I	VRI_8	; load VRI for VR8
-	BRA	_DEC	; go to dec code
+    PHX             ; store X
+    LDX.I   VRI_8   ; load VRI for VR8
+    BRA     _DEC    ; go to dec code
 >DEC9
-	PHX		; store X
-	LDX.I	VRI_9	; load VRI for VR9
-	BRA	_DEC	; go to dec code
+    PHX             ; store X
+    LDX.I   VRI_9   ; load VRI for VR9
+    BRA     _DEC    ; go to dec code
 >DEC10
-	PHX		; store X
-	LDX.I	VRI_10	; load VRI for VR10
-	BRA	_DEC	; go to dec code
+    PHX             ; store X
+    LDX.I   VRI_10  ; load VRI for VR10
+    BRA     _DEC    ; go to dec code
 >DEC11
-	PHX		; store X
-	LDX.I	VRI_11	; load VRI for VR11
-	BRA	_DEC	; go to dec code
+    PHX             ; store X
+    LDX.I   VRI_11  ; load VRI for VR11
+    BRA     _DEC    ; go to dec code
 >DEC16
-	PHX		; store X
+    PHX             ; store X
 >_DEC
-	PHA		; store A
-	SEC		; set carry for SBC
-	LDA.ZX	VRB	; load low byte of A
-	SBC.I	1	; subtract 1 from it
-	STA.ZX	VRB	; store into low byte of D
-	LDA.ZX	VRB 1	; load high byte of A
-	SBC.I	0	; subtract 0 + C from it
-	STA.ZX	VRB 1	; store into high byte of D
-	PLA		; restore A
-	PLX		; restore X
-	RTS		; return
+    PHA             ; store A
+    SEC             ; set carry for SBC
+    LDA.ZX  VRB     ; load low byte of A
+    SBC.I   1       ; subtract 1 from it
+    STA.ZX  VRB     ; store into low byte of D
+    LDA.ZX  VRB 1   ; load high byte of A
+    SBC.I   0       ; subtract 0 + C from it
+    STA.ZX  VRB 1   ; store into high byte of D
+    PLA             ; restore A
+    PLX             ; restore X
+    RTS             ; return
 
 ;==================================================
 
 ; EQU16
 ; P --- VRX: number 1 A
-;	VRY: number 2 B
+;       VRY: number 2 B
 ; R --- A: comparison result R
 ; performs an unsigned comparison of A == B
 ; can directly compare flags after function call
 
 >EQU16
-	LDA.ZX	VRB		; load low byte of A
-	CMP.Y	VRB		; compare to low byte of B
-	BNE	_EQU16_FALSE	; if not equal, return false
-	LDA.ZX	VRB 1		; load high byte of A
-	CMP.Y	VRB 1		; compare to high byte of B
-	BNE	_EQU16_FALSE	; if not equal, return false
-	LDA.I	TRUE		; load true
-	RTS			; return
+    LDA.ZX  VRB             ; load low byte of A
+    CMP.Y   VRB             ; compare to low byte of B
+    BNE     _EQU16_FALSE    ; if not equal, return false
+    LDA.ZX  VRB 1           ; load high byte of A
+    CMP.Y   VRB 1           ; compare to high byte of B
+    BNE     _EQU16_FALSE    ; if not equal, return false
+    LDA.I   TRUE            ; load true
+    RTS                     ; return
 >_EQU16_FALSE
-	LDA.I	FALSE		; load false
-	RTS			; return
+    LDA.I   FALSE           ; load false
+    RTS                     ; return
 
 ;==================================================
 
 ; GREU16
 ; P --- VRX: number A
-;	VRY: number B
+;       VRY: number B
 ; R --- A: comparison result R
 ; performs an unsigned comparison of A >= B
 ; R = FALSE if A < B
 ; R = TRUE if A >= B
 
 >GREU16
-	LDA.ZX	VRB 1		; load high byte of A
-	CMP.Y	VRB 1		; compare to low byte of B
-	BLS	_GREU16_FALSE	; if Ah < Bh return false
-	BNE	_GREU16_TRUE	; if Ah > Bh return true
-	; high bytes are equal, compare lower bytes
-	LDA.ZX	VRB		; load low byte of A
-	CMP.Y	VRB		; compare to low byte of B
-	BLS	_GREU16_FALSE	; if Al < Bl return false
+    LDA.ZX  VRB 1           ; load high byte of A
+    CMP.Y   VRB 1           ; compare to low byte of B
+    BLS     _GREU16_FALSE   ; if Ah < Bh return false
+    BNE     _GREU16_TRUE    ; if Ah > Bh return true
+    ; high bytes are equal, compare lower bytes
+    LDA.ZX  VRB             ; load low byte of A
+    CMP.Y   VRB             ; compare to low byte of B
+    BLS     _GREU16_FALSE   ; if Al < Bl return false
 >_GREU16_TRUE
-	LDA.I	TRUE		; load true
-	RTS			; return
+    LDA.I   TRUE            ; load true
+    RTS                     ; return
 >_GREU16_FALSE
-	LDA.I	FALSE		; load false
-	RTS			; return
+    LDA.I   FALSE           ; load false
+    RTS                     ; return

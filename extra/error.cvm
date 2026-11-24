@@ -19,7 +19,7 @@ $FILE_ERROR_ID_STR
 $FILE_ERROR_OPEN_STR
 >_ERROR_STR_ARRAY_END
 
-=ERROR_STR_COUNT	_ERROR_STR_ARRAY_END - ERROR_STR_ARRAY / 2
+=ERROR_STR_COUNT        _ERROR_STR_ARRAY_END - ERROR_STR_ARRAY / 2
 
 ;==========
 
@@ -60,30 +60,30 @@ $FILE_ERROR_OPEN_STR
 ; if C is not a valid error code, do nothing
 
 >PRINT_ERROR
-	DEC				; decrement C for array index
-	CMP.I	ERROR_STR_COUNT		; see if index is valid
-	BLS	_PRINT_ERROR_CONT	; continue if so
-	INC				; increment to restore A to value C
-	RTS				; else return
+    DEC                             ; decrement C for array index
+    CMP.I   ERROR_STR_COUNT         ; see if index is valid
+    BLS     _PRINT_ERROR_CONT       ; continue if so
+    INC                             ; increment to restore A to value C
+    RTS                             ; else return
 >_PRINT_ERROR_CONT
-	PHA				; store C - 1
-	PHX				; store X
-	ASL				; get index * 2 for str pointer offset
-	TAX				; move offset to X
-	LDA.Z	VR0			; store VR0
-	PHA
-	LDA.Z	VR0 1
-	PHA
-	LDA.X	ERROR_STR_ARRAY		; get low byte of error string
-	STA.Z	VR0			; store in VR0/1
-	LDA.X	ERROR_STR_ARRAY 1	; get high byte of error string
-	STA.Z	VR0 1			; store in VR0/2
-	JSR	PRINTS			; print error string
-	PLA				; restore VR0
-	STA.Z	VR0 1
-	PLA
-	STA.Z	VR0
-	PLX				; restore X
-	PLA				; get C - 1
-	INC				; restore A to value C
-	RTS				; return
+    PHA                             ; store C - 1
+    PHX                             ; store X
+    ASL                             ; get index * 2 for str pointer offset
+    TAX                             ; move offset to X
+    LDA.Z   VR0                     ; store VR0
+    PHA
+    LDA.Z   VR0 1
+    PHA
+    LDA.X   ERROR_STR_ARRAY         ; get low byte of error string
+    STA.Z   VR0                     ; store in VR0/1
+    LDA.X   ERROR_STR_ARRAY 1       ; get high byte of error string
+    STA.Z   VR0 1                   ; store in VR0/2
+    JSR     PRINTS                  ; print error string
+    PLA                             ; restore VR0
+    STA.Z   VR0 1
+    PLA
+    STA.Z   VR0
+    PLX                             ; restore X
+    PLA                             ; get C - 1
+    INC                             ; restore A to value C
+    RTS                             ; return
